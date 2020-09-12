@@ -1,12 +1,9 @@
-#include <functional>
 #include <iostream>
 
 #include <spdlog/spdlog.h>
 
-
 #include <docopt/docopt.h>
-
-#include <iostream>
+#include <map>
 
 static constexpr auto USAGE =
   R"(Naval Fate.

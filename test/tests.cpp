@@ -1,14 +1,14 @@
 #include <catch2/catch.hpp>
 
-unsigned int Factorial(unsigned int number)
+unsigned int factorial(unsigned int number)
 {
-  return number <= 1 ? number : Factorial(number - 1) * number;
+  return number <= 1 ? number : factorial(number - 1) * number;
 }
 
 TEST_CASE("Factorials are computed", "[factorial]")
 {
-  REQUIRE(Factorial(1) == 1);
-  REQUIRE(Factorial(2) == 2);
-  REQUIRE(Factorial(3) == 6);
-  REQUIRE(Factorial(10) == 3628800);
+  REQUIRE(factorial(1) == 1);
+  REQUIRE(factorial(2) == 2);
+  REQUIRE(factorial(3) == 6);
+  REQUIRE(factorial(10) == 3628800);
 }
