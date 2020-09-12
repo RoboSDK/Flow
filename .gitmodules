@@ -1,0 +1,3 @@
+[submodule "external/cppitertools"]
+	path = external/cppitertools
+	url = https://github.com/ryanhaining/cppitertools.git

@@ -1,9 +1,8 @@
-#include <iostream>
-
-#include <spdlog/spdlog.h>
-
 #include <docopt/docopt.h>
+#include <iostream>
 #include <map>
+#include <spdlog/spdlog.h>
+#include <cppitertools/itertools.hpp>
 
 static constexpr auto USAGE =
   R"(Naval Fate.
@@ -30,10 +29,9 @@ int main(int argc, const char **argv)
     true,// show help if requested
     "Naval Fate 2.0");// version string
 
-  for (auto const &arg : args) {
-    std::cout << arg.first << arg.second << std::endl;
+  for (auto const &[index, arg] : iter::enumerate(args)) {
+    std::cout << "index: " << index << " | " << arg.first << arg.second << std::endl;
   }
-
 
   //Use the default logger (stdout, multi-threaded, colored)
   spdlog::info("Hello, {}!", "World");

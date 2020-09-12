@@ -4,6 +4,7 @@ target_link_libraries(
   intro
   PRIVATE project_options
           project_warnings
+          header_only_libs
           CONAN_PKG::docopt.cpp
           CONAN_PKG::fmt
           CONAN_PKG::spdlog)
