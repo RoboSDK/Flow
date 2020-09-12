@@ -1,0 +1,5 @@
+# clion
+.idea
+
+# ignore build directories
+*build*
