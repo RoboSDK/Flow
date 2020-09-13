@@ -5,6 +5,4 @@ target_link_libraries(
   PRIVATE project_options
           project_warnings
           header_only_libs
-          flow
-
-          CONAN_PKG::spdlog)
+          flow)

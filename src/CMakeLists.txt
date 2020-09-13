@@ -6,4 +6,5 @@ target_link_libraries(
         project_options
         project_warnings
         header_only_libs
+        CONAN_PKG::spdlog
         CONAN_PKG::docopt.cpp)
