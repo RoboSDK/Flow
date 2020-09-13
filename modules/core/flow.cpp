@@ -1,11 +1,8 @@
-#ifndef FLOW_FLOW_HPP
-#define FLOW_FLOW_HPP
-
 #include <iostream>
 #include <docopt/docopt.h>
 
 namespace flow {
-inline auto begin(int argc, const char **argv)
+void begin(int argc, const char ** argv)
 {
   static constexpr auto USAGE =
     R"(Flow
@@ -30,4 +27,3 @@ inline auto begin(int argc, const char **argv)
 }
 }// namespace flow
 
-#endif//FLOW_FLOW_HPP

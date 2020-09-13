@@ -1,5 +1,5 @@
-#ifndef FLOW_LOGGING_HPP
-#define FLOW_LOGGING_HPP
+#ifndef MODULES_CORE_LOGGING_HPP
+#define MODULES_CORE_LOGGING_HPP
 
 #include <spdlog/spdlog.h>
 
@@ -35,4 +35,4 @@ void critical(Args &&... args)
 }
 }// namespace flow::logging
 
-#endif//FLOW_LOGGING_HPP
+#endif//MODULES_LOGGING_HPP

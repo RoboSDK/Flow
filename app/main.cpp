@@ -1,5 +1,5 @@
-#include <flow/flow.hpp>
-#include <flow/logging.hpp>
+#include "../modules/core/include/flow.hpp"
+#include "../modules/logging/include/logging/logging.hpp"
 
 int main(int argc, const char **argv)
 {
