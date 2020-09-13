@@ -87,6 +87,7 @@ if(ENABLE_FUZZING)
 endif()
 
 add_subdirectory(src)
+add_subdirectory(app)
 
 option(ENABLE_UNITY "Enable Unity builds of projects" OFF)
 if(ENABLE_UNITY)
