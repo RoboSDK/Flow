@@ -1,0 +1,10 @@
+#ifndef FLOW_EXECUTIVESYSTEM_HPP
+#define FLOW_EXECUTIVESYSTEM_HPP
+
+
+class ExecutiveSystem
+{
+};
+
+
+#endif//FLOW_EXECUTIVESYSTEM_HPP
