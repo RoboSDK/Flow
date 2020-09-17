@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 
+set(CMAKE_C_COMPILER "/usr/bin/clang-6.0")
+set(CMAKE_CXX_COMPILER "/usr/bin/clang-8")
+
 # Set the project name to your project name, my project isn't very descriptive
 project(Flow CXX)
 include(cmake/StandardProjectSettings.cmake)
