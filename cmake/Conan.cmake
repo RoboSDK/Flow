@@ -20,6 +20,8 @@ macro(run_conan)
     docopt.cpp/0.6.2
     fmt/6.2.0
     spdlog/1.5.0
+    boost_hana/1.69.0@bincrafters/stable
+
     OPTIONS
     ${CONAN_EXTRA_OPTIONS}
     BASIC_SETUP

@@ -1,8 +1,0 @@
-add_subdirectory(logging)
-add_subdirectory(core)
-add_subdirectory(executive)
-add_subdirectory(perception)
-add_subdirectory(planning)
-add_subdirectory(state_estimation)
-add_subdirectory(transform)
-add_subdirectory(utility)
