@@ -65,7 +65,8 @@ constexpr bool contains()
 template <class CurrentType, class... TypesPassedIn, class... TypeSet>
 constexpr auto make_type_set(std::tuple<TypeSet...>  /*unused*/ = std::tuple<TypeSet...>{})
 {
-  if constexpr (contains<CurrentType, TypeSet...>()) {
+  using CurrentTypeDecayed = std::decay_t<CurrentType>;
+  if constexpr (contains<CurrentTypeDecayed, TypeSet...>()) {
 
     if constexpr (not empty<TypesPassedIn...>()) {
       return make_type_set<TypesPassedIn...>(std::tuple<TypeSet...>());
@@ -76,9 +77,9 @@ constexpr auto make_type_set(std::tuple<TypeSet...>  /*unused*/ = std::tuple<Typ
   } else {
 
     if constexpr (not empty<TypesPassedIn...>()) {
-      return make_type_set<TypesPassedIn...>(std::tuple<TypeSet..., CurrentType>());
+      return make_type_set<TypesPassedIn...>(std::tuple<TypeSet..., CurrentTypeDecayed>());
     } else {
-      return std::tuple<TypeSet..., CurrentType>();
+      return std::tuple<TypeSet..., CurrentTypeDecayed>();
     }
 
   }

@@ -9,13 +9,13 @@ add_library(catch_main STATIC catch_main.cpp)
 target_link_libraries(catch_main PUBLIC CONAN_PKG::catch2)
 target_link_libraries(catch_main PRIVATE project_options)
 
-add_executable(. tests.cpp)
-target_link_libraries(. PRIVATE project_warnings project_options catch_main)
+add_executable(test_mixed_array test_mixed_array.cpp)
+target_link_libraries(test_mixed_array PRIVATE project_warnings project_options catch_main flow::flow)
 
 # automatically discover tests that are defined in catch based test files you can modify the unittests. TEST_PREFIX to
 # whatever you want, or use different for different binaries
 catch_discover_tests(
-        .
+  test_mixed_array
   TEST_PREFIX
   "unittests."
   EXTRA_ARGS

@@ -14,7 +14,8 @@ template <typename... Layers>
 class PerceptionSystem
 {
 private:
-  constexpr static MixedArray<Layers...> m_perception_layers = flow::make_mixed_array(Layers{} ...);
+  static constexpr std::size_t N = sizeof...(Layers);
+  static constexpr MixedArray<N, Layers...> m_perception_layers = flow::make_mixed_array(Layers{} ...);
 };
 
 template <typename... Layers>

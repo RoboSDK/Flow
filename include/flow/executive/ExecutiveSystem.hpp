@@ -9,7 +9,8 @@ template <typename... Layers>
 class ExecutiveSystem
 {
 private:
-  constexpr static MixedArray<Layers...> m_executive_layers = flow::make_mixed_array(Layers{} ...);
+  static constexpr std::size_t N = sizeof...(Layers);
+  constexpr static MixedArray<N, Layers...> m_executive_layers = flow::make_mixed_array(Layers{} ...);
 };
 
 template <typename... Layers>
