@@ -9,7 +9,7 @@ endif()
 
 add_library(flow::flow ALIAS flow)
 
-target_include_directories(flow PUBLIC ${CMAKE_CURRENT_DIR}/include)
+target_include_directories(flow PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(flow
         PRIVATE
         project_options
@@ -17,6 +17,8 @@ target_link_libraries(flow
         header_only_libs
 
         flow::logging
+        flow::utility
 
         CONAN_PKG::docopt.cpp
+        CONAN_PKG::boost_hana
         )
