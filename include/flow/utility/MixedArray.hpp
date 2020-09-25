@@ -22,11 +22,11 @@ public:
   constexpr decltype(auto) begin() { return std::begin(m_items); }
   constexpr decltype(auto) end() { return std::begin(m_items); }
 
-  constexpr decltype(auto) front() { return m_items.front(); }
-  constexpr decltype(auto) back() { return m_items.back(); }
+  [[maybe_unused]] constexpr decltype(auto) front() { return m_items.front(); }
+  [[maybe_unused]] constexpr decltype(auto) back() { return m_items.back(); }
 
   constexpr decltype(auto) operator[](std::size_t index) { return m_items[index]; }
-  constexpr decltype(auto) size() { return m_items.size(); }
+  [[maybe_unused]] constexpr decltype(auto) size() { return m_items.size(); }
 
 private:
   Array m_items;
@@ -34,7 +34,7 @@ private:
 
 template<typename... Types>
 constexpr auto make_mixed_array(Types &&... types) {
-  constexpr auto type_set = metaprogramming::make_type_set<Types...>(std::tuple<>());
+  constexpr auto type_set = metaprogramming::make_type_set<Types...>();
 
   constexpr auto to_mixed_array = [&]<typename... TypeSet>(std::tuple<TypeSet...> /*unused*/) {
     return MixedArray(std::forward<Types...>(types)...);

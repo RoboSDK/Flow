@@ -2,6 +2,7 @@
 #define MODULES_CORE_FLOW_HPP
 
 #include "flow/AutonomousSystem.hpp"
+#include "flow/utility/metaprogramming.hpp"
 
 namespace flow {
 /**
@@ -11,10 +12,11 @@ namespace flow {
  */
 void begin(int argc, const char **argv);
 
-template <typename ...Layers>
-constexpr decltype(auto) make_system()
-{
-  // TODO: Check for repeats and add constraints
+template<typename... Layers>
+constexpr decltype(auto) make_system() {
+  static_assert(std::is_same_v<std::tuple<Layers...>, decltype(metaprogramming::make_type_set<Layers...>(std::tuple<>()))>,
+    "A unique set of layers must be passed in to flow::make_system");
+
   return System<Layers...>{};
 }
 }// namespace flow

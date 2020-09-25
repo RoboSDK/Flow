@@ -63,7 +63,7 @@ constexpr bool contains()
  * @return An empty tuple containing the type set
  */
 template <class CurrentType, class... TypesPassedIn, class... TypeSet>
-constexpr auto make_type_set(std::tuple<TypeSet...> /*unused*/)
+constexpr auto make_type_set(std::tuple<TypeSet...>  /*unused*/ = std::tuple<TypeSet...>{})
 {
   if constexpr (contains<CurrentType, TypeSet...>()) {
 
@@ -99,6 +99,6 @@ constexpr auto make_type_set(std::tuple<TypeSet...> /*unused*/)
  * @return An empty tuple containing the type set
  */
 template <class... Types>
-constexpr auto make_variant(std::tuple<Types...>) { return std::variant<Types...>{}; }
+[[maybe_unused]] constexpr auto make_variant(std::tuple<Types...> /*unused*/) { return std::variant<Types...>{}; }
 }
 #endif//FLOW_METAPROGRAMMING_HPP
