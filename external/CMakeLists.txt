@@ -5,8 +5,13 @@ macro(git_submodule_update submodule)
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endmacro()
 
-git_submodule_update(cppitertools)
+git_submodule_update(frozen)
+git_submodule_update(pipes)
+git_submodule_update(sml)
 
 add_library(header_only_libs INTERFACE)
-target_include_directories(header_only_libs SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(header_only_libs SYSTEM INTERFACE
+        frozen/include
+        pipes/include
+        sml/include)
 

@@ -1,3 +1,9 @@
-[submodule "external/cppitertools"]
-	path = external/cppitertools
-	url = https://github.com/ryanhaining/cppitertools.git
+[submodule "external/frozen"]
+	path = external/frozen
+	url = https://github.com/serge-sans-paille/frozen.git
+[submodule "external/pipes"]
+	path = external/pipes
+	url = https://github.com/joboccara/pipes.git
+[submodule "external/sml"]
+	path = external/sml
+	url = https://github.com/boost-ext/sml.git
