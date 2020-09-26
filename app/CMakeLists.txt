@@ -1,4 +1,4 @@
-add_executable(app main.cpp ../include/flow/perception/PerceptionTask.hpp ../include/flow/perception/PerceptionLayer.hpp ../include/flow/executive/ExecutiveTask.hpp ../include/flow/executive/ExecutiveLayer.hpp)
+add_executable(app main.cpp)
 target_link_libraries(app
         PRIVATE
         project_options

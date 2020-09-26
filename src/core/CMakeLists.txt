@@ -1,10 +1,8 @@
-add_subdirectory(autonomy)
-
 list(APPEND source_files flow.cpp)
 if (BUILD_SHARED_LIBS)
     add_library(flow SHARED ${source_files})
 else()
-    add_library(flow STATIC ${source_files})
+    add_library(flow STATIC ${source_files} ChannelLinker.hpp)
 endif()
 
 add_library(flow::flow ALIAS flow)

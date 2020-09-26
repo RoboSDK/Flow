@@ -1,0 +1,4 @@
+#ifndef FLOW_EVENT_HPP
+#define FLOW_EVENT_HPP
+
+#endif//FLOW_EVENT_HPP
