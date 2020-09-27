@@ -18,5 +18,4 @@ target_link_libraries(flow
         flow::utility
 
         CONAN_PKG::docopt.cpp
-        CONAN_PKG::boost_hana
         )
