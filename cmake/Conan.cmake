@@ -20,6 +20,7 @@ macro(run_conan)
     docopt.cpp/0.6.2
     fmt/6.2.0
     spdlog/1.5.0
+    range-v3/0.11.0
 
     OPTIONS
     ${CONAN_EXTRA_OPTIONS}

@@ -7,3 +7,15 @@
 [submodule "external/sml"]
 	path = external/sml
 	url = https://github.com/boost-ext/sml.git
+[submodule "external/--force"]
+	path = external/--force
+	url = https://github.com/wangyi-fudan/wyhash.git
+[submodule "external/wyhash"]
+	path = external/wyhash
+	url = https://github.com/wangyi-fudan/wyhash.git
+[submodule "external/wyhash/wyhash"]
+	path = external/wyhash/include/wyhash
+	url = https://github.com/wangyi-fudan/wyhash.git
+[submodule "external/wyhash/include/wyhash"]
+	path = external/wyhash/include/wyhash
+	url = https://github.com/wangyi-fudan/wyhash.git

@@ -13,5 +13,6 @@ add_library(header_only_libs INTERFACE)
 target_include_directories(header_only_libs SYSTEM INTERFACE
         frozen/include
         pipes/include
-        sml/include)
+        sml/include
+        wyhash/include)
 

@@ -11,7 +11,11 @@ target_link_libraries(app
         project_options
         project_warnings
         header_only_libs
+
+        flow::flow
+
         Threads::Threads
         cppcoro
+
         CONAN_PKG::fmt
 )
