@@ -5,7 +5,7 @@
 #include <array>
 #include <variant>
 
-#include "metaprogramming.hpp"
+#include "../metaprogramming.hpp"
 #include "flow/logging.hpp"
 
 namespace flow {

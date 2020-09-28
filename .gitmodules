@@ -19,3 +19,9 @@
 [submodule "external/wyhash/include/wyhash"]
 	path = external/wyhash/include/wyhash
 	url = https://github.com/wangyi-fudan/wyhash.git
+[submodule "external/sole/sole"]
+	path = external/sole/sole
+	url = https://github.com/r-lyeh-archived/sole.git
+[submodule "external/cppitertools/include/cppitertools"]
+	path = external/cppitertools/include/cppitertools
+	url = https://github.com/ryanhaining/cppitertools.git

@@ -14,5 +14,8 @@ target_include_directories(header_only_libs SYSTEM INTERFACE
         frozen/include
         pipes/include
         sml/include
-        wyhash/include)
+        wyhash/include
+        sole/include
+        cppitertools/include
+        )
 

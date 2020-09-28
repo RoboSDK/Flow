@@ -34,7 +34,7 @@ BraceWrapping:
   SplitEmptyRecord: false
 BreakAfterJavaFieldAnnotations: true
 BreakBeforeBinaryOperators: NonAssignment
-BreakBeforeBraces: Attach
+BreakBeforeBraces: Stroustrup
 BreakBeforeInheritanceComma: true
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeColon

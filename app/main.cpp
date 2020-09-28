@@ -1,7 +1,6 @@
-#include "consteval_hash.h"
+#include "LidarTask.hpp"
 
 int main()
 {
-  const char * val = "dog";
-  flow::consteval_wyhash(val, 3, 0);
+
 }
