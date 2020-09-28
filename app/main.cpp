@@ -1,20 +1,19 @@
-#include <flow/flow.hpp>
-#include <flow/logging.hpp>
+#include <cppcoro/task.hpp>
+#include <cppcoro/sync_wait.hpp>
+#include <cppcoro/when_all.hpp>
+#include <cstdio>
 
-struct Localization {};
-struct Filtering {};
-struct Sensor {};
+using namespace cppcoro;
+task<> work(std::size_t num_work) {
+  while (num_work) {
+    puts("Doing work!");
+    --num_work;
+  }
+  co_return;
+}
 
-struct Transforms {};
-struct Behaviors {};
-struct Planning {};
-struct Controls {};
-
-int main(int argc, const char** argv) {
-  flow::begin(argc, argv);
-  flow::logging::info("Hello, World");
-
-//  [[maybe_unused]] constexpr auto autonomous_system = flow::make_system<Sensor, Filtering, Localization, Transforms, Behaviors, Planning, Controls>();
-  //  return flow::spin(autonomous_system);
-//  boost::sml::event
+int main() {
+  when_all([]() -> task<> {
+    co_await work(2);
+  }());
 }
