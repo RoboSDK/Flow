@@ -6,7 +6,8 @@
 #include <vector>
 #include <chrono>
 
-struct LidarData {
+struct LidarData
+{
   std::vector<double> points;
 };
 

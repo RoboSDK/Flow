@@ -1,29 +1,28 @@
 #pragma once
 
-#include <flow/common.h>
-#include <flow/options.hpp>
+//#include <flow/options.hpp>
 
-namespace flow {
+//namespace flow {
 
-    class DependencyRegister;
+//    class DependencyRegister;
+//
+//    template <class T, class U, class... Remainder>
+//    struct DerivedTrait : std::integral_constant<bool, DerivedTrait<T, Remainder...>::value && std::is_base_of_v<U, T>> {};
+//
+//    template <class T, class U>
+//    struct DerivedTrait<T, U> : std::integral_constant<bool, std::is_base_of_v<U, T>> {};
+//
+//    template <class T, class U, class... Remainder>
+//    struct ListContainsInterface : std::integral_constant<bool, ListContainsInterface<T, Remainder...>::value || std::is_base_of_v<U, T>> {};
+//
+//    template <class T, class U>
+//    struct ListContainsInterface<T, U> : std::integral_constant<bool, std::is_base_of_v<U, T>> {};
+//
+//    template <class T, class U>
+//    concept derives = std::is_base_of<U, T>;
 
-    template <class T, class U, class... Remainder>
-    struct DerivedTrait : std::integral_constant<bool, DerivedTrait<T, Remainder...>::value && std::is_base_of_v<U, T>> {};
-
-    template <class T, class U>
-    struct DerivedTrait<T, U> : std::integral_constant<bool, std::is_base_of_v<U, T>> {};
-
-    template <class T, class U, class... Remainder>
-    struct ListContainsInterface : std::integral_constant<bool, ListContainsInterface<T, Remainder...>::value || std::is_base_of_v<U, T>> {};
-
-    template <class T, class U>
-    struct ListContainsInterface<T, U> : std::integral_constant<bool, std::is_base_of_v<U, T>> {};
-
-    template <class T, class U>
-    concept Derived = std::is_base_of<U, T>::value;
-
-    template <class T, class... U>
-    concept ImplementsAll = DerivedTrait<T, U...>::value;
+//    template <class T, class... U>
+//    concept ImplementsAll = DerivedTrait<T, U...>::value;
 
 //    template <class ImplT>
 //    concept RequestsDependencies = requires(ImplT impl, DependencyRegister &deps, Properties properties) {
@@ -58,4 +57,4 @@ namespace flow {
 //        { impl.handleDependencyRequest(svc, reqEvt) } -> std::same_as<void>;
 //        { impl.handleDependencyUndoRequest(svc, reqUndoEvt) } -> std::same_as<void>;
 //    };
-}
+//}

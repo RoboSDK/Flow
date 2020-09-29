@@ -17,5 +17,6 @@ target_include_directories(header_only_libs SYSTEM INTERFACE
         wyhash/include
         sole/include
         cppitertools/include
+        NamedType/include
         )
 

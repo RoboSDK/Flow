@@ -1,5 +1,7 @@
 #pragma once
 
+#include <NamedType/crtp.hpp>
+
 namespace flow{
 
 /**
@@ -11,30 +13,30 @@ namespace flow{
  * A tasks purpose is to do one thing, and do it well.
  */
 template <typename concrete_task>
-class task
+class task : fluent::crtp<concrete_task, task>
 {
 public:
-  decltype(auto) begin();
+  void begin();
   decltype(auto) spin();
-  decltype(auto) end();
+  void end();
 };
 
 // Implementation
 template<typename concrete_task>
-decltype(auto) task<concrete_task>::begin()
+void task<concrete_task>::begin()
 {
-  static_cast<concrete_task &>(*this)->begin();
+  this->underlying()->begin();
 }
 
 template<typename concrete_task>
 decltype(auto) task<concrete_task>::spin()
 {
-  static_cast<concrete_task const&>(*this)->spin();
+  this->underlying()->spin();
 }
 
 template<typename concrete_task>
-decltype(auto) task<concrete_task>::end()
+void task<concrete_task>::end()
 {
-  static_cast<concrete_task &>(*this)->spin();
+  this->underlying()->spin();
 }
 }

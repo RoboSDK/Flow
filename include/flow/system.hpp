@@ -4,7 +4,7 @@
 #include <type_traits>
 #include "flow/data_structures/MixedArray.hpp"
 #include "flow/options.hpp"
-#include "flow/linker.hpp"
+#include "flow/scheduler.hpp"
 
 namespace flow {
 template <typename... Layers>
@@ -18,20 +18,20 @@ private:
   static constexpr MixedArray<N, Layers...> m_perception_layers = flow::make_mixed_array(Layers{}...);
 
   static constexpr options_t options{};
-  static constexpr Linker<options.linker_buffer_size> linker;
+  static constexpr scheduler<options.scheduler_subscriber_buffer_size, options.scheduler_publisher_buffer_size> scheduler;
 };
 
 template<typename... Layers>
 requires no_repeated_layers<Layers...>
-constexpr decltype(auto) make_system()
+consteval decltype(auto) make_system()
 {
-  [[maybe_unused]] constexpr auto options = make_options(flow::linker_buffer_size{});
+  [[maybe_unused]] constexpr auto options = flow::make_options();
   return System<decltype(options), Layers...>{};
 }
 
 template<typename... Layers>
 requires no_repeated_layers<Layers...>
-constexpr decltype(auto) make_system(auto&& options = flow::make_options(flow::linker_buffer_size{}))
+consteval decltype(auto) make_system(options_concept auto&& options)
 {
   return System<decltype(options), Layers...>{};
 }

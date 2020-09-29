@@ -255,5 +255,30 @@ template<typename INTERFACE_TYPENAME>
   std::string_view name = to_string<INTERFACE_TYPENAME>();
   return consteval_wyhash(&name[0], name.size(), 0);
 }
+
+template <typename T>
+struct function_traits
+  : public function_traits<decltype(&T::operator())>
+{};
+// For generic types, directly use the result of the signature of its 'operator()'
+
+template <typename ClassType, typename ReturnType, typename... Args>
+struct function_traits<ReturnType(ClassType::*)(Args...) const>
+// we specialize for pointers to member function
+{
+  enum { arity = sizeof...(Args) };
+  // arity is the number of arguments.
+
+  typedef ReturnType result_type;
+
+  template <size_t i>
+  struct argument
+  {
+    static_assert(i < arity, "flow::metaprogramming::function_traits: attempted to access index out of bounds");
+    typedef typename std::tuple_element<i, std::tuple<Args...>>::type type;
+    // the i-th argument is equivalent to the i-th tuple element of a tuple
+    // composed of those arguments.
+  };
+};
 }
 #endif//FLOW_METAPROGRAMMING_HPP
