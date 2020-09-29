@@ -1,8 +1,9 @@
-//
-// Created by manny on 9/25/20.
-//
+#pragma once
 
-#ifndef FLOW_SUBSCRIBER_HPP
-#define FLOW_SUBSCRIBER_HPP
+#include <cstdint>
 
-#endif//FLOW_SUBSCRIBER_HPP
+template <typename request_callback>
+class subscriber {
+  uint64_t channel_id;
+  const scheduler&  channel_owner;
+};
