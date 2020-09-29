@@ -14,26 +14,26 @@ template <typename concrete_task>
 class task
 {
 public:
-  void begin();
-  void spin();
-  void end();
+  decltype(auto) begin();
+  decltype(auto) spin();
+  decltype(auto) end();
 };
 
 // Implementation
 template<typename concrete_task>
-void task<concrete_task>::begin()
+decltype(auto) task<concrete_task>::begin()
 {
   static_cast<concrete_task &>(*this)->begin();
 }
 
 template<typename concrete_task>
-void task<concrete_task>::spin()
+decltype(auto) task<concrete_task>::spin()
 {
   static_cast<concrete_task const&>(*this)->spin();
 }
 
 template<typename concrete_task>
-void task<concrete_task>::end()
+decltype(auto) task<concrete_task>::end()
 {
   static_cast<concrete_task &>(*this)->spin();
 }

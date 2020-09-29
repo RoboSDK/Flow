@@ -25,9 +25,10 @@ struct LidarDriver {
 class LidarTask final : public flow::task<LidarTask> {
 public:
   void begin() {}
-  void spin()
+  LidarData spin()
   {
     current_points = m_driver.drive();
+    return current_points;
   };
 
   void end() {}
