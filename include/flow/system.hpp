@@ -7,7 +7,11 @@
 #include "flow/linker.hpp"
 
 namespace flow {
-template<typename options_t, typename... Layers>
+template <typename... Layers>
+concept no_repeated_layers = std::is_same_v<std::tuple<Layers...>, decltype(metaprogramming::make_type_set<Layers...>(std::tuple<>()))>;
+
+template<options_concept options_t, typename... Layers>
+requires no_repeated_layers<Layers...>
 class System {
 private:
   static constexpr std::size_t N = sizeof...(Layers);
@@ -18,21 +22,17 @@ private:
 };
 
 template<typename... Layers>
+requires no_repeated_layers<Layers...>
 constexpr decltype(auto) make_system()
 {
-  static_assert(std::is_same_v<std::tuple<Layers...>, decltype(metaprogramming::make_type_set<Layers...>(std::tuple<>()))>,
-    "A unique set of layers must be passed in to flow::make_system");
-
   [[maybe_unused]] constexpr auto options = make_options(flow::linker_buffer_size{});
   return System<decltype(options), Layers...>{};
 }
 
 template<typename... Layers>
-constexpr decltype(auto) make_system(auto&& options)
+requires no_repeated_layers<Layers...>
+constexpr decltype(auto) make_system(auto&& options = flow::make_options(flow::linker_buffer_size{}))
 {
-  static_assert(std::is_same_v<std::tuple<Layers...>, decltype(metaprogramming::make_type_set<Layers...>(std::tuple<>()))>,
-    "A unique set of layers must be passed in to flow::make_system");
-
   return System<decltype(options), Layers...>{};
 }
 }// namespace flow
