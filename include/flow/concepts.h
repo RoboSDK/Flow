@@ -1,6 +1,7 @@
 #pragma once
 
 #include <flow/common.h>
+#include <flow/options.hpp>
 
 namespace flow {
 

@@ -1,8 +1,6 @@
-//
-// Created by manny on 9/25/20.
-//
+#pragma once
 
-#ifndef FLOW_PUBLISHER_HPP
-#define FLOW_PUBLISHER_HPP
 
-#endif//FLOW_PUBLISHER_HPP
+class publisher {
+
+};

@@ -1,8 +1,6 @@
 #ifndef MODULES_CORE_FLOW_HPP
 #define MODULES_CORE_FLOW_HPP
 
-//#include "flow/System.hpp"
-
 namespace flow {
 /**
  * Parse arguments passed in to application execute the options selected
