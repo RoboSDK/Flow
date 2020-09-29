@@ -18,20 +18,22 @@ private:
 };
 
 template<typename... Layers>
-constexpr decltype(auto) make_system() {
+constexpr decltype(auto) make_system()
+{
   static_assert(std::is_same_v<std::tuple<Layers...>, decltype(metaprogramming::make_type_set<Layers...>(std::tuple<>()))>,
     "A unique set of layers must be passed in to flow::make_system");
 
-  return System<decltype(flow::options{}), Layers...>{};
+  [[maybe_unused]] constexpr auto options = make_options(flow::linker_buffer_size{});
+  return System<decltype(options), Layers...>{};
 }
-//
-//template<typename custom_options, typename... Layers>
-//requires options_concept<custom_options>
-//constexpr decltype(auto) make_system() {
-//  static_assert(std::is_same_v<std::tuple<Layers...>, decltype(metaprogramming::make_type_set<Layers...>(std::tuple<>()))>,
-//                "A unique set of layers must be passed in to flow::make_system");
-//
-//  return System<Layers...>{custom_options{}};
-//}
+
+template<typename... Layers>
+constexpr decltype(auto) make_system(auto&& options)
+{
+  static_assert(std::is_same_v<std::tuple<Layers...>, decltype(metaprogramming::make_type_set<Layers...>(std::tuple<>()))>,
+    "A unique set of layers must be passed in to flow::make_system");
+
+  return System<decltype(options), Layers...>{};
+}
 }// namespace flow
 #endif//FLOW_SYSTEM_HPP

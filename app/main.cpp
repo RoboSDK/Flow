@@ -5,8 +5,8 @@ struct Layer {};
 
 int main()
 {
-  [[maybe_unused]] auto system = flow::make_system<Layer>();
+  [[maybe_unused]] constexpr auto system = flow::make_system<Layer>();
 
-  auto options = flow::options<1024>{};
-  [[maybe_unused]] auto system2 = flow::make_system<decltype(options), Layer>();
+  [[maybe_unused]] constexpr auto options =  flow::make_options(flow::linker_buffer_size<1024>{});
+  [[maybe_unused]] constexpr auto system2 = flow::make_system<Layer>(options);
 }
