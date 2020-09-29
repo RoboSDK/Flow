@@ -1,8 +1,9 @@
 list(APPEND source_files flow.cpp)
+
 if (BUILD_SHARED_LIBS)
     add_library(flow SHARED ${source_files})
 else()
-    add_library(flow STATIC ${source_files} ChannelLinker.hpp)
+    add_library(flow STATIC ${source_files})
 endif()
 
 add_library(flow::flow ALIAS flow)
@@ -15,7 +16,5 @@ target_link_libraries(flow
         header_only_libs
 
         flow::logging
-        flow::utility
 
-        CONAN_PKG::docopt.cpp
-        )
+        CONAN_PKG::docopt.cpp)

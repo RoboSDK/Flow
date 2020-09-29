@@ -1,5 +1,4 @@
-#ifndef MODULES_CORE_FLOW_HPP
-#define MODULES_CORE_FLOW_HPP
+#pragma once
 
 namespace flow {
 /**
@@ -7,8 +6,6 @@ namespace flow {
  * @param argc The argc in main
  * @param argv The argv in main
  */
-void begin(int argc, const char **argv);
+void begin(int argc, char **argv);
 
 }// namespace flow
-
-#endif//MODULES_CORE_FLOW_HPP

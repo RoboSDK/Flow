@@ -10,7 +10,7 @@ include(cmake/PreventInSourceBuilds.cmake)
 add_subdirectory(external)
 
 # Link this 'library' to set the c++ standard / compile-time options requested
-add_library(project_options INTERFACE include/flow/options.hpp)
+add_library(project_options INTERFACE)
 target_compile_features(project_options INTERFACE cxx_std_20)
 target_compile_options(project_options INTERFACE -stdlib=libc++ -fcoroutines-ts)
 

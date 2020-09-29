@@ -8,7 +8,6 @@
 
 namespace flow {
 template<typename options_t, typename... Layers>
-requires options_concept<options_t>
 class System {
 private:
   static constexpr std::size_t N = sizeof...(Layers);
@@ -25,14 +24,14 @@ constexpr decltype(auto) make_system() {
 
   return System<decltype(flow::options{}), Layers...>{};
 }
-
-template<typename custom_options, typename... Layers>
-requires options_concept<custom_options>
-constexpr decltype(auto) make_system() {
-  static_assert(std::is_same_v<std::tuple<Layers...>, decltype(metaprogramming::make_type_set<Layers...>(std::tuple<>()))>,
-                "A unique set of layers must be passed in to flow::make_system");
-
-  return System<Layers...>{custom_options{}};
-}
+//
+//template<typename custom_options, typename... Layers>
+//requires options_concept<custom_options>
+//constexpr decltype(auto) make_system() {
+//  static_assert(std::is_same_v<std::tuple<Layers...>, decltype(metaprogramming::make_type_set<Layers...>(std::tuple<>()))>,
+//                "A unique set of layers must be passed in to flow::make_system");
+//
+//  return System<Layers...>{custom_options{}};
+//}
 }// namespace flow
 #endif//FLOW_SYSTEM_HPP

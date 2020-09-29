@@ -1,8 +1,10 @@
 #include <iostream>
 #include <docopt/docopt.h>
+#include "flow/flow.hpp"
+#include <vector>
 
 namespace flow {
-void begin(int argc, const char ** argv)
+void begin(int argc, char** argv)
 {
   static constexpr auto USAGE =
     R"(Flow
@@ -21,9 +23,8 @@ void begin(int argc, const char ** argv)
   auto const argument_values = std::vector<std::string>{ std::next(argv), std::next(argv, argc) };
   auto const arguments = docopt::docopt(USAGE, argument_values, SHOW_HELP_IF_REQUESTED, VERSION_INFO);
 
-  for (auto const&[argument, value] : arguments) {
+  for (auto const& [argument, value] : arguments) {
     std::cout << "{" << argument << ", " << value << "}";
   }
 }
-}// namespace src
-
+}// namespace flow

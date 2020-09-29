@@ -1,8 +1,2 @@
-//
-// Created by manny on 9/25/20.
-//
+#pragma once
 
-#ifndef FLOW_LAYER_HPP
-#define FLOW_LAYER_HPP
-
-#endif//FLOW_LAYER_HPP
