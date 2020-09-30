@@ -28,3 +28,9 @@
 [submodule "external/NamedType"]
 	path = external/NamedType
 	url = https://github.com/joboccara/NamedType.git
+[submodule "external/static_vector"]
+	path = external/static_vector
+	url = https://github.com/gnzlbg/static_vector.git
+[submodule "external/atomic_queue"]
+	path = external/atomic_queue
+	url = https://github.com/max0x7ba/atomic_queue.git

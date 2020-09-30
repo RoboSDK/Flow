@@ -4,7 +4,6 @@
 #include <type_traits>
 #include "flow/data_structures/MixedArray.hpp"
 #include "flow/options.hpp"
-#include "flow/scheduler.hpp"
 
 namespace flow {
 template <typename... Layers>
@@ -18,7 +17,7 @@ private:
   static constexpr MixedArray<N, Layers...> m_perception_layers = flow::make_mixed_array(Layers{}...);
 
   static constexpr options_t options{};
-  static constexpr scheduler<options.scheduler_subscriber_buffer_size, options.scheduler_publisher_buffer_size> scheduler;
+//  static constexpr scheduler<options.scheduler_subscriber_buffer_size, options.scheduler_publisher_buffer_size> scheduler;
 };
 
 template<typename... Layers>

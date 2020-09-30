@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
-set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++")
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_REQUIRED_FLAGS -fcoroutines)
 # Set the project name to your project name, my project isn't very descriptive
 project(Flow CXX)
 
@@ -12,7 +13,42 @@ add_subdirectory(external)
 # Link this 'library' to set the c++ standard / compile-time options requested
 add_library(project_options INTERFACE)
 target_compile_features(project_options INTERFACE cxx_std_20)
-target_compile_options(project_options INTERFACE -stdlib=libc++ -fcoroutines-ts)
+target_compile_options(project_options INTERFACE ${CMAKE_REQUIRED_FLAGS})
+
+include(CheckIncludeFileCXX)
+macro(check_include_file_cxx _header _var)
+  _check_include_file_cxx(${_header} ${_var})
+  if(NOT ${_var})
+    set(${_var} 0)
+  endif()
+endmacro()
+
+check_include_file_cxx(coroutine HAS_STD_COROUTINE_HEADER)
+check_include_file_cxx(experimental/coroutine HAS_STD_EXPERIMENTAL_COROUTINES_HEADER)
+
+check_include_file_cxx(filesystem HAS_STD_FILESYSTEM_HEADER)
+check_include_file_cxx(experimental/filesystem HAS_STD_EXPERIMENTAL_FILESYSTEM_HEADER)
+
+message(STATUS "HAS_STD_COROUTINE_HEADER: ${HAS_STD_COROUTINE_HEADER}")
+message(STATUS "HAS_STD_EXPERIMENTAL_COROUTINES_HEADER: ${HAS_STD_EXPERIMENTAL_COROUTINES_HEADER}")
+message(STATUS "HAS_STD_FILESYSTEM_HEADER: ${HAS_STD_FILESYSTEM_HEADER}")
+message(STATUS "HAS_STD_EXPERIMENTAL_FILESYSTEM_HEADER: ${HAS_STD_EXPERIMENTAL_FILESYSTEM_HEADER}")
+
+target_compile_options(project_options INTERFACE
+
+        -DCPPCORO_HAS_STD_COROUTINE_HEADER=${HAS_STD_COROUTINE_HEADER}
+        )
+target_compile_options(project_options INTERFACE
+        -DCPPCORO_HAS_STD_EXPERIMENTAL_COROUTINES_HEADER=${HAS_STD_EXPERIMENTAL_COROUTINES_HEADER}
+        )
+
+target_compile_options(project_options INTERFACE
+        -DCPPCORO_HAS_STD_FILESYSTEM_HEADER=${HAS_STD_FILESYSTEM_HEADER}
+        )
+
+target_compile_options(project_options INTERFACE
+        -DCPPCORO_HAS_STD_EXPERIMENTAL_FILESYSTEM_HEADER=${HAS_STD_EXPERIMENTAL_FILESYSTEM_HEADER}
+        )
 
 if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
   option(ENABLE_BUILD_WITH_TIME_TRACE "Enable -ftime-trace to generate time tracing .json files on clang" OFF)
