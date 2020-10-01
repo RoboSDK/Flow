@@ -3,37 +3,25 @@
 #include <flow/task.hpp>
 #include <random>
 
-#include <vector>
+#include "LidarDriver.hpp"
 #include <chrono>
 #include <flow/data_structures/static_vector.hpp>
+#include <flow/registry.hpp>
+#include <vector>
 
-struct LidarData
-{
-  flow::static_vector<double, 10000> points;
+namespace {
+app::LidarDriver g_driver{};
+}
+
+namespace app {
+class LidarTask final : public flow::task<LidarTask> {
+public:
+  void begin(auto& registry){
+    const auto on_request = [this](LidarData& message) {
+      message = g_driver.drive();
+    };
+
+    flow::publish_to<LidarData>("lidar_data", on_request, registry);
+  }
 };
-//
-//struct LidarDriver {
-//  static constexpr std::size_t N = 10'000;
-//  LidarData drive()
-//  {
-//    LidarData data{ .points = std::vector<double>(N) };
-//    std::generate_n(std::back_inserter(data.points), N, [this] { return dist(rd); });
-//    return data;
-//  }
-//  std::random_device rd;
-//  std::uniform_real_distribution<double> dist{ 0, 9 };
-//};
-
-//class LidarTask final : public flow::task<LidarTask> {
-//public:
-//  void begin() {}
-//  LidarData spin()
-//  {
-//    current_points = m_driver.drive();
-//    return current_points;
-//  };
-//
-//  void end() {}
-//  LidarDriver m_driver;
-//  LidarData current_points;
-//};
+}// namespace app

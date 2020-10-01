@@ -20,5 +20,6 @@ target_include_directories(header_only_libs SYSTEM INTERFACE
         NamedType/include
         static_vector/include
         atomic_queue/include
+        variant/include
         )
 

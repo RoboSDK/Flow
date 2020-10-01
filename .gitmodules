@@ -34,3 +34,6 @@
 [submodule "external/atomic_queue"]
 	path = external/atomic_queue
 	url = https://github.com/max0x7ba/atomic_queue.git
+[submodule "external/variant"]
+	path = external/variant
+	url = https://github.com/mpark/variant.git

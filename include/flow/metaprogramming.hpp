@@ -12,10 +12,13 @@ namespace flow::metaprogramming {
  * Various hasing functions.
  * source: wyhash
  */
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wold-style-cast"
-#pragma clang diagnostic ignored "-Wshorten-64-to-32"
-#pragma clang diagnostic ignored "-Wsign-conversion"
+//#pragma clang diagnostic push
+//#pragma clang diagnostic ignored "-Wold-style-cast"
+//#pragma clang diagnostic ignored "-Wshorten-64-to-32"
+//#pragma clang diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
 static consteval uint64_t consteval_wyrotr(uint64_t v, unsigned k) { return (v >> k) | (v << (64 - k)); }
 
 static consteval uint64_t consteval_wymum(uint64_t A, uint64_t B) {
@@ -118,7 +121,8 @@ static consteval uint64_t consteval_wyhash(const T* key, uint64_t len, uint64_t 
   }
   return consteval_wymum(seed ^ see1, len ^ _wyp4);
 }
-#pragma clang diagnostic pop
+//#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 /**
  * Returns whether the list passed in is empty

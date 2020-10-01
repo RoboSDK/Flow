@@ -30,7 +30,7 @@ public:
   [[maybe_unused]] constexpr MixedType &front() const { return m_items.front(); }
   [[maybe_unused]] constexpr MixedType &back() const { return m_items.back(); }
 
-  constexpr MixedType &operator[](std::size_t index) const { return m_items[index]; }
+  constexpr MixedType &operator[](std::size_t index) { return m_items[index]; }
   [[maybe_unused]] constexpr std::size_t size() const { return m_items.size(); }
 
 private:

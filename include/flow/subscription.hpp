@@ -28,7 +28,7 @@ private:
   std::function<void(message_t)> m_message_callback;
 
   uint16_t m_id;
-  flow::string m_channel_name;
+  std::string m_channel_name;
 
   flow::atomic_queue<message_t, message_buffer_size> m_messages;
   flow::static_vector<publisher<message_t>*, publisher_buffer_size> m_publishers;
