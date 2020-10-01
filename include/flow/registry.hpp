@@ -32,19 +32,37 @@ public:
   template <std::size_t b1, std::size_t b2>
   using channel_t = std::variant<flow::channel<message_ts, b1, b2> ...>;
 
-  void register_subscription(std::string&& channel_name, subscription_callback_t&& on_message)
+  template <typename message_t>
+  void register_subscription(std::string&& channel_name, std::function<void(message_t const&)>&& on_message)
   {
-    sub_info.emplace_back(subscription_info{std::move(channel_name), std::move(on_message)});
+    if (m_channels.find(channel_name) == m_channels.end()) {
+      auto channel = flow::channel<message_t, 64, 64>{channel_name};
+      channel.m_on_message_callbacks.push_back(on_message);
+      m_channels.emplace(channel_name, channel);
+    } else {
+      auto channel = m_channels.at(channel_name);
+      std::visit([&](auto& chan) { chan.m_on_message_callbacks.push_back(on_message); }, channel);
+    }
   }
 
-  void register_publisher(std::string&& channel_name, publisher_callback_t&& on_request)
+  template <typename message_t>
+  void register_publisher(std::string&& channel_name, std::function<void(message_t&)>&& on_request)
   {
-    pub_info.push_back(publisher_info{std::move(channel_name), std::move(on_request)});
+    if (m_channels.find(channel_name) == m_channels.end()) {
+      auto channel = flow::channel<message_t, 64, 64>{channel_name};
+      channel.m_on_request_callbacks.push_back(on_request);
+      m_channels.emplace(channel_name, channel);
+    } else {
+      auto channel = m_channels.at(channel_name);
+      std::visit([&](auto& chan) { chan.m_on_request_callbacks.push_back(on_request); }, channel);
+    }
   }
 
   static constexpr options_t options{};
-  flow::static_vector<subscription_info, options.pub_sub_buffer_size> sub_info;
-  flow::static_vector<publisher_info, options.pub_sub_buffer_size> pub_info;
+  std::vector<subscription_info> sub_info;
+  std::vector<publisher_info> pub_info;
+
+  std::unordered_map<std::string, channel_t<64, 64>> m_channels;
 };
 
 template <typename message_t>

@@ -18,46 +18,52 @@ template<typename message_t, std::size_t message_buffer_size, std::size_t callba
 class channel {
 public:
   channel(std::string name) : m_name(std::move(name)) {}
+  channel() = default;
 
   void push_callback(std::function<void(message_t&)> callback) { m_on_request_callbacks.push_back(std::move(callback)); }
   void push_callback(std::function<void(const message_t&)> callback) { m_on_message_callbacks.push_back(std::move(callback)); }
 
-  cppcoro::task<void> open_communications()
+
+  cppcoro::task<void> open_communications(
+    cppcoro::static_thread_pool& tp,
+    cppcoro::io_service& io,
+    cppcoro::sequence_barrier<std::size_t>& barrier,
+    cppcoro::multi_producer_sequencer<std::size_t>& sequencer)
   {
-    using tasks_t = flow::static_vector<cppcoro::task<void>, 2 * callback_buffer_size>;
+    using tasks_t = std::vector<cppcoro::task<void>>;
     tasks_t to_be_completed{};
 
-    std::transform(std::begin(m_on_request_callbacks), std::end(m_on_request_callbacks), std::back_inserter(to_be_completed), [this](const auto& handle_request) -> cppcoro::task<void> {
+    std::transform(std::begin(m_on_request_callbacks), std::end(m_on_request_callbacks), std::back_inserter(to_be_completed), [&](const auto& handle_request) -> cppcoro::task<void> {
       while (true) {
-        size_t seq = co_await m_sequencer.claim_one(m_io);
+        size_t seq = co_await sequencer.claim_one(io);
         auto& msg = m_buffer[seq & index_mask];
         handle_request(msg);
-        m_sequencer.publish(seq);
+        sequencer.publish(seq);
       }
     });
 
-    std::transform(std::begin(m_on_message_callbacks), std::end(m_on_message_callbacks), std::back_inserter(to_be_completed), [this](const auto& handle_message) -> cppcoro::task<void> {
+    std::transform(std::begin(m_on_message_callbacks), std::end(m_on_message_callbacks), std::back_inserter(to_be_completed), [&](const auto& handle_message) -> cppcoro::task<void> {
       size_t nextToRead = 0;
       while (true) {
         // Wait until the next message is available
         // There may be more than one available.
-        const size_t available = co_await m_sequencer.wait_until_published(nextToRead, available, m_thread_pool);
+        const size_t available = co_await sequencer.wait_until_published(nextToRead, available, tp);
         do {
           auto& msg = m_buffer[nextToRead & index_mask];
           handle_message(msg);
         } while (nextToRead++ != available);
 
-        m_subscriber_barrier.publish(available);
+        barrier.publish(available);
       }
     });
 
-    co_return cppcoro::when_all(to_be_completed);
+    co_await cppcoro::when_all(std::move(to_be_completed));
   }
 
-  using publisher_callbacks_t = flow::static_vector<std::function<void(message_t&)>, callback_buffer_size>;
+  using publisher_callbacks_t = std::vector<std::function<void(message_t&)>>;
   publisher_callbacks_t m_on_request_callbacks{};
 
-  using subscriber_callbacks_t = flow::static_vector<std::function<void(const message_t&)>, callback_buffer_size>;
+  using subscriber_callbacks_t = std::vector<std::function<void(const message_t&)>>;
   subscriber_callbacks_t m_on_message_callbacks{};
 
   using message_buffer_t = std::array<message_t, message_buffer_size>;
@@ -65,11 +71,8 @@ public:
 
   std::string m_name;
 
-  cppcoro::static_thread_pool m_thread_pool;
-  cppcoro::io_service m_io;
-  cppcoro::sequence_barrier<std::size_t> m_subscriber_barrier;
-  cppcoro::multi_producer_sequencer<std::size_t> m_sequencer{m_subscriber_barrier, message_buffer_size};
 
   static constexpr std::size_t index_mask = message_buffer_size - 1;
 };
+
 }// namespace flow

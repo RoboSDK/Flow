@@ -22,62 +22,33 @@ requires no_repeated_layers<Layers...> class System {
 
 public:
   using options = options_t;
-  cppcoro::task<void> begin([[maybe_unused]] auto& registry, auto& channel_container)
+  cppcoro::task<void> begin([[maybe_unused]] auto& registry, [[maybe_unused]] auto& channel_container)
+
   {
-    for (auto& layer : m_layers) {
+    [[maybe_unused]] MixedArray<N, Layers...> layers = flow::make_mixed_array(Layers{}...);
+    for (auto& layer : layers) {
       std::visit([&](auto& l) { l.begin(registry); }, layer);
     }
 
-    static constexpr std::size_t callback_buffer_size = 64;
-    static constexpr std::size_t message_buffer_size = 64;
+    cppcoro::static_thread_pool tp;
+    cppcoro::io_service io;
+    cppcoro::sequence_barrier<std::size_t> barrier;
+    cppcoro::multi_producer_sequencer<std::size_t> sequencer{barrier, 64};
 
     std::vector<cppcoro::task<void>> tasks{};
-      auto new_channel = std::visit([&](auto& callback)
-      {
-             using traits = flow::metaprogramming::function_traits<std::decay_t<decltype(callback)>>;
-             using request_t = std::decay_t<typename traits::template argument<0>::type>;
-             return flow::channel<request_t, callback_buffer_size, message_buffer_size>(registry.sub_info[0].channel_name);
-      }, registry.sub_info[0].on_message);
-
-    std::visit([&] (auto& cb) { new_channel.m_on_message_callbacks.push_back(cb); }, registry.sub_info[0].on_message);
-    std::visit([&] (auto& cb) { new_channel.m_on_request_callbacks.push_back(cb); }, registry.pub_info[0].on_request);
-
-//    std::vector<cppcoro::task<void>> tasks{};
-//    for (auto& sub : registry.sub_info) {
-//        std::visit([&](auto& callback) {
-//           using traits = flow::metaprogramming::function_traits<std::decay_t<decltype(callback)>>;
-//           using request_t = std::decay_t<typename traits::template argument<0>::type>;
-//           auto new_channel = flow::channel<request_t, callback_buffer_size, message_buffer_size>(sub.channel_name);
-//           channel_container.push_back(std::move(new_channel));
-//        }, sub.on_message);
-//      }
-//
-//      auto& channel = map.at(sub.channel_name);
-//      std::visit([&](auto& c, auto& handle) { c.m_on_message_callbacks.push_back(handle); }, channel, sub.on_message);
-
-//    for (auto& pub : registry.pub_info) {
-//      if (map.find(pub.channel_name) == std::end(map)) {
-//        auto channel = channel_t(pub.channel_name);
-//        map.emplace(std::make_pair(pub.channel_name, std::move(channel)));
-//      }
-//
-//      auto& channel = map.at(pub.channel_name);
-//      std::visit([&](auto& c, auto& handle) { c.m_on_request_callbacks.push_back(handle); }, channel, pub.on_request);
-//    }
-//
-//    std::vector<cppcoro::task<void>> channel_tasks{};
-
-//    for (auto& [_, channel] : map) {
-//      co_await std::visit([](auto& c1) -> cppcoro::task<void> { co_return c1.open_communications(); }, channel);
-//    }
+    for (auto& [_, channel] : registry.m_channels) {
+      auto task = std::visit([&](auto& c1) -> cppcoro::task<void> { return c1.open_communications(tp, io, barrier, sequencer); }, channel);
+      tasks.push_back(std::move(task));
+    }
 
 //    co_await cppcoro::when_all(channel_tasks);
-    co_await new_channel.open_communications();
+//    co_await new_channel.open_communications();
+//    co_return;
+    return cppcoro::task<void>{};
   }
 
 private:
   [[maybe_unused]] static constexpr options_t m_options{};
-  MixedArray<N, Layers...> m_layers = flow::make_mixed_array(Layers{}...);
 };
 
 template<typename... Layers>
