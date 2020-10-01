@@ -3,15 +3,15 @@
 #include <sstream>
 
 namespace flow {
-template<typename iterator_t, typename callback_t>
-std::string to_string(iterator_t begin, iterator_t end, char delim, callback_t to_string_item)
+template<typename begin_t, typename end_t>
+std::string to_string(begin_t begin, end_t end, std::string delim = ",")
 {
   std::stringstream ss;
   ss << "{";
   std::string d{};
   for (; begin != end; ++begin) {
-    ss << d << to_string_item(*begin);
-    d = std::string(1, delim) + " ";
+    ss << d << std::to_string(*begin);
+    d = delim + " ";
   }
   ss << "}\n";
   return ss.str();

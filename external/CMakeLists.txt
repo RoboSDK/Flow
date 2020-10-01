@@ -21,5 +21,6 @@ target_include_directories(header_only_libs SYSTEM INTERFACE
         static_vector/include
         atomic_queue/include
         variant/include
+        farbot/include
         )
 
