@@ -58,5 +58,8 @@ macro(add_relaxed_constexpr_catch_test test_name)
 endmacro()
 
 add_catch_test(test_mixed_array)
+
 add_constexpr_catch_test(constexpr_tests)
+add_constexpr_catch_test(test_metaprogramming)
+
 add_relaxed_constexpr_catch_test(constexpr_tests constexpr_tests.cpp)
