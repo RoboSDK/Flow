@@ -1,5 +1,5 @@
 #include <catch2/catch.hpp>
-#include <flow/utility/MixedArray.hpp>
+#include <flow/data_structures/MixedArray.hpp>
 #include <iostream>
 #include <sstream>
 

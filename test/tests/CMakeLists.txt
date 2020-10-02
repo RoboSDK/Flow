@@ -5,48 +5,58 @@ else()
   include(${CONAN_CATCH2_ROOT}/lib/cmake/Catch2/Catch.cmake)
 endif()
 
+list(APPEND libraries CONAN_PKG::catch2 project_options project_warnings header_only_libs flow::flow)
+
 add_library(catch_main STATIC catch_main.cpp)
-target_link_libraries(catch_main PUBLIC CONAN_PKG::catch2)
-target_link_libraries(catch_main PRIVATE project_options)
+target_link_libraries(catch_main PUBLIC ${libraries})
 
-add_executable(test_mixed_array test_mixed_array.cpp)
-target_link_libraries(test_mixed_array PRIVATE project_warnings project_options catch_main flow::flow)
+macro (make_test test_name libraries)
+  add_executable(${test_name} ${test_name}.cpp)
+  target_link_libraries(${test_name} PRIVATE catch_main)
+endmacro()
 
-# automatically discover tests that are defined in catch based test files you can modify the unittests. TEST_PREFIX to
-# whatever you want, or use different for different binaries
-catch_discover_tests(
-  test_mixed_array
-  TEST_PREFIX
-  "unittests."
-  EXTRA_ARGS
-  -s
-  --reporter=xml
-  --out=tests.xml)
+macro(add_catch_test test_name)
+    make_test(${test_name} ${libraries})
 
-# Add a file containing a set of constexpr tests
-add_executable(constexpr_tests constexpr_tests.cpp)
-target_link_libraries(constexpr_tests PRIVATE project_options project_warnings catch_main)
+  # automatically discover tests that are defined in catch based test files you can modify the unittests. TEST_PREFIX to
+  # whatever you want, or use different for different binaries
+  catch_discover_tests(
+          ${test_name}
+          TEST_PREFIX
+          "unittests."
+          EXTRA_ARGS
+          -s
+          --reporter=xml
+          --out=tests.xml)
+endmacro()
 
-catch_discover_tests(
-  constexpr_tests
-  TEST_PREFIX
-  "constexpr."
-  EXTRA_ARGS
-  -s
-  --reporter=xml
-  --out=constexpr.xml)
+macro(add_constexpr_catch_test test_name)
+  make_test(${test_name} ${libraries})
+  catch_discover_tests(
+          ${test_name}
+          TEST_PREFIX
+          "constexpr."
+          EXTRA_ARGS
+          -s
+          --reporter=xml
+          --out=constexpr.xml)
+endmacro()
 
-# Disable the constexpr portion of the test, and build again this allows us to have an executable that we can debug when
-# things go wrong with the constexpr testing
-add_executable(relaxed_constexpr_tests constexpr_tests.cpp)
-target_link_libraries(relaxed_constexpr_tests PRIVATE project_options project_warnings catch_main)
-target_compile_definitions(relaxed_constexpr_tests PRIVATE -DCATCH_CONFIG_RUNTIME_STATIC_REQUIRE)
+macro(add_relaxed_constexpr_catch_test test_name)
+  set(relaxed_name "relaxed_${test_name}")
+  add_executable(${relaxed_name} ${test_name}.cpp)
+  target_link_libraries(${relaxed_name} PRIVATE catch_main)
+  target_compile_definitions(${relaxed_name} PRIVATE -DCATCH_CONFIG_RUNTIME_STATIC_REQUIRE)
+  catch_discover_tests(
+          ${relaxed_name}
+          TEST_PREFIX
+          "relaxed_constexpr."
+          EXTRA_ARGS
+          -s
+          --reporter=xml
+          --out=relaxed_constexpr.xml)
+endmacro()
 
-catch_discover_tests(
-  relaxed_constexpr_tests
-  TEST_PREFIX
-  "relaxed_constexpr."
-  EXTRA_ARGS
-  -s
-  --reporter=xml
-  --out=relaxed_constexpr.xml)
+add_catch_test(test_mixed_array)
+add_constexpr_catch_test(constexpr_tests)
+add_relaxed_constexpr_catch_test(constexpr_tests constexpr_tests.cpp)
