@@ -4,20 +4,30 @@
 #include <functional>
 
 namespace flow {
+/**
+ * The purpose of this data structure is in the scenario where you have at least two locations in code
+ * where a user passes type information as an argument, but you don't want to pass this type around everywhere.
+ *
+ * This stores any type by its std::type_info
+ *
+ * example:
+ * my_set.put(typeid(double)) = double
+ */
 class any_type_set {
   using typeinfo_ref = std::reference_wrapper<const std::type_info>;
 
 public:
   template<typename T>
-  bool contains(typeinfo_ref info)
+  bool contains()
   {
+    const auto info = typeinfo_ref(typeid(T));
     return m_items.find(info) != m_items.end();
   }
 
   template<typename T>
-  auto& put()
+  void put(T&& t)
   {
-    return std::any_cast<T&>(m_items[typeid(T)]);
+    m_items[typeid(T)] = std::forward<T>(t);
   }
 
   template<typename T>

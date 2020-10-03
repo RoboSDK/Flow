@@ -59,6 +59,7 @@ endmacro()
 
 add_catch_test(test_mixed_array)
 add_catch_test(test_array)
+add_catch_test(test_any_type_set)
 
 add_constexpr_catch_test(constexpr_tests)
 add_constexpr_catch_test(test_metaprogramming)
