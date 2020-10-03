@@ -26,12 +26,13 @@ struct size_tc {
 template<typename t>
 struct type_container {
   using type = t;
+  constexpr type_container(std::tuple<t> /*unused*/) {}
+
   constexpr type_container() = default;
   constexpr type_container(type_container<t>&&) = default;
   constexpr type_container(type_container<t> const&) = default;
   constexpr type_container<t>& operator=(type_container<t>&&) = default;
   constexpr type_container<t>& operator=(type_container<t> const&) = default;
-  constexpr type_container(std::tuple<t> /*unused*/) {}
 };
 
 /**
@@ -130,6 +131,13 @@ constexpr bool same([[maybe_unused]] std::tuple<items_t...> list = std::tuple<it
   }
 }
 
+/**
+ * Removes the last item of the list
+ * @tparam Current the left most item in the list
+ * @tparam the_rest_t everything to the right of current
+ * @param l an unused argument simple for creating a default constructed argument to pass in pure template args
+ * @return
+ */
 template<typename current, typename... the_rest_t>
 constexpr auto pop_back([[maybe_unused]] std::tuple<current, the_rest_t...> l = std::tuple<current, the_rest_t...>{})
 {
@@ -265,34 +273,9 @@ template<class... Types>
 [[maybe_unused]] constexpr auto make_variant(std::tuple<Types...> /*unused*/) { return std::variant<Types...>{}; }
 
 /**
- * to_string function for types
- *
- * @tparam INTERFACE_TYPENAME
- * @return returns a view of the type
+ * Gives type information on types that overload the operator()
+ * @tparam T the input argument
  */
-template<typename INTERFACE_TYPENAME>
-[[nodiscard]] constexpr auto to_string() -> std::string_view
-{
-  constexpr std::string_view result = __PRETTY_FUNCTION__;
-  constexpr std::string_view templateStr = "INTERFACE_TYPENAME = ";
-
-  constexpr size_t bpos = result.find(templateStr) + templateStr.size();//find begin pos after INTERFACE_TYPENAME = entry
-  if constexpr (result.find_first_not_of("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_:") == std::string_view::npos) {
-    constexpr size_t len = result.length() - bpos;
-
-    static_assert(!result.substr(bpos, len).empty(), "Cannot infer type name in function call");
-
-    return result.substr(bpos, len);
-  }
-  else {
-    constexpr size_t len = result.substr(bpos).find_first_not_of("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_:");
-
-    static_assert(!result.substr(bpos, len).empty(), "Cannot infer type name in function call");
-
-    return result.substr(bpos, len);
-  }
-}
-
 template<typename T>
 struct function_traits
   : public function_traits<decltype(&T::operator())> {

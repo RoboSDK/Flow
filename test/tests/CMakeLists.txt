@@ -62,4 +62,5 @@ add_catch_test(test_mixed_array)
 add_constexpr_catch_test(constexpr_tests)
 add_constexpr_catch_test(test_metaprogramming)
 
-add_relaxed_constexpr_catch_test(constexpr_tests constexpr_tests.cpp)
+add_relaxed_constexpr_catch_test(constexpr_tests)
+add_relaxed_constexpr_catch_test(test_metaprogramming)
