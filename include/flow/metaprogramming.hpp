@@ -100,9 +100,9 @@ constexpr auto pop_front([[maybe_unused]] size_tc<N>)
  * @return A tuple with the next item
  */
 template<typename next_t, typename... the_rest_t>
-constexpr auto next(std::tuple<next_t> next_item = std::tuple<next_t>{})
+constexpr auto next([[maybe_unused]] std::tuple<next_t, the_rest_t...> next_item = std::tuple<next_t, the_rest_t...>{})
 {
-  return next_item;
+  return std::tuple<next_t>{};
 }
 
 /**
@@ -112,56 +112,35 @@ constexpr auto next(std::tuple<next_t> next_item = std::tuple<next_t>{})
  * @return true if they're all the same type
  */
 template<typename... items_t>
-constexpr bool is_same(std::tuple<items_t...> list = std::tuple<items_t...>{})
+constexpr bool same([[maybe_unused]] std::tuple<items_t...> list = std::tuple<items_t...>{})
 {
-  if constexpr (empty(list) or size(list) == 1) {
+  if constexpr (empty<items_t...>() or size<items_t...>() == 1) {
     return true;
   }
   else {
-    constexpr auto first = type_container(next(list));
+    constexpr auto first = type_container(next<items_t...>());
     using first_type = typename decltype(first)::type;
 
-    constexpr auto the_rest = pop_front(list);
+    constexpr auto the_rest = pop_front<items_t...>();
     constexpr auto second = type_container(next(the_rest));
     using second_type = typename decltype(second)::type;
 
-    constexpr bool same = std::is_same_v<first_type, second_type>;
-    return same and is_same(pop_front(the_rest));
+    constexpr bool are_the_same = std::is_same_v<first_type, second_type>;
+    return are_the_same and same(pop_front(the_rest));
   }
 }
 
-//
-//template <typename t1, typename t2>
-//constexpr auto join() {
-// return type_list<t1, t2>{};
-//}
-//
-//template <typename t1>
-//constexpr auto join<t1, empty_t>() {
-//  return type_list<t1>{};
-//}
-//
-//template <typename current, typename... the_rest_t>
-//constexpr auto pop_back() {
-//  constexpr std::size_t list_size = size<the_rest_t...>();
-//  if constexpr (list_size == 1) {
-//    return type_container<current>{};
-//  } else if constexpr (list_size > 1) {
-//    auto popped_back = pop_back<the_rest_t...>();
-//  } else if constexpr (list_size == 0) {
-//    return type_container<empty_t>{};
-//  }
-//}
-
-
-/**
- * Pops the front of the list and continues the for loop
- * @tparam The message to be popped
- * @tparam The rest of the items
- * @param The callback the for loop is executing
- */
-template<typename completed_t, typename... message_ts>
-[[maybe_unused]] void pop_and_continue(auto&& callback);
+template<typename current, typename... the_rest_t>
+constexpr auto pop_back([[maybe_unused]] std::tuple<current, the_rest_t...> l = std::tuple<current, the_rest_t...>{})
+{
+  constexpr std::size_t total_size = size<current, the_rest_t...>();
+  if constexpr (total_size <= 1) {
+    return std::tuple<>{};
+  }
+  else {
+    return std::tuple_cat(std::tuple<current>{}, pop_back<the_rest_t...>());
+  }
+}
 
 /**
  * Iterates through each type and applies it to a callback that takes a
@@ -175,23 +154,24 @@ template<typename completed_t, typename... message_ts>
  * @tparam the_rest_t The items to be executed in this loop
  * @param callback The function handling the type
  */
-//template<typename... the_rest_t>
-//void for_each(auto&& callback)
-//{
-//  if constexpr (flow::metaprogramming::empty<the_rest_t...>()) {
-//    return;
-//  }
-//  else {
-//    using next_t = typename flow::metaprogramming::next<the_rest_t...>::type;
-//    callback(flow::metaprogramming::container<next_t>{});
-//    pop_and_continue<the_rest_t...>(std::forward<decltype(callback)>(callback));
-//  }
-//}
-
-template<typename completed_t, typename... message_ts>
-[[maybe_unused]] void pop_and_continue(auto&& callback)
+template<typename... items_t>
+void for_each(auto&& callback)
 {
-  for_each<message_ts...>(std::forward<decltype(callback)>(callback));
+  if constexpr (empty<items_t...>()) {
+    return;
+  }
+  else {
+    constexpr auto next_t = type_container(next<items_t...>());
+    callback(type_container<typename decltype(next_t)::type>{});
+
+    constexpr auto the_rest = pop_front<items_t...>();
+    const auto continue_loop_on = [&]<typename... the_rest_t>([[maybe_unused]] std::tuple<the_rest_t...>)
+    {
+        for_each<the_rest_t...>(callback);
+    };
+
+    continue_loop_on(the_rest);
+  }
 }
 
 /**
@@ -199,7 +179,7 @@ template<typename completed_t, typename... message_ts>
  * @tparam EmptyListType Literally an empty type <>
  * @return always false
  */
-template<class EmptyListType>
+template<class empty_t>
 constexpr bool contains()
 {
   return false;
@@ -211,18 +191,18 @@ constexpr bool contains()
  * complexity: O(n)
  *
  * example:
- * bool contains_item = flow::contains<TypeToFind, TypeList...>();
- * @tparam TypeToFind The type being searched for in the list
- * @tparam CurrentType The item in front of the list
- * @tparam TheRest The rest of the list
+ * bool contains_item = flow::contains<to_find_t, TypeList...>();
+ * @tparam to_find_t The type being searched for in the list
+ * @tparam current_t The item in front of the list
+ * @tparam the_rest_t The rest of the list
  * @return true if item is found
  */
-template<class TypeToFind, class CurrentType, class... TheRest>
+template<class to_find_t, class current_t, class... the_rest_t>
 constexpr bool contains()
 {
-  if constexpr (std::is_same<TypeToFind, CurrentType>::value) { return true; }
-  else if constexpr (not empty<TheRest...>()) {
-    return contains<TypeToFind, TheRest...>();
+  if constexpr (std::is_same<to_find_t, current_t>::value) { return true; }
+  else if constexpr (not empty<the_rest_t...>()) {
+    return contains<to_find_t, the_rest_t...>();
   }
   else {
     return false;
@@ -238,31 +218,31 @@ constexpr bool contains()
  * example:
  * std::tuple<int, double> type_set = flow::make_type_set<int, int, double>();
  *
- * @tparam CurrentType This is the current item unfolded from the TypesPassedIn that is currently unfolding
- * @tparam TypesPassedIn This is the rest of the template arguments passed (without the CurrentType)
- * @tparam TypeSet This is the set of types so far
+ * @tparam current_t This is the current item unfolded from the passed_in_t that is currently unfolding
+ * @tparam passed_in_t This is the rest of the template arguments passed (without the current_t)
+ * @tparam set_t This is the set of types so far
  * @return An empty tuple containing the type set
  */
-template<class CurrentType, class... TypesPassedIn, class... TypeSet>
-constexpr auto make_type_set(std::tuple<TypeSet...> /*unused*/ = std::tuple<TypeSet...>{})
+template<class current_t, class... passed_in_t, class... set_t>
+constexpr auto make_type_set(std::tuple<set_t...> /*unused*/ = std::tuple<set_t...>{})
 {
-  using CurrentTypeDecayed = std::decay_t<CurrentType>;
-  if constexpr (contains<CurrentTypeDecayed, TypeSet...>()) {
+  using decayed_current_t = std::decay_t<current_t>;
+  if constexpr (contains<decayed_current_t, set_t...>()) {
 
-    if constexpr (not empty<TypesPassedIn...>()) {
-      return make_type_set<TypesPassedIn...>(std::tuple<TypeSet...>());
+    if constexpr (not empty<passed_in_t...>()) {
+      return make_type_set<passed_in_t...>(std::tuple<set_t...>());
     }
     else {
-      return std::tuple<TypeSet...>();
+      return std::tuple<set_t...>();
     }
   }
   else {
 
-    if constexpr (not empty<TypesPassedIn...>()) {
-      return make_type_set<TypesPassedIn...>(std::tuple<TypeSet..., CurrentTypeDecayed>());
+    if constexpr (not empty<passed_in_t...>()) {
+      return make_type_set<passed_in_t...>(std::tuple<set_t..., decayed_current_t>());
     }
     else {
-      return std::tuple<TypeSet..., CurrentTypeDecayed>();
+      return std::tuple<set_t..., decayed_current_t>();
     }
   }
 }
@@ -291,7 +271,7 @@ template<class... Types>
  * @return returns a view of the type
  */
 template<typename INTERFACE_TYPENAME>
-[[maybe_unused]] [[nodiscard]] constexpr auto to_string() -> std::string_view
+[[nodiscard]] constexpr auto to_string() -> std::string_view
 {
   constexpr std::string_view result = __PRETTY_FUNCTION__;
   constexpr std::string_view templateStr = "INTERFACE_TYPENAME = ";

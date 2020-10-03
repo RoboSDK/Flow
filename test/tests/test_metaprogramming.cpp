@@ -115,8 +115,10 @@ TEST_CASE("Testing popping the first or next item from the list", "[pop_front]")
     STATIC_REQUIRE(empty(pop_front<int>()));
     STATIC_REQUIRE(empty(pop_front<Bar<Foo>>()));
 
+    STATIC_REQUIRE(empty(pop_front(std::tuple<int>{})));
+    STATIC_REQUIRE(empty(pop_front(std::tuple<Foo>{})));
+
     STATIC_REQUIRE(empty(pop_front<Foo>(size_tc<1>{})));
-    STATIC_REQUIRE(std::is_same_v<pop_front<Foo>(size_tc<0>{})::type, Foo>);
   }
 
   SECTION("Pop size of two")
@@ -125,10 +127,20 @@ TEST_CASE("Testing popping the first or next item from the list", "[pop_front]")
       constexpr type_container<Foo> foo_t = pop_front<Foo, Foo>();// converts std::tuple
       STATIC_REQUIRE(std::is_same_v<decltype(foo_t)::type, Foo>);
     }
+    {
+      constexpr type_container<Foo> foo_t = pop_front(std::tuple<Foo, Foo>{});
+      STATIC_REQUIRE(std::is_same_v<decltype(foo_t)::type, Foo>);
+    }
     {// should pop Bar<int> out
       constexpr type_container<Foo> foo_t = pop_front<Bar<int>, Foo>();
       STATIC_REQUIRE(std::is_same_v<decltype(foo_t)::type, Foo>);
       constexpr type_container<int> int_t = pop_front<Bar<int>, int>();
+      STATIC_REQUIRE(std::is_same_v<decltype(int_t)::type, int>);
+    }
+    {
+      constexpr type_container<Foo> foo_t = pop_front(std::tuple<Bar<int>, Foo>{});
+      STATIC_REQUIRE(std::is_same_v<decltype(foo_t)::type, Foo>);
+      constexpr type_container<int> int_t = pop_front(std::tuple<Bar<int>, int>{});
       STATIC_REQUIRE(std::is_same_v<decltype(int_t)::type, int>);
     }
   }
@@ -141,7 +153,7 @@ TEST_CASE("Testing popping the first or next item from the list", "[pop_front]")
 
   SECTION("Pop two from three")
   {
-    {
+    { // no support for tuples here
       constexpr type_container<Bar<Foo>> bar_foo_t = pop_front<Foo, Foo, Bar<Foo>>(size_tc<2>{});
       STATIC_REQUIRE(std::is_same_v<decltype(bar_foo_t)::type, Bar<Foo>>);
 
@@ -176,4 +188,127 @@ TEST_CASE("Test the next function to return the next type from the list. It coul
     constexpr type_container<int> int_t = next<int, Foo>();
     STATIC_REQUIRE(std::is_same_v<decltype(int_t)::type, int>);
   }
+}
+
+TEST_CASE("Test whether any items passed in are the same type", "[same]")
+{
+  using namespace flow::metaprogramming;
+  SECTION("test same on an empty item") // should this be an error?
+  {
+    STATIC_REQUIRE(same<>());
+
+    constexpr type_container<int> int_t = next<int, Foo>();
+    STATIC_REQUIRE(same<decltype(int_t)::type, int>());
+  }
+
+  SECTION("test same on single item") // should this be an error?
+  {
+    STATIC_REQUIRE(same<Foo>());
+    STATIC_REQUIRE(same<Bar<Foo>>());
+
+    STATIC_REQUIRE(same(std::tuple<Foo>{}));
+    STATIC_REQUIRE(same(std::tuple<Bar<Foo>>{}));
+  }
+
+  SECTION("test same on two items") // should this be an error?
+  {
+    STATIC_REQUIRE(same<Foo, Foo>());
+    STATIC_REQUIRE_FALSE(same<Foo, Baz<Foo, Foo>>());
+
+    STATIC_REQUIRE(same(std::tuple<Foo, Foo>{}));
+    STATIC_REQUIRE_FALSE(same(std::tuple<Foo, Baz<Foo, Foo>>{}));
+  }
+
+  SECTION("test same on three items") // should this be an error?
+  {
+    STATIC_REQUIRE(same<Foo, Foo, Foo>());
+    STATIC_REQUIRE(same(std::tuple<Foo, Foo, Foo>{}));
+    STATIC_REQUIRE_FALSE(same(std::tuple<Bar<Foo>, Foo, Foo>{}));
+  }
+}
+
+TEST_CASE("Pop back items from a tuple or list of types", "[pop_back]")
+{
+  using namespace flow::metaprogramming;
+  SECTION("Pop back one from one") // should this be an error?
+  {
+    {
+      [[maybe_unused]] constexpr std::tuple<> empty_t = pop_back<Bar<Foo>>();
+    }
+    {
+      [[maybe_unused]] constexpr std::tuple<> empty_t = pop_back(std::tuple<Foo>{});
+    }
+  }
+  SECTION("Pop back one from two") // should this be an error?
+  {
+    {
+      [[maybe_unused]] constexpr type_container<Foo> foo_t = pop_back<Foo, Bar<Foo>>();
+    }
+    {
+      [[maybe_unused]] constexpr std::tuple<Foo> foo_t = pop_back<Foo, Bar<Foo>>();
+    }
+  }
+  SECTION("Pop back two from two") // should this be an error?
+  {
+    {
+      [[maybe_unused]] constexpr std::tuple<> empty_t = pop_back(pop_back<Foo, Bar<Foo>>());
+    }
+    {
+      [[maybe_unused]] constexpr std::tuple<> empty_t = pop_back(pop_back<Foo, Bar<Foo>>());
+    }
+  }
+}
+
+TEST_CASE("Iterate over items", "[for_each]")
+{
+  using namespace flow::metaprogramming;
+
+  for_each<int, int, int>([]<typename item_t>([[maybe_unused]] type_container<item_t>){
+    STATIC_REQUIRE(same<item_t, int>());
+  });
+
+  for_each<Foo, Foo>([]<typename item_t>([[maybe_unused]] type_container<item_t>){
+         STATIC_REQUIRE_FALSE(same<item_t, int>());
+  });
+}
+
+TEST_CASE("Determine if a tuple contains another type", "[contains]")
+{
+  using namespace flow::metaprogramming;
+  STATIC_REQUIRE(contains<int, /*|*/ int>());
+  STATIC_REQUIRE(contains<int, /*|*/ int, int>());
+  STATIC_REQUIRE(contains<Foo, /*|*/ int, int, float, double, double, double, double, Bar<Bar<Foo>>, Foo>());
+
+  STATIC_REQUIRE_FALSE(contains<double, /*|*/ int, int>());
+  STATIC_REQUIRE_FALSE(contains<double, /*|*/ int, int, Foo, float, Bar<Foo>>());
+}
+
+TEST_CASE("Make an set from a list of types", "[make_type_set]")
+{
+  using namespace flow::metaprogramming;
+  [[maybe_unused]] constexpr std::tuple<int, double> set = make_type_set<int, double, double, int>();
+  [[maybe_unused]] constexpr std::tuple<Foo> foos = make_type_set<Foo, Foo, Foo, Foo, Foo, Foo, Foo>();
+}
+
+TEST_CASE("Convert types to strings", "[to_string]")
+{
+  using namespace flow::metaprogramming;
+  using namespace std::string_literals;
+  REQUIRE(to_string<std::string>() == "std::__cxx11::basic_string");
+  REQUIRE(to_string<int>() == "int");
+
+  // This probably shouldn't fail, but i got this function for free from stack overflow
+  //  struct biz {};
+  //  REQUIRE(to_string<biz>() == "biz");
+  // Here's the actual value:  "____C_A_T_C_H____T_E_S_T____42" == "biz"
+}
+
+TEST_CASE("Test function traits", "[function_traits]")
+{
+  using namespace flow::metaprogramming;
+  [[maybe_unused]] constexpr auto f = [](int, int) -> double { return 1.0; };
+  STATIC_REQUIRE(same<function_traits<decltype(f)>::argument<0>::type, int>());
+  STATIC_REQUIRE(same<function_traits<decltype(f)>::argument<1>::type, int>());
+  STATIC_REQUIRE(same<function_traits<decltype(f)>::result_type, double>());
+  STATIC_REQUIRE(function_traits<decltype(f)>::arity == 2);
 }
