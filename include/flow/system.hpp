@@ -22,7 +22,7 @@ requires no_repeated_layers<Layers...> class System {
 
 public:
   using options = options_t;
-  cppcoro::task<void> begin([[maybe_unused]] auto& registry, [[maybe_unused]] auto& channel_container)
+  cppcoro::task<void> begin([[maybe_unused]] auto& registry)
 
   {
     [[maybe_unused]] MixedArray<N, Layers...> layers = flow::make_mixed_array(Layers{}...);
@@ -48,18 +48,18 @@ public:
   }
 
 private:
-  [[maybe_unused]] static constexpr options_t m_options{};
+//  [[maybe_unused]] static constexpr options_t m_options{};
 };
 
 template<typename... Layers>
-requires no_repeated_layers<Layers...> consteval auto make_system()
+requires no_repeated_layers<Layers...> auto make_system()
 {
   [[maybe_unused]] constexpr auto options = flow::make_options();
   return System<decltype(options), Layers...>{};
 }
 
 template<typename... Layers>
-requires no_repeated_layers<Layers...> consteval auto make_system(options_concept auto& options)
+requires no_repeated_layers<Layers...> auto make_system(options_concept auto& options)
 {
   return System<decltype(options), Layers...>{};
 }
@@ -73,13 +73,18 @@ void spin(system_t& system, message_registry_t& messages)
   };
   auto registry = make_registry(messages);
 
-  const auto make_channel_container = [&]<typename... message_ts>(flow::message_registry<message_ts...>  /*unused*/)
-  {
-         return std::vector<std::variant<flow::channel<message_ts, 64, 64> ...>>{};
-  };
+  cppcoro::static_thread_pool tp;
+  cppcoro::io_service io;
+  cppcoro::sequence_barrier<std::size_t> barrier;
+  cppcoro::multi_producer_sequencer<std::size_t> sequencer{barrier, 64};
 
-  auto channel_container = make_channel_container(messages);
-  cppcoro::sync_wait(system.begin(registry, channel_container));
+  std::vector<cppcoro::task<void>> tasks{};
+  for (auto& [_, channel] : registry.m_channels) {
+    auto task = std::visit([&](auto& c1) -> cppcoro::task<void> { return c1.open_communications(tp, io, barrier, sequencer); }, channel);
+    tasks.push_back(std::move(task));
+  }
+
+  cppcoro::sync_wait(system.begin(registry));
 }
 }// namespace flow
 #endif//FLOW_SYSTEM_HPP

@@ -69,6 +69,13 @@ constexpr auto pop_front([[maybe_unused]] std::tuple<removed_t, the_rest_t...> l
   return std::tuple<the_rest_t...>{};
 }
 
+/**
+ * Pops N from the front of the list
+ * @param size_tc A compile time size type used to pass in the information
+ * @tparam removed_t The current removed type
+ * @tparam the_rest_t The rest...
+ * @return A tuple with N less items in the front
+ */
 template<typename removed_t, typename... the_rest_t, std::size_t N>
 constexpr auto pop_front([[maybe_unused]] size_tc<N>)
 {

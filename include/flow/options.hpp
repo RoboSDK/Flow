@@ -19,13 +19,13 @@ concept options_concept = requires(options_t options)
   options.pub_sub_buffer_size;
 };
 
-consteval auto make_options()
+constexpr auto make_options()
 {
   return options<pub_sub_buffer_size{}.size>{};
 }
 
 template< std::size_t pub_sub_buffer_size_bytes>
-consteval auto make_options(pub_sub_buffer_size<pub_sub_buffer_size_bytes> /*unused*/)
+constexpr auto make_options(pub_sub_buffer_size<pub_sub_buffer_size_bytes> /*unused*/)
 {
   return options<pub_sub_buffer_size_bytes>{};
 }

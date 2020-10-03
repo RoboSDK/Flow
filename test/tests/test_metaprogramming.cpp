@@ -161,3 +161,19 @@ TEST_CASE("Testing popping the first or next item from the list", "[pop_front]")
     STATIC_REQUIRE(empty(empty_t));
   }
 }
+
+TEST_CASE("Test the next function to return the next type from the list. It could also be called front.", "[next]")
+{
+  using namespace flow::metaprogramming;
+  SECTION("test next on single item") // should this be an error?
+  {
+    constexpr type_container<int> int_t = next<int>();
+    STATIC_REQUIRE(std::is_same_v<decltype(int_t)::type, int>);
+  }
+
+  SECTION("test next on two items") // should this be an error?
+  {
+    constexpr type_container<int> int_t = next<int, Foo>();
+    STATIC_REQUIRE(std::is_same_v<decltype(int_t)::type, int>);
+  }
+}

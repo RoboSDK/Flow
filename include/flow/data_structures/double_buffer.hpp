@@ -25,7 +25,7 @@ public:
   }
 
   template<typename... args_t>
-  double_buffer(args_t... args) : m_buffer{ make_array<T, 2>(T{ std::forward<args>(args)... }) }
+  double_buffer(args_t&&... args) : m_buffer{ make_array<T, 2>(T{ std::forward<args>(args)... }) }
   {
   }
 
