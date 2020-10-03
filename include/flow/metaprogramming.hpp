@@ -1,18 +1,18 @@
 #ifndef FLOW_METAPROGRAMMING_HPP
 #define FLOW_METAPROGRAMMING_HPP
 
+#include <concepts>
+#include <string_view>
 #include <type_traits>
 #include <variant>
-#include <string_view>
 #include <wyhash/wyhash.h>
-#include <concepts>
 
 namespace flow::metaprogramming {
 
 /*
  * A metaprogramming size_tc to pass in integral arguments as arguments at compile time
  */
-template <std::size_t N>
+template<std::size_t N>
 struct size_tc {
   std::size_t data = N;
 };
@@ -23,13 +23,13 @@ struct size_tc {
  * May also be used to store a type and use the value later
  * @tparam t Any type
  */
-template <typename t>
+template<typename t>
 struct type_container {
   using type = t;
   constexpr type_container() = default;
   constexpr type_container(type_container<t>&&) = default;
   constexpr type_container(type_container<t> const&) = default;
-  constexpr type_container<t>& operator=(type_container<t> &&) = default;
+  constexpr type_container<t>& operator=(type_container<t>&&) = default;
   constexpr type_container<t>& operator=(type_container<t> const&) = default;
   constexpr type_container(std::tuple<t> /*unused*/) {}
 };
@@ -39,8 +39,9 @@ struct type_container {
  * @tparam The list of items
  * @return the size of the list
  */
-template <typename... items_t>
-constexpr std::size_t size([[maybe_unused]] std::tuple<items_t...> list =  std::tuple<items_t...>{}) {
+template<typename... items_t>
+constexpr std::size_t size([[maybe_unused]] std::tuple<items_t...> list = std::tuple<items_t...>{})
+{
   return sizeof...(items_t);
 }
 
@@ -49,8 +50,8 @@ constexpr std::size_t size([[maybe_unused]] std::tuple<items_t...> list =  std::
  * @tparam A list of types
  * @return Whether the list is empty
  */
-template <class... items_t>
-constexpr bool empty([[maybe_unused]] std::tuple<items_t...> list =  std::tuple<items_t...>{})
+template<class... items_t>
+constexpr bool empty([[maybe_unused]] std::tuple<items_t...> list = std::tuple<items_t...>{})
 {
   return sizeof...(items_t) == 0;
 }
@@ -62,17 +63,25 @@ constexpr bool empty([[maybe_unused]] std::tuple<items_t...> list =  std::tuple<
  * @tparam the_rest_t The rest...
  * @return A tuple with the rest of the types
  */
-template <typename removed_t, typename... the_rest_t>
-constexpr auto pop_front([[maybe_unused]] std::tuple<removed_t, the_rest_t...> list =  std::tuple<removed_t, the_rest_t...>{}) {
+template<typename removed_t, typename... the_rest_t>
+constexpr auto pop_front([[maybe_unused]] std::tuple<removed_t, the_rest_t...> list = std::tuple<removed_t, the_rest_t...>{})
+{
   return std::tuple<the_rest_t...>{};
 }
 
-template <typename removed_t, typename... the_rest_t, std::size_t N>
-constexpr auto pop_front([[maybe_unused]] size_tc<N>) {
-  if constexpr (N == 0) {
+template<typename removed_t, typename... the_rest_t, std::size_t N>
+constexpr auto pop_front([[maybe_unused]] size_tc<N>)
+{
+  if constexpr (empty<removed_t, the_rest_t...>()) {
+    return std::tuple<>{};
+  }
+  else if constexpr (N == 0) {
     return std::tuple<removed_t, the_rest_t...>{};
-  } else {
-    static_assert(not empty<the_rest_t...>(), "metaprogramming::pop_front: N must not be greater than the list");
+  }
+  else if constexpr (N == 1 and size<removed_t, the_rest_t...>() == 1) {
+    return std::tuple<>{};
+  }
+  else {
     return pop_front<the_rest_t...>(size_tc<N - 1>{});
   }
 }
@@ -83,8 +92,9 @@ constexpr auto pop_front([[maybe_unused]] size_tc<N>) {
  * @tparam the_rest_t The rest...
  * @return A tuple with the next item
  */
-template <typename next_t, typename... the_rest_t>
-constexpr auto next(std::tuple<next_t> next_item =  std::tuple<next_t>{}) {
+template<typename next_t, typename... the_rest_t>
+constexpr auto next(std::tuple<next_t> next_item = std::tuple<next_t>{})
+{
   return next_item;
 }
 
@@ -94,11 +104,13 @@ constexpr auto next(std::tuple<next_t> next_item =  std::tuple<next_t>{}) {
  * @param A tuple of types may be passed in to get items
  * @return true if they're all the same type
  */
-template <typename... items_t>
-constexpr bool is_same(std::tuple<items_t...> list =  std::tuple<items_t...>{}) {
+template<typename... items_t>
+constexpr bool is_same(std::tuple<items_t...> list = std::tuple<items_t...>{})
+{
   if constexpr (empty(list) or size(list) == 1) {
     return true;
-  } else {
+  }
+  else {
     constexpr auto first = type_container(next(list));
     using first_type = typename decltype(first)::type;
 
@@ -180,7 +192,7 @@ template<typename completed_t, typename... message_ts>
  * @tparam EmptyListType Literally an empty type <>
  * @return always false
  */
-template <class EmptyListType>
+template<class EmptyListType>
 constexpr bool contains()
 {
   return false;
@@ -198,12 +210,16 @@ constexpr bool contains()
  * @tparam TheRest The rest of the list
  * @return true if item is found
  */
-template <class TypeToFind, class CurrentType, class... TheRest>
+template<class TypeToFind, class CurrentType, class... TheRest>
 constexpr bool contains()
 {
   if constexpr (std::is_same<TypeToFind, CurrentType>::value) { return true; }
-  else if constexpr (not empty<TheRest...>()) { return contains<TypeToFind, TheRest...>(); }
-  else { return false; }
+  else if constexpr (not empty<TheRest...>()) {
+    return contains<TypeToFind, TheRest...>();
+  }
+  else {
+    return false;
+  }
 }
 
 /**
@@ -220,26 +236,27 @@ constexpr bool contains()
  * @tparam TypeSet This is the set of types so far
  * @return An empty tuple containing the type set
  */
-template <class CurrentType, class... TypesPassedIn, class... TypeSet>
-constexpr auto make_type_set(std::tuple<TypeSet...>  /*unused*/ = std::tuple<TypeSet...>{})
+template<class CurrentType, class... TypesPassedIn, class... TypeSet>
+constexpr auto make_type_set(std::tuple<TypeSet...> /*unused*/ = std::tuple<TypeSet...>{})
 {
   using CurrentTypeDecayed = std::decay_t<CurrentType>;
   if constexpr (contains<CurrentTypeDecayed, TypeSet...>()) {
 
     if constexpr (not empty<TypesPassedIn...>()) {
       return make_type_set<TypesPassedIn...>(std::tuple<TypeSet...>());
-    } else {
+    }
+    else {
       return std::tuple<TypeSet...>();
     }
-
-  } else {
+  }
+  else {
 
     if constexpr (not empty<TypesPassedIn...>()) {
       return make_type_set<TypesPassedIn...>(std::tuple<TypeSet..., CurrentTypeDecayed>());
-    } else {
+    }
+    else {
       return std::tuple<TypeSet..., CurrentTypeDecayed>();
     }
-
   }
 }
 
@@ -257,7 +274,7 @@ constexpr auto make_type_set(std::tuple<TypeSet...>  /*unused*/ = std::tuple<Typ
  * @tparam TypeSet This is the set of types so far
  * @return An empty tuple containing the type set
  */
-template <class... Types>
+template<class... Types>
 [[maybe_unused]] constexpr auto make_variant(std::tuple<Types...> /*unused*/) { return std::variant<Types...>{}; }
 
 /**
@@ -279,7 +296,8 @@ template<typename INTERFACE_TYPENAME>
     static_assert(!result.substr(bpos, len).empty(), "Cannot infer type name in function call");
 
     return result.substr(bpos, len);
-  } else {
+  }
+  else {
     constexpr size_t len = result.substr(bpos).find_first_not_of("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_:");
 
     static_assert(!result.substr(bpos, len).empty(), "Cannot infer type name in function call");
@@ -288,14 +306,14 @@ template<typename INTERFACE_TYPENAME>
   }
 }
 
-template <typename T>
+template<typename T>
 struct function_traits
-  : public function_traits<decltype(&T::operator())>
-{};
+  : public function_traits<decltype(&T::operator())> {
+};
 // For generic types, directly use the result of the signature of its 'operator()'
 
-template <typename ClassType, typename ReturnType, typename... Args>
-struct function_traits<ReturnType(ClassType::*)(Args...) const>
+template<typename ClassType, typename ReturnType, typename... Args>
+struct function_traits<ReturnType (ClassType::*)(Args...) const>
 // we specialize for pointers to member function
 {
   enum { arity = sizeof...(Args) };
@@ -303,9 +321,8 @@ struct function_traits<ReturnType(ClassType::*)(Args...) const>
 
   [[maybe_unused]] typedef ReturnType result_type;
 
-  template <size_t i>
-  struct argument
-  {
+  template<size_t i>
+  struct argument {
     static_assert(i < arity, "flow::metaprogramming::function_traits: attempted to access index out of bounds");
     typedef typename std::tuple_element<i, std::tuple<Args...>>::type type;
     // the i-th argument is equivalent to the i-th tuple element of a tuple
@@ -313,5 +330,5 @@ struct function_traits<ReturnType(ClassType::*)(Args...) const>
   };
 };
 
-}
+}// namespace flow::metaprogramming
 #endif//FLOW_METAPROGRAMMING_HPP

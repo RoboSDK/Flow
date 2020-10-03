@@ -114,6 +114,9 @@ TEST_CASE("Testing popping the first or next item from the list", "[pop_front]")
     STATIC_REQUIRE(empty(pop_front<Foo>()));
     STATIC_REQUIRE(empty(pop_front<int>()));
     STATIC_REQUIRE(empty(pop_front<Bar<Foo>>()));
+
+    STATIC_REQUIRE(empty(pop_front<Foo>(size_tc<1>{})));
+    STATIC_REQUIRE(std::is_same_v<pop_front<Foo>(size_tc<0>{})::type, Foo>);
   }
 
   SECTION("Pop size of two")
@@ -141,6 +144,9 @@ TEST_CASE("Testing popping the first or next item from the list", "[pop_front]")
     {
       constexpr type_container<Bar<Foo>> bar_foo_t = pop_front<Foo, Foo, Bar<Foo>>(size_tc<2>{});
       STATIC_REQUIRE(std::is_same_v<decltype(bar_foo_t)::type, Bar<Foo>>);
+
+      constexpr type_container<Foo> foo_t = pop_front<Foo, Bar<Foo>, Foo>(size_tc<2>{});
+      STATIC_REQUIRE(std::is_same_v<decltype(foo_t)::type, Foo>);
     }
 
     {
@@ -151,7 +157,7 @@ TEST_CASE("Testing popping the first or next item from the list", "[pop_front]")
 
   SECTION("Pop three from three")
   {
-//    constexpr std::tuple<> empty_t = pop_front(pop_front<Foo, Foo, Bar<Foo>>());
-//    STATIC_REQUIRE(empty(empty_t));
+    constexpr std::tuple<> empty_t = pop_front<Foo, Foo, Bar<Foo>>(size_tc<3>{});
+    STATIC_REQUIRE(empty(empty_t));
   }
 }
