@@ -1,23 +1,23 @@
-#ifndef FLOW_MIXEDARRAY_HPP
-#define FLOW_MIXEDARRAY_HPP
+#ifndef FLOW_MIXED_ARRAY_HPP
+#define FLOW_MIXED_ARRAY_HPP
 
 #include <tuple>
 #include <array>
 #include <variant>
 
-#include "../metaprogramming.hpp"
+#include "flow/metaprogramming.hpp"
 #include "flow/logging.hpp"
 
 namespace flow {
 
 template<std::size_t N, typename... TypeSet>
-class MixedArray {
+class mixed_array {
   using MixedType = std::variant<TypeSet...>;
   using Array = std::array<MixedType, N>;
 
 public:
   template<typename... Types>
-  constexpr explicit MixedArray(Types &&... ts) : m_items{ { std::forward<Types>(ts)... } } {}
+  constexpr explicit mixed_array(Types &&... ts) : m_items{ { std::forward<Types>(ts)... } } {}
 
   using iterator = typename Array::iterator;
   using const_iterator = typename Array::const_iterator;
@@ -43,7 +43,7 @@ constexpr auto make_mixed_array(Types &&... types)
   constexpr auto type_set = metaprogramming::make_type_set<Types...>();
 
   const auto to_mixed_array = [&]<typename... TypeSet>(std::tuple<TypeSet...> /*unused*/) {
-    return MixedArray<sizeof...(types), TypeSet...>(types...);
+    return mixed_array<sizeof...(types), TypeSet...>(types...);
   };
 
   return to_mixed_array(type_set);
@@ -64,4 +64,4 @@ constexpr auto make_visitor(Visitors &&... visitors)
 
 }// namespace flow
 
-#endif//FLOW_MIXEDARRAY_HPP
+#endif//FLOW_MIXED_ARRAY_HPP
