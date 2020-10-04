@@ -1,11 +1,11 @@
 #ifndef FLOW_SYSTEM_HPP
 #define FLOW_SYSTEM_HPP
 
-#include "flow/data_structures/MixedArray.hpp"
+#include "flow/data_structures/mixed_array.hpp"
 #include "flow/data_structures/static_vector.hpp"
+#include "flow/metaprogramming.hpp"
 #include "flow/options.hpp"
 #include "flow/registry.hpp"
-#include "flow/metaprogramming.hpp"
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all.hpp>
@@ -25,7 +25,7 @@ public:
   cppcoro::task<void> begin([[maybe_unused]] auto& registry)
 
   {
-    [[maybe_unused]] MixedArray<N, Layers...> layers = flow::make_mixed_array(Layers{}...);
+    [[maybe_unused]] mixed_array<N, Layers...> layers = flow::make_mixed_array(Layers{}...);
     for (auto& layer : layers) {
       std::visit([&](auto& l) { l.begin(registry); }, layer);
     }

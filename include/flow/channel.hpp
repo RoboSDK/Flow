@@ -13,18 +13,40 @@
 #include <cppcoro/when_all.hpp>
 
 namespace flow {
-
+/**
+ * A channel represents the central location where all communication happens between different tasks
+ * sharing information through messages
+ *
+ * It gets built up as publishers and subscribes are created by tasks. Once the begin phase is over, the open communication coroutine
+ * begins and triggers all tasks to begin communication asynchronously.
+ *
+ * @tparam message_t The information being transmitted through this channel
+ */
 template<typename message_t>
 class channel {
 public:
+  // TODO: Add this ias a template param
   static constexpr auto message_buffer_size = 64;
+
   channel(std::string name) : m_name(std::move(name)) {}
-  channel() = default;
 
-  void push_callback(std::function<void(message_t&)> callback) { m_on_request_callbacks.push_back(std::move(callback)); }
-  void push_callback(std::function<void(const message_t&)> callback) { m_on_message_callbacks.push_back(std::move(callback)); }
+  /**
+   * Called by registry when handing over ownership of the callback registered by a task
+   * @param callback The request or message call back from a task
+   */
+  void push_publisher(std::function<void(message_t&)> && callback) { m_on_request_callbacks.push_back(std::move(callback)); }
+  void push_subscription(std::function<void(message_t const&)> && callback) { m_on_message_callbacks.push_back(std::move(callback)); }
 
 
+  /**
+   * Called as part of the main routine through flow::spin
+   *
+   * @param tp The threadpool created by flow::spin
+   * @param io A scheduler for asynchronous io
+   * @param barrier Handles signals for publishing/subscribing between tasks
+   * @param sequencer Handles buffer organization of messages
+   * @return A coroutine that will be executed by flow::spin
+   */
   auto open_communications(
     cppcoro::static_thread_pool& tp,
     cppcoro::io_service& io,

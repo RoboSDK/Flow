@@ -51,7 +51,13 @@ constexpr std::size_t size([[maybe_unused]] std::tuple<items_t...> list = std::t
  * @return Whether the list is empty
  */
 template<class... items_t>
-constexpr bool empty([[maybe_unused]] std::tuple<items_t...> list = std::tuple<items_t...>{})
+constexpr bool empty()
+{
+  return sizeof...(items_t) == 0;
+}
+
+template<class... items_t>
+constexpr bool empty([[maybe_unused]] std::tuple<items_t...> const&)
 {
   return sizeof...(items_t) == 0;
 }

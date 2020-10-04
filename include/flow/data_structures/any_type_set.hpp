@@ -11,14 +11,14 @@ namespace flow {
  * This stores any type by its std::type_info
  *
  * example:
- * my_set.put(typeid(double)) = double
+ * my_set.put(1.0); // stored a double
  */
 class any_type_set {
   using typeinfo_ref = std::reference_wrapper<const std::type_info>;
 
 public:
   template<typename T>
-  bool contains()
+  bool contains() const
   {
     const auto info = typeinfo_ref(typeid(T));
     return m_items.find(info) != m_items.end();
@@ -31,7 +31,7 @@ public:
   }
 
   template<typename T>
-  auto& at()
+  auto& at() const
   {
     return std::any_cast<T&>(m_items.at(typeid(T)));
   }
