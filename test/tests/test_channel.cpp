@@ -25,6 +25,11 @@ std::string to_string(Point const& p)
 int main()
 {
   flow::channel<Point> point_channel("points");
+  if (point_channel.name() != "points") {
+    flow::logging::error("Expected name of channel to be 'points'. Got {}", point_channel.name());
+    return 1;
+  }
+
   static constexpr std::size_t total_messages = 10;
   std::atomic_size_t messages_sent = 0;
 

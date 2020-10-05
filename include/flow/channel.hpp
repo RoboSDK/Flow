@@ -31,6 +31,10 @@ public:
   void push_publisher(std::function<void(message_t&)>&& callback) { m_on_request_callbacks.push_back(std::move(callback)); }
   void push_subscription(std::function<void(message_t const&)>&& callback) { m_on_message_callbacks.push_back(std::move(callback)); }
 
+  std::string_view name() const {
+    return m_name;
+  }
+
 
   /**
    * Called as part of the main routine through flow::spin
@@ -104,6 +108,7 @@ public:
     co_await cppcoro::when_all_ready(std::move(on_messages), std::move(on_requests));
   }
 
+private:
   using publisher_callbacks_t = std::vector<std::function<void(message_t&)>>;
   publisher_callbacks_t m_on_request_callbacks{};
 

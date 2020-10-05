@@ -68,7 +68,6 @@ add_catch_test(test_array)
 add_catch_test(test_any_type_set)
 add_catch_test(test_string)
 add_catch_test(test_double_buffer)
-add_catch_test(test_registry)
 add_catch_test(test_cancellation)
 
 add_constexpr_catch_test(constexpr_tests)
@@ -78,3 +77,4 @@ add_relaxed_constexpr_catch_test(constexpr_tests)
 add_relaxed_constexpr_catch_test(test_metaprogramming)
 
 add_coroutine_test(test_channel)
+add_coroutine_test(test_registry)
