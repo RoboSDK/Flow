@@ -3,6 +3,8 @@
 #include <cppcoro/cancellation_token.hpp>
 #include <cppcoro/operation_cancelled.hpp>
 
+#include <iostream>
+
 namespace flow {
 class cancellation_handle {
 public:
@@ -22,13 +24,19 @@ private:
 template<typename R, typename... Args>
 struct cancellable_callback {
 public:
-  cancellable_callback(cppcoro::cancellation_token token, std::function<R(Args...)>&& callback)
-    : m_cancel_token(token), m_callback(std::move(callback))
+  using callback_t = std::function<R(Args...)>;
+  cancellable_callback(cppcoro::cancellation_token token, callback_t && callback)
+    : m_cancel_token(token), m_current_callback(std::move(callback))
   {}
 
-  R operator()(Args... args)
+  R operator()(Args&&... args)
   {
-    return m_callback(std::forward<Args>(args)...);
+    if (m_cancel_token.is_cancellation_requested() != m_change_callbacks) {
+      m_change_callbacks = m_cancel_token.is_cancellation_requested();
+      std::swap(m_current_callback, m_next_callback);
+    }
+
+    return m_current_callback(std::forward<Args>(args)...);
   }
 
   void throw_if_cancellation_requested () {
@@ -41,7 +49,10 @@ public:
 
 
 private:
+  bool m_change_callbacks{false};
+
   cppcoro::cancellation_token m_cancel_token;
-  std::function<R(Args...)> m_callback;
+  callback_t m_current_callback;
+  callback_t m_next_callback = [](Args... /*unused*/) -> R {};
 };
 }// namespace flow

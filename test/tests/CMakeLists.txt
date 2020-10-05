@@ -5,7 +5,7 @@ else()
   include(${CONAN_CATCH2_ROOT}/lib/cmake/Catch2/Catch.cmake)
 endif()
 
-list(APPEND libraries CONAN_PKG::catch2 project_options project_warnings header_only_libs flow::flow)
+list(APPEND libraries CONAN_PKG::catch2 project_options project_warnings header_only_libs flow::flow cppcoro liburing::liburing)
 
 add_library(catch_main STATIC catch_main.cpp)
 target_link_libraries(catch_main PUBLIC ${libraries})
@@ -57,13 +57,18 @@ macro(add_relaxed_constexpr_catch_test test_name)
           --out=relaxed_constexpr.xml)
 endmacro()
 
+macro(add_coroutine_test test_name)
+    add_executable(${test_name} ${test_name}.cpp)
+    target_link_libraries(${test_name} PRIVATE ${libraries})
+    add_test(NAME ${test_name} COMMAND ${test_name})
+endmacro()
+
 add_catch_test(test_mixed_array)
 add_catch_test(test_array)
 add_catch_test(test_any_type_set)
 add_catch_test(test_string)
 add_catch_test(test_double_buffer)
 add_catch_test(test_registry)
-add_catch_test(test_channel)
 add_catch_test(test_cancellation)
 
 add_constexpr_catch_test(constexpr_tests)
@@ -71,3 +76,5 @@ add_constexpr_catch_test(test_metaprogramming)
 
 add_relaxed_constexpr_catch_test(constexpr_tests)
 add_relaxed_constexpr_catch_test(test_metaprogramming)
+
+add_coroutine_test(test_channel)

@@ -1,12 +1,6 @@
 #include <catch2/catch.hpp>
-#include <cppcoro/schedule_on.hpp>
-#include <cppcoro/static_thread_pool.hpp>
-#include <cppcoro/sync_wait.hpp>
-#include <cppcoro/task.hpp>
-#include <cppcoro/when_all.hpp>
-#include <flow/cancel.hpp>
-#include <iostream>
-#include <thread>
+#include <flow/cancellation.hpp>
+
 
 namespace {
 struct Point {
@@ -14,9 +8,12 @@ struct Point {
 }// namespace
 
 template<typename R, typename M>
-void test_cancellable()
+void test_cancellable(M& dummy_message)
 {
-  auto callback = [&]([[maybe_unused]] M msg) -> R {};
+  bool called_back = false;
+  auto callback = [&]([[maybe_unused]] M msg) -> R {
+    called_back = true;
+  };
 
   auto handle = flow::cancellation_handle{};
   [[maybe_unused]] auto cancellable = flow::cancellable_callback<R, M>(handle.token(), std::move(callback));
@@ -26,6 +23,9 @@ void test_cancellable()
 
   handle.request_cancellation();
   REQUIRE(cancellable.is_cancellation_requested());
+
+  cancellable(dummy_message); // should call null callback
+  REQUIRE(called_back == false);
   try {
     cancellable.throw_if_cancellation_requested();
   }
@@ -39,6 +39,7 @@ void test_cancellable()
 
 TEST_CASE("Test cancellable subscription", "[cancellable_subscription]")
 {
-  test_cancellable<void, Point const&>();// subscription
-  test_cancellable<void, Point&>();// publisher
+  Point p{};
+  test_cancellable<void, Point const&>(p);// subscription
+  test_cancellable<void, Point&>(p);// publisher
 }

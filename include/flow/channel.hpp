@@ -2,15 +2,12 @@
 
 #include <functional>
 
-#include "flow/data_structures/static_vector.hpp"
-#include "flow/data_structures/string.hpp"
-
-#include <cppcoro/io_service.hpp>
 #include <cppcoro/multi_producer_sequencer.hpp>
 #include <cppcoro/sequence_barrier.hpp>
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all.hpp>
+#include <cppcoro/when_all_ready.hpp>
 
 namespace flow {
 /**
@@ -25,17 +22,14 @@ namespace flow {
 template<typename message_t>
 class channel {
 public:
-  // TODO: Add this ias a template param
-  static constexpr auto message_buffer_size = 64;
-
   channel(std::string name) : m_name(std::move(name)) {}
 
   /**
    * Called by registry when handing over ownership of the callback registered by a task
    * @param callback The request or message call back from a task
    */
-  void push_publisher(std::function<void(message_t&)> && callback) { m_on_request_callbacks.push_back(std::move(callback)); }
-  void push_subscription(std::function<void(message_t const&)> && callback) { m_on_message_callbacks.push_back(std::move(callback)); }
+  void push_publisher(std::function<void(message_t&)>&& callback) { m_on_request_callbacks.push_back(std::move(callback)); }
+  void push_subscription(std::function<void(message_t const&)>&& callback) { m_on_message_callbacks.push_back(std::move(callback)); }
 
 
   /**
@@ -47,58 +41,75 @@ public:
    * @param sequencer Handles buffer organization of messages
    * @return A coroutine that will be executed by flow::spin
    */
-  auto open_communications(
-    cppcoro::static_thread_pool& tp,
-    cppcoro::io_service& io,
+  template<std::size_t buffer_size>
+  cppcoro::task<void> open_communications(
+    auto& scheduler,
     cppcoro::sequence_barrier<std::size_t>& barrier,
-    cppcoro::multi_producer_sequencer<std::size_t>& sequencer)
+    cppcoro::multi_producer_sequencer<std::size_t>& sequencer,
+    std::array<message_t, buffer_size>& buffer,
+    volatile std::atomic_bool& application_is_running)
   {
     using tasks_t = std::vector<cppcoro::task<void>>;
-    tasks_t to_be_completed{};
+    constexpr std::size_t index_mask = buffer_size - 1;
 
-    const auto from_handle_request = [&](auto& handle_request) -> cppcoro::task<void> {
-      while (true) {
-        size_t seq = co_await sequencer.claim_one(io);
-        auto& msg = m_buffer[seq & index_mask];
-        handle_request(msg);
+    const auto from_handle_request = [&](std::function<void(message_t&)>&& handler) -> cppcoro::task<void> {
+      while (application_is_running.load(std::memory_order_relaxed)) {
+        size_t seq = co_await sequencer.claim_one(scheduler);
+        auto& msg = buffer[seq & index_mask];
+        handler(msg);
         sequencer.publish(seq);
-      } };
+      }
 
-    for (auto& handle_request : m_on_request_callbacks) {
-      to_be_completed.push_back(from_handle_request(handle_request));
+      // send one last final message to allow the consumers to quit
+      size_t seq = co_await sequencer.claim_one(scheduler);
+      auto& msg = buffer[seq & index_mask];
+      handler(msg);
+      sequencer.publish(seq);
     };
 
-    for (auto& handle_message : m_on_message_callbacks) {
-      to_be_completed.push_back([&](const auto& handler) -> cppcoro::task<void> {
-        size_t nextToRead = 0;
-        while (true) {
-          // Wait until the next message is available
-          // There may be more than one available.
-          const size_t available = co_await sequencer.wait_until_published(nextToRead, available, tp);
-          do {
-            auto& msg = m_buffer[nextToRead & index_mask];
-            handler(msg);
-          } while (nextToRead++ != available);
+    tasks_t on_request_tasks{};
+    for (auto&& handle_request : m_on_request_callbacks) {
+      on_request_tasks.push_back(from_handle_request(std::move(handle_request)));
+    };
 
-          barrier.publish(available);
-        }
-      }(handle_message));
+    const auto from_handle_message = [&](std::function<void(message_t const&)>&& handler) -> cppcoro::task<void> {
+      /*
+       * Theoretically we should start reading at the 0th index, but for some reason
+       * the first message sent is empty, so the first message will be skipped.
+       */
+      size_t nextToRead = sizeof(message_t);
+      size_t lastAvailable = 0;
+      while (application_is_running.load(std::memory_order_relaxed)) {
+        // Wait until the next message is available
+        // There may be more than one available.
+        const size_t available = co_await sequencer.wait_until_published(nextToRead, sequencer.last_published_after(lastAvailable), scheduler);
+        do {
+          auto& msg = buffer[nextToRead & index_mask];
+          handler(msg);
+        } while (nextToRead++ != available);
+
+        barrier.publish(available);
+        lastAvailable = available;
+      }
+    };
+
+    tasks_t on_message_tasks{};
+    for (auto&& handle_message : m_on_message_callbacks) {
+      on_message_tasks.push_back(from_handle_message(std::move(handle_message)));
     }
 
-    return cppcoro::when_all(std::move(to_be_completed));
+    auto on_messages = cppcoro::when_all(std::move(on_message_tasks));
+    auto on_requests = cppcoro::when_all(std::move(on_request_tasks));
+
+    co_await cppcoro::when_all_ready(std::move(on_messages), std::move(on_requests));
   }
 
   using publisher_callbacks_t = std::vector<std::function<void(message_t&)>>;
   publisher_callbacks_t m_on_request_callbacks{};
 
-  using subscriber_callbacks_t = std::vector<std::function<void(const message_t&)>>;
+  using subscriber_callbacks_t = std::vector<std::function<void(message_t const&)>>;
   subscriber_callbacks_t m_on_message_callbacks{};
-
-  using message_buffer_t = std::array<message_t, message_buffer_size>;
-  message_buffer_t m_buffer{};
-
   std::string m_name;
-  static constexpr std::size_t index_mask = message_buffer_size - 1;
 };
 
 }// namespace flow
