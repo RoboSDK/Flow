@@ -40,8 +40,10 @@ std::vector<cppcoro::task<void>> make_communication_tasks(auto& scheduler, flow:
   using namespace flow::metaprogramming;
   std::vector<cppcoro::task<void>> communication_tasks{};
   for_each<message_ts...>([&]<typename message_t>(type_container<message_t> /*unused*/){
-    auto& channel = channel_registry.template get_channel<message_t>();
-    communication_tasks.push_back(channel.open_communications(scheduler, system_is_running));
+    auto channel_refs = channel_registry.template get_channels<message_t>();
+    for (auto& channel : channel_refs) {
+      communication_tasks.push_back(channel.get().open_communications(scheduler, system_is_running));
+    }
   });
 
   return communication_tasks;

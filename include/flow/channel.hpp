@@ -23,6 +23,8 @@ namespace flow {
 template<typename message_t>
 class channel {
 public:
+  using message_type = message_t;
+
   channel(std::string name) : m_name(std::move(name)) {}
 
   /**
@@ -37,6 +39,9 @@ public:
     return m_name;
   }
 
+  std::size_t hash() {
+    return typeid(message_t).hash_code() ^ std::hash<std::string>{}(m_name);
+  }
 
   /**
    * Called as part of the main routine through flow::spin
