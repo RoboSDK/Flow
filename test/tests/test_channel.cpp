@@ -7,7 +7,6 @@
 /**
  * This test will create a single publisher and subscriber, send 10 messages and then quit.
  */
-
 namespace {
 struct Point {
   double x;
