@@ -1,9 +1,9 @@
 #include <flow/system.hpp>
 #include <flow/message_registry.hpp>
 
-#include "LidarData.hpp"
-#include "TransformLayer.hpp"
-#include "SensorLayer.hpp"
+#include "mock/LidarData.hpp"
+#include "mock/TransformLayer.hpp"
+#include "mock/SensorLayer.hpp"
 
 int main()
 {

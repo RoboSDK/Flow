@@ -10,6 +10,7 @@
 #include <vector>
 
 namespace {
+static constexpr std::size_t TOTAL_MESSAGES = 10'000;
 app::LidarDriver g_driver{};
 }
 
@@ -18,11 +19,20 @@ class LidarTask final : public flow::task<LidarTask> {
 public:
   void begin(auto& channel_registry){
     const auto on_request = [this](LidarData& message) {
-      flow::logging::info("Calling driver...");
+      static bool done = false;
+       if (++m_num_messages >= TOTAL_MESSAGES and not done) {
+         flow::logging::info("Test complete: {} messages have been processed.", TOTAL_MESSAGES);
+         m_cb_handle.stop_everything();
+         done = true;
+       }
       message = g_driver.drive();
     };
 
-    flow::publish<LidarData>("lidar_data", channel_registry, on_request);
+    m_cb_handle = flow::publish<LidarData>("lidar_data", channel_registry, on_request);
   }
+
+  flow::callback_handle m_cb_handle;
+
+  std::size_t m_num_messages = 0;
 };
 }// namespace app

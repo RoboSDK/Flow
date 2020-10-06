@@ -18,7 +18,7 @@ endmacro()
 macro(add_catch_test test_name)
     make_test(${test_name} ${libraries})
 
-  # automatically discover tests that are defined in catch based test files you can modify the unittests. TEST_PREFIX to
+  # automatically discover test_behaviors that are defined in catch based test files you can modify the unittests. TEST_PREFIX to
   # whatever you want, or use different for different binaries
   catch_discover_tests(
           ${test_name}
@@ -57,11 +57,6 @@ macro(add_relaxed_constexpr_catch_test test_name)
           --out=relaxed_constexpr.xml)
 endmacro()
 
-macro(add_coroutine_test test_name)
-    add_executable(${test_name} ${test_name}.cpp)
-    target_link_libraries(${test_name} PRIVATE ${libraries})
-    add_test(NAME ${test_name} COMMAND ${test_name})
-endmacro()
 
 add_catch_test(test_mixed_array)
 add_catch_test(test_array)
@@ -76,5 +71,3 @@ add_constexpr_catch_test(test_metaprogramming)
 add_relaxed_constexpr_catch_test(constexpr_tests)
 add_relaxed_constexpr_catch_test(test_metaprogramming)
 
-add_coroutine_test(test_channel)
-add_coroutine_test(test_registry)

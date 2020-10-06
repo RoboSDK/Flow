@@ -40,7 +40,7 @@ private:
 template<typename... Types>
 constexpr auto make_mixed_array(Types &&... types)
 {
-  constexpr auto type_set = metaprogramming::make_type_set<Types...>();
+  auto type_set = metaprogramming::make_type_set<Types...>();
 
   const auto to_mixed_array = [&]<typename... TypeSet>(std::tuple<TypeSet...> /*unused*/) {
     return mixed_array<sizeof...(types), TypeSet...>(types...);

@@ -49,7 +49,8 @@ std::vector<cppcoro::task<void>> make_communication_tasks(auto& scheduler, flow:
 
 void spin(auto system, auto message_registry)
 {
-  flow::registry channel_registry;
+  volatile std::atomic_bool system_is_running = true;
+  flow::registry channel_registry(&system_is_running);
 
   auto layers = make_layers(system);
   for (auto& layer : layers) {
@@ -57,7 +58,6 @@ void spin(auto system, auto message_registry)
   }
 
   cppcoro::static_thread_pool scheduler;
-  volatile std::atomic_bool system_is_running = true;
 
   auto communication_tasks = make_communication_tasks(scheduler, channel_registry, message_registry, system_is_running);
   cppcoro::sync_wait(when_all_ready(std::move(communication_tasks)));

@@ -27,7 +27,7 @@ std::atomic_size_t messages_sent = 0;
 
 int main()
 {
-  flow::registry channel_registry;
+  flow::registry channel_registry(application_is_running);
   flow::callback_handle cb_sub_handle = make_points_subscription(channel_registry);
   flow::callback_handle cb_pub_handle = make_points_publisher(channel_registry);
 

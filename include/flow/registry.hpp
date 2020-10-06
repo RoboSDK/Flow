@@ -9,6 +9,8 @@
 namespace flow {
 class registry {
 public:
+  registry(volatile std::atomic_bool* program_is_running) : m_program_is_running(program_is_running) {}
+
   template<typename message_t>
   flow::callback_handle register_subscription(std::string&& channel_name, std::function<void(message_t const&)>&& on_message)
   {
@@ -22,7 +24,7 @@ public:
     auto& ch = m_channels.at<channel<message_t>>();
     ch.push_subscription(std::move(subscription));
 
-    return callback_handle(std::move(cancellation_handle));
+    return callback_handle(std::move(cancellation_handle), m_program_is_running);
   }
 
   template<typename message_t>
@@ -38,7 +40,7 @@ public:
     auto& ch = m_channels.at<channel<message_t>>();
     ch.push_publisher(std::move(publisher));
 
-    return callback_handle(std::move(cancellation_handle));
+    return callback_handle(std::move(cancellation_handle), m_program_is_running);
   }
 
   template<typename message_t>
@@ -50,6 +52,7 @@ public:
 private:
   /// the message type will be used to map into the channel
   any_type_set m_channels;
+  volatile std::atomic_bool* m_program_is_running{nullptr};
 };
 
 template<typename message_t>
