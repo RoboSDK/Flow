@@ -13,7 +13,6 @@ struct Point {
   double x;
   double y;
 };
-}// namespace
 
 std::string to_string(Point const& p)
 {
@@ -21,6 +20,20 @@ std::string to_string(Point const& p)
   ss << "Point: x: " << p.x << " y: " << p.y;
   return ss.str();
 }
+
+static constexpr std::size_t TOTAL_MESSAGES = 10;
+static constexpr std::size_t BUFFER_SIZE = 4096;
+
+volatile std::atomic_bool application_is_running = true;
+std::atomic_size_t messages_sent = 0;
+
+cppcoro::static_thread_pool scheduler;
+cppcoro::sequence_barrier<std::size_t> barrier;
+cppcoro::multi_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };
+
+using message_buffer_t = std::array<Point, BUFFER_SIZE>;
+message_buffer_t buffer{};
+}// namespace
 
 int main()
 {
@@ -30,10 +43,6 @@ int main()
     return 1;
   }
 
-  static constexpr std::size_t total_messages = 10;
-  std::atomic_size_t messages_sent = 0;
-
-  volatile std::atomic_bool application_is_running = true;
   // given by the publisher
   auto on_request = [](Point& msg) {
     msg.x = 5.0;
@@ -56,18 +65,10 @@ int main()
   flow::cancellable_callback<void, Point const&> subscription(cancellation_handle.token(), std::move(on_message));
   point_channel.push_subscription(std::move(subscription));
 
-  cppcoro::static_thread_pool scheduler;
-  cppcoro::sequence_barrier<std::size_t> barrier;
-  static constexpr std::size_t buffer_size = 4096;
-  cppcoro::multi_producer_sequencer<std::size_t> sequencer{ barrier, buffer_size };
-
-  using message_buffer_t = std::array<Point, buffer_size>;
-  message_buffer_t buffer{};
-
   auto task = point_channel.open_communications(scheduler, barrier, sequencer, buffer, application_is_running);
   std::thread task_thread([&] { cppcoro::sync_wait(std::move(task)); });
 
-  while (messages_sent.load() < total_messages and application_is_running.load()) {}
+  while (messages_sent.load() < TOTAL_MESSAGES and application_is_running.load()) {}
 
   int EXIT_CODE = EXIT_SUCCESS;
   if (not application_is_running.load()) {
@@ -75,7 +76,7 @@ int main()
     EXIT_CODE = EXIT_FAILURE;
   }
   else {
-    flow::logging::info("Tested channel: Sent {} messages and cancelled operation.", total_messages);
+    flow::logging::info("Tested channel: Sent {} messages and cancelled operation.", TOTAL_MESSAGES);
     application_is_running.exchange(false);
   }
 

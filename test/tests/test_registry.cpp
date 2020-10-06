@@ -8,25 +8,23 @@
 /**
  * This test will create a single publisher and subscriber, send 10 messages and then quit.
  */
+flow::callback_handle make_points_subscription(flow::registry& channels);
+flow::callback_handle make_points_publisher(flow::registry& channels);
 
 namespace {
 struct Point {
   double x;
   double y;
 };
-}// namespace
 
-flow::callback_handle make_points_subscription(flow::registry& channels);
-flow::callback_handle make_points_publisher(flow::registry& channels);
-
-namespace {
-volatile std::atomic_bool application_is_running = true;
 static constexpr std::size_t TOTAL_MESSAGES = 10;
+static constexpr std::size_t BUFFER_SIZE = 4096;
+
+volatile std::atomic_bool application_is_running = true;
 std::atomic_size_t messages_sent = 0;
 
 cppcoro::static_thread_pool scheduler;
 cppcoro::sequence_barrier<std::size_t> barrier;
-static constexpr std::size_t BUFFER_SIZE = 4096;
 cppcoro::multi_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };
 
 using message_buffer_t = std::array<Point, BUFFER_SIZE>;
