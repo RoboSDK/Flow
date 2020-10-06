@@ -5,7 +5,22 @@
 
 #include <iostream>
 
+/**
+ * This module is dedicated to the cancellation_handle and cancellation_callback.
+ *
+ * For every publisher or subscriber there exists a cancellation handle and callback pair.
+ *
+ * The callback handle (which owns a cancellable handle) is given to the task that subscriber
+ * or publishers to the channel, which gives control of the callback to the task owner.
+ *
+ * The cancellable callback is linked to this callback handle, which may be disabled by the callback handle.
+ */
+
 namespace flow {
+
+/**
+ * Allows the owner of this handle to cancel a callback asynchronously
+ */
 class cancellation_handle {
 public:
   void request_cancellation()
@@ -21,6 +36,12 @@ private:
   cppcoro::cancellation_source m_cancel_source;
 };
 
+/**
+ * Takes in a function and manually passed parameters, along with a cancellation token that allows the callback
+ * to be cancelled by the owner of the cancellation handle.
+ * @tparam R The return type of the function
+ * @tparam Args The arguments of the function
+ */
 template<typename R, typename... Args>
 struct cancellable_callback {
 public:

@@ -2,6 +2,12 @@
 
 #include "flow/cancellation.hpp"
 
+/**
+ * A callback handle is a handle that has various controls up the communication heirarchy.
+ *
+ * It is given back when subscribing or publishing to a channel.
+ */
+
 namespace flow {
 class callback_handle {
 public:
@@ -15,11 +21,17 @@ public:
   {
   }
 
+  /**
+   * Disables the callback (it becomes a noop)
+   */
   void disable()
   {
     m_cancel_handle.request_cancellation();
   }
 
+  /**
+   * Stops all communication between channels and ends the program
+   */
   void stop_everything()
   {
     m_program_is_running->exchange(false);
