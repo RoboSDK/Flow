@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace {
-static constexpr std::size_t TOTAL_MESSAGES = 1'000;
+static constexpr std::size_t TOTAL_MESSAGES = mock::total_messages;
 app::LidarDriver g_driver{};
 }
 

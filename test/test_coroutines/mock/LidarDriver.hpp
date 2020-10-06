@@ -13,6 +13,6 @@ struct LidarDriver {
     return data;
   }
   std::random_device rd;
-  std::uniform_real_distribution<double> dist{ 0, 9 };
+  std::uniform_real_distribution<double> dist{ mock::lidar_driver_distribution_range.first, mock::lidar_driver_distribution_range.second };
 };
 }// namespace app
