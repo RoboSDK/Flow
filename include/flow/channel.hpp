@@ -45,16 +45,16 @@ public:
    * @param sequencer Handles buffer organization of messages
    * @return A coroutine that will be executed by flow::spin
    */
-  template<std::size_t buffer_size>
+  template<std::size_t BUFFER_SIZE>
   cppcoro::task<void> open_communications(
     auto& scheduler,
     cppcoro::sequence_barrier<std::size_t>& barrier,
     cppcoro::multi_producer_sequencer<std::size_t>& sequencer,
-    std::array<message_t, buffer_size>& buffer,
+    std::array<message_t, BUFFER_SIZE>& buffer,
     volatile std::atomic_bool& application_is_running)
   {
     using tasks_t = std::vector<cppcoro::task<void>>;
-    constexpr std::size_t index_mask = buffer_size - 1;
+    constexpr std::size_t index_mask = BUFFER_SIZE - 1;
 
     const auto from_handle_request = [&](std::function<void(message_t&)>&& handler) -> cppcoro::task<void> {
       while (application_is_running.load(std::memory_order_relaxed)) {

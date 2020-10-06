@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "flow/callback_handle.hpp"
 #include "flow/channel.hpp"
 #include "flow/data_structures/any_type_set.hpp"
 
@@ -9,54 +10,58 @@ namespace flow {
 class registry {
 public:
   template<typename message_t>
-  void register_subscription(std::string&& channel_name, std::function<void(message_t const&)>&& on_message)
+  flow::callback_handle register_subscription(std::string&& channel_name, std::function<void(message_t const&)>&& on_message)
   {
-    if (not channels.contains<channel<message_t>>()) {
-      channels.put(channel<message_t>(channel_name));
+    if (not m_channels.contains<channel<message_t>>()) {
+      m_channels.put(channel<message_t>(channel_name));
     }
 
-    auto& ch = channels.at<channel<message_t>>();
-    ch.push_publisher(on_message);
+    auto cancellation_handle = flow::cancellation_handle{};
+    auto subscription = flow::cancellable_callback<void, message_t const&>(cancellation_handle.token(), std::move(on_message));
+
+    auto& ch = m_channels.at<channel<message_t>>();
+    ch.push_publisher(std::move(subscription));
+
+    return callback_handle(std::move(cancellation_handle));
   }
 
   template<typename message_t>
-  void register_publisher(std::string&& channel_name, std::function<void(message_t&)>&& on_request)
+  flow::callback_handle register_publisher(std::string&& channel_name, std::function<void(message_t&)>&& on_request)
   {
-    if (not channels.contains<channel<message_t>>()) {
-      channels.put(channel<message_t>(channel_name));
+    if (not m_channels.contains<channel<message_t>>()) {
+      m_channels.put(channel<message_t>(channel_name));
     }
 
-    auto& ch = channels.at<channel<message_t>>();
-    ch.push_publisher(on_request);
+    auto cancellation_handle = flow::cancellation_handle{};
+    auto publisher = flow::cancellable_callback<void, message_t&>(cancellation_handle.token(), std::move(on_request));
+
+    auto& ch = m_channels.at<channel<message_t>>();
+    ch.push_publisher(std::move(publisher));
+
+    return callback_handle(std::move(cancellation_handle));
   }
 
   template<typename message_t>
   channel<message_t>& get_channel()
   {
-    return channels.at<message_t>();
-  }
-
-  template<typename message_t>
-  bool has_channel() const
-  {
-    return channels.contains<message_t>();
+    return m_channels.at<channel<message_t>>();
   }
 
 private:
-  /// the message type will be used to map intp the channel
-  any_type_set channels;
+  /// the message type will be used to map into the channel
+  any_type_set m_channels;
 };
 
 template<typename message_t>
-void subscribe(std::string channel_name, auto& registry, std::function<void(const message_t&)> on_message)
+flow::callback_handle subscribe(std::string channel_name, auto& registry, std::function<void(const message_t&)> on_message)
 {
-  registry.register_subscription(std::move(channel_name), std::move(on_message));
+  return registry.register_subscription(std::move(channel_name), std::move(on_message));
 }
 
 template<typename message_t>
-void publish_to(std::string channel_name, std::function<void(message_t&)> on_request, auto& registry)
+flow::callback_handle publish(std::string channel_name, auto& registry, std::function<void(message_t&)> on_request)
 {
-  registry.register_publisher(std::move(channel_name), std::move(on_request));
+  return registry.register_publisher(std::move(channel_name), std::move(on_request));
 }
 
 }// namespace flow

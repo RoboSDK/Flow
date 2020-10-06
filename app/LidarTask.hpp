@@ -21,7 +21,7 @@ public:
       message = g_driver.drive();
     };
 
-    flow::publish_to<LidarData>("lidar_data", on_request, registry);
+    flow::publish<LidarData>("lidar_data", registry, on_request);
   }
 };
 }// namespace app

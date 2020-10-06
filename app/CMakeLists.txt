@@ -5,5 +5,6 @@ target_link_libraries(app
         project_warnings
         header_only_libs
 
+        cppcoro
         flow::flow
 )

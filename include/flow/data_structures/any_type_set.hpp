@@ -31,7 +31,7 @@ public:
   }
 
   template<typename T>
-  auto& at() const
+  auto& at()
   {
     return std::any_cast<T&>(m_items.at(typeid(T)));
   }
