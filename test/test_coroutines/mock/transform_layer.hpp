@@ -3,16 +3,16 @@
 #include <flow/layer.hpp>
 #include <flow/task.hpp>
 
-#include "LidarTransformTask.hpp"
+#include "lidar/lidar_transform_task.hpp"
 
 namespace app {
-class TransformLayer : flow::layer<TransformLayer> {
+class transform_layer : flow::layer<transform_layer> {
 public:
   void register_channels(auto& registry)
   {
     flow::begin(m_task, registry);
   }
 private:
-  LidarTransformTask m_task;
+  lidar_transform_task m_task;
 };
 }// namespace app

@@ -1,17 +1,17 @@
 #pragma once
 
-#include "LidarTask.hpp"
+#include "lidar/lidar_task.hpp"
 #include <flow/layer.hpp>
 #include <flow/task.hpp>
 
 namespace app {
-class SensorLayer : flow::layer<SensorLayer> {
+class sensor_layer : flow::layer<sensor_layer> {
 public:
   void register_channels(auto& registry)
   {
     flow::begin(m_task, registry);
   }
 private:
-  LidarTask m_task;
+  lidar_task m_task;
 };
 }// namespace app

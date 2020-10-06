@@ -1,14 +1,14 @@
 #include <flow/messages.hpp>
 #include <flow/system.hpp>
 
-#include "mock/LidarData.hpp"
-#include "mock/TransformLayer.hpp"
-#include "mock/SensorLayer.hpp"
+#include "mock/lidar/lidar_data.hpp"
+#include "mock/sensor_layer.hpp"
+#include "mock/transform_layer.hpp"
 
 int main()
 {
   using namespace app;
-  auto messages = flow::make_messages<LidarData>();
-  auto system = flow::make_system<TransformLayer, SensorLayer>();
+  auto messages = flow::make_messages<lidar_data>();
+  auto system = flow::make_system<transform_layer, sensor_layer>();
   flow::spin(system, messages);
 }
