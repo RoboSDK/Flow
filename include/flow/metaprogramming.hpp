@@ -174,10 +174,10 @@ void for_each(auto&& callback)
     return;
   }
   else {
-    constexpr auto next_t = type_container(next<items_t...>());
+    auto next_t = type_container(next<items_t...>());
     callback(type_container<typename decltype(next_t)::type>{});
 
-    constexpr auto the_rest = pop_front<items_t...>();
+    auto the_rest = pop_front<items_t...>();
     const auto continue_loop_on = [&]<typename... the_rest_t>([[maybe_unused]] std::tuple<the_rest_t...>)
     {
         for_each<the_rest_t...>(callback);

@@ -7,7 +7,7 @@
 namespace app {
 class SensorLayer : flow::layer<SensorLayer> {
 public:
-  void begin(auto& registry)
+  void register_channels(auto& registry)
   {
     flow::begin(m_task, registry);
   }

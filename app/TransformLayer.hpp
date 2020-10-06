@@ -8,7 +8,7 @@
 namespace app {
 class TransformLayer : flow::layer<TransformLayer> {
 public:
-  void begin(auto& registry)
+  void register_channels(auto& registry)
   {
     flow::begin(m_task, registry);
   }

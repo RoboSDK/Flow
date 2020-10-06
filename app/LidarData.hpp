@@ -1,7 +1,5 @@
 #pragma once
 
-#include "flow/data_structures/static_vector.hpp"
-
 namespace app {
 struct LidarData
 {

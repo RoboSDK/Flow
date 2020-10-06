@@ -3,6 +3,7 @@
 #include "LidarData.hpp"
 #include <numeric>
 #include <random>
+#include <iostream>
 
 namespace app {
 struct LidarDriver {

@@ -2,7 +2,7 @@
 
 #include <NamedType/crtp.hpp>
 
-namespace flow{
+namespace flow {
 /**
  * The task interface
  * @tparam concrete_task The concrete task type that will be implementing this interface
@@ -11,9 +11,8 @@ namespace flow{
  *
  * A tasks purpose is to do one thing, and do it well.
  */
-template <typename concrete_task_t>
-class task : fluent::crtp<concrete_task_t, task>
-{
+template<typename concrete_task_t>
+class task : fluent::crtp<concrete_task_t, task> {
 public:
   void begin(auto& registry);
 };
@@ -25,8 +24,9 @@ void task<concrete_task>::begin(auto& registry)
   this->underlying()->begin(registry);
 }
 
-template <typename task_t>
-void begin(task_t& task, auto& registry) {
- task.begin(registry) ;
+template<typename task_t>
+void begin(task_t& task, auto& registry)
+{
+  task.begin(registry);
 }
-}
+}// namespace flow

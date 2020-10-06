@@ -20,18 +20,12 @@ std::string to_string(Point const& p)
   return ss.str();
 }
 
-static constexpr std::size_t TOTAL_MESSAGES = 10;
+static constexpr std::size_t TOTAL_MESSAGES = 5000;
 static constexpr std::size_t BUFFER_SIZE = 4096;
+cppcoro::static_thread_pool scheduler;
 
 volatile std::atomic_bool application_is_running = true;
 std::atomic_size_t messages_sent = 0;
-
-cppcoro::static_thread_pool scheduler;
-cppcoro::sequence_barrier<std::size_t> barrier;
-cppcoro::multi_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };
-
-using message_buffer_t = std::array<Point, BUFFER_SIZE>;
-message_buffer_t buffer{};
 }// namespace
 
 int main()
@@ -64,10 +58,10 @@ int main()
   flow::cancellable_callback<void, Point const&> subscription(cancellation_handle.token(), std::move(on_message));
   point_channel.push_subscription(std::move(subscription));
 
-  auto task = point_channel.open_communications(scheduler, barrier, sequencer, buffer, application_is_running);
+  auto task = point_channel.open_communications(scheduler, application_is_running);
   std::thread task_thread([&] { cppcoro::sync_wait(std::move(task)); });
 
-  while (messages_sent.load() < TOTAL_MESSAGES and application_is_running.load()) {}
+  while (messages_sent.load(std::memory_order_relaxed) < TOTAL_MESSAGES and application_is_running.load()) {}
 
   int EXIT_CODE = EXIT_SUCCESS;
   if (not application_is_running.load()) {
@@ -79,6 +73,8 @@ int main()
     application_is_running.exchange(false);
   }
 
-  task_thread.join();
+  flow::logging::info("Waiting for task thread to join....");
+  if (task_thread.joinable()) { task_thread.join(); }
+  flow::logging::info("Joined!");
   return EXIT_CODE;
 }

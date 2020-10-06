@@ -1,4 +1,4 @@
-add_executable(app main.cpp LidarTask.cpp LidarTask.hpp)
+add_executable(app main.cpp LidarTask.hpp)
 target_link_libraries(app
         PRIVATE
         project_options

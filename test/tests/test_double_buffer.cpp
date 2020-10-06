@@ -2,7 +2,6 @@
 #include <cppitertools/range.hpp>
 #include <flow/data_structures/double_buffer.hpp>
 #include <thread>
-#include <cppitertools/range.hpp>
 
 TEST_CASE("Test basic reading and writing", "[read_and_write]")
 {

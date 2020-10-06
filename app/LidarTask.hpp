@@ -16,12 +16,13 @@ app::LidarDriver g_driver{};
 namespace app {
 class LidarTask final : public flow::task<LidarTask> {
 public:
-  void begin(auto& registry){
+  void begin(auto& channel_registry){
     const auto on_request = [this](LidarData& message) {
+      flow::logging::info("Calling driver...");
       message = g_driver.drive();
     };
 
-    flow::publish<LidarData>("lidar_data", registry, on_request);
+    flow::publish<LidarData>("lidar_data", channel_registry, on_request);
   }
 };
 }// namespace app

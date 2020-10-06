@@ -20,7 +20,7 @@ public:
     auto subscription = flow::cancellable_callback<void, message_t const&>(cancellation_handle.token(), std::move(on_message));
 
     auto& ch = m_channels.at<channel<message_t>>();
-    ch.push_publisher(std::move(subscription));
+    ch.push_subscription(std::move(subscription));
 
     return callback_handle(std::move(cancellation_handle));
   }

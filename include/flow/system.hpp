@@ -4,87 +4,63 @@
 #include "flow/data_structures/mixed_array.hpp"
 #include "flow/data_structures/static_vector.hpp"
 #include "flow/metaprogramming.hpp"
-#include "flow/options.hpp"
 #include "flow/registry.hpp"
+#include "flow/message_registry.hpp"
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all.hpp>
 #include <frozen/unordered_map.h>
 #include <type_traits>
+#include "flow/channel.hpp"
 
 namespace flow {
 template<typename... Layers>
 concept no_repeated_layers = std::is_same_v<std::tuple<Layers...>, decltype(metaprogramming::make_type_set<Layers...>(std::tuple<>()))>;
 
-template<options_concept options_t, typename... Layers>
-requires no_repeated_layers<Layers...> class System {
-  static constexpr std::size_t N = sizeof...(Layers);
-
-public:
-  using options = options_t;
-  cppcoro::task<void> begin([[maybe_unused]] auto& registry)
-
-  {
-    [[maybe_unused]] mixed_array<N, Layers...> layers = flow::make_mixed_array(Layers{}...);
-    for (auto& layer : layers) {
-      std::visit([&](auto& l) { l.begin(registry); }, layer);
-    }
-
-    cppcoro::static_thread_pool tp;
-    cppcoro::io_service io;
-    cppcoro::sequence_barrier<std::size_t> barrier;
-    cppcoro::multi_producer_sequencer<std::size_t> sequencer{barrier, 64};
-
-    std::vector<cppcoro::task<void>> tasks{};
-    for (auto& [_, channel] : registry.m_channels) {
-      auto task = std::visit([&](auto& c1) -> cppcoro::task<void> { return c1.open_communications(tp, io, barrier, sequencer); }, channel);
-      tasks.push_back(std::move(task));
-    }
-
-//    co_await cppcoro::when_all(channel_tasks);
-//    co_await new_channel.open_communications();
-//    co_return;
-    return cppcoro::task<void>{};
-  }
-
-private:
-//  [[maybe_unused]] static constexpr options_t m_options{};
+template<typename... Layers>
+requires no_repeated_layers<Layers...> class system {
 };
+
+template<typename... Layers>
+requires no_repeated_layers<Layers...> auto make_layers(system<Layers...> /*unused*/)
+
+{
+  return flow::make_mixed_array(Layers{}...);
+}
 
 template<typename... Layers>
 requires no_repeated_layers<Layers...> auto make_system()
 {
-  [[maybe_unused]] constexpr auto options = flow::make_options();
-  return System<decltype(options), Layers...>{};
+  return system<Layers...>{};
 }
 
-template<typename... Layers>
-requires no_repeated_layers<Layers...> auto make_system(options_concept auto& options)
+template<typename... message_ts>
+std::vector<cppcoro::task<void>> make_communication_tasks(auto& scheduler, flow::registry& channel_registry, message_registry<message_ts...> /*unused*/, volatile std::atomic_bool& system_is_running)
 {
-  return System<decltype(options), Layers...>{};
+  using namespace flow::metaprogramming;
+  std::vector<cppcoro::task<void>> communication_tasks{};
+  for_each<message_ts...>([&]<typename message_t>(type_container<message_t> /*unused*/){
+    auto& channel = channel_registry.template get_channel<message_t>();
+    communication_tasks.push_back(channel.open_communications(scheduler, system_is_running));
+  });
+
+  return communication_tasks;
 }
 
-template<typename system_t, typename message_registry_t>
-void spin(system_t& system, message_registry_t& messages)
+void spin(auto system, auto message_registry)
 {
-  const auto make_registry = [&]<typename... message_ts>(flow::message_registry<message_ts...> & /*unused*/)
-  {
-    return flow::registry<typename system_t::options, message_ts...>{};
-  };
-  auto registry = make_registry(messages);
+  flow::registry channel_registry;
 
-  cppcoro::static_thread_pool tp;
-  cppcoro::io_service io;
-  cppcoro::sequence_barrier<std::size_t> barrier;
-  cppcoro::multi_producer_sequencer<std::size_t> sequencer{barrier, 64};
-
-  std::vector<cppcoro::task<void>> tasks{};
-  for (auto& [_, channel] : registry.m_channels) {
-    auto task = std::visit([&](auto& c1) -> cppcoro::task<void> { return c1.open_communications(tp, io, barrier, sequencer); }, channel);
-    tasks.push_back(std::move(task));
+  auto layers = make_layers(system);
+  for (auto& layer : layers) {
+    std::visit([&](auto& l) { l.register_channels(channel_registry); }, layer);
   }
 
-  cppcoro::sync_wait(system.begin(registry));
+  cppcoro::static_thread_pool scheduler;
+  volatile std::atomic_bool system_is_running = true;
+
+  auto communication_tasks = make_communication_tasks(scheduler, channel_registry, message_registry, system_is_running);
+  cppcoro::sync_wait(when_all_ready(std::move(communication_tasks)));
 }
 }// namespace flow
 #endif//FLOW_SYSTEM_HPP

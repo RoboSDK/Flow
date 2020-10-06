@@ -17,18 +17,12 @@ struct Point {
   double y;
 };
 
-static constexpr std::size_t TOTAL_MESSAGES = 10;
+static constexpr std::size_t TOTAL_MESSAGES = 5000;
 static constexpr std::size_t BUFFER_SIZE = 4096;
+cppcoro::static_thread_pool scheduler;
 
 volatile std::atomic_bool application_is_running = true;
 std::atomic_size_t messages_sent = 0;
-
-cppcoro::static_thread_pool scheduler;
-cppcoro::sequence_barrier<std::size_t> barrier;
-cppcoro::multi_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };
-
-using message_buffer_t = std::array<Point, BUFFER_SIZE>;
-message_buffer_t buffer{};
 }// namespace
 
 int main()
@@ -39,14 +33,31 @@ int main()
 
   auto& point_channel = channel_registry.get_channel<Point>();
 
-  auto communications_task = point_channel.open_communications(scheduler, barrier, sequencer, buffer, application_is_running);
+  auto communications_task = point_channel.open_communications(scheduler, application_is_running);
   std::thread task_thread([&] { cppcoro::sync_wait(std::move(communications_task)); });
 
-  while (messages_sent.load() < TOTAL_MESSAGES) {}
-  flow::logging::info("Tested channel: Sent {} messages and cancelled operation.", TOTAL_MESSAGES);
-  application_is_running.exchange(false);
-  task_thread.join();
-  return 0;
+  int EXIT_CODE = EXIT_SUCCESS;
+  std::size_t prev_num_messages = messages_sent.load(std::memory_order_relaxed);
+  while (messages_sent.load(std::memory_order_relaxed) < TOTAL_MESSAGES) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    if (prev_num_messages == messages_sent.load(std::memory_order_relaxed)) {
+      application_is_running.exchange(false);
+      flow::logging::error("Expect 5000 messages to be sent, but only sent {} and stopped.", prev_num_messages);
+      EXIT_CODE = EXIT_FAILURE;
+      break;
+    }
+    prev_num_messages = messages_sent.load(std::memory_order_relaxed);
+  }
+
+  if (application_is_running.load(std::memory_order_relaxed)) {
+    flow::logging::info("Tested channel: Sent {} messages and cancelled operation.", TOTAL_MESSAGES);
+    application_is_running.exchange(false);
+  }
+
+  flow::logging::info("Waiting for task thread to join....");
+  if (task_thread.joinable()) { task_thread.join(); }
+  flow::logging::info("Joined!");
+  return EXIT_CODE;
 }
 
 flow::callback_handle make_points_subscription(flow::registry& channels)
