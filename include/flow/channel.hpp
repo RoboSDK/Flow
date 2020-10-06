@@ -23,8 +23,6 @@ namespace flow {
 template<typename message_t>
 class channel {
 public:
-  using message_type = message_t;
-
   channel(std::string name) : m_name(std::move(name)) {}
 
   /**
@@ -75,6 +73,7 @@ public:
       size_t seq = co_await sequencer.claim_one(scheduler);
       auto& msg = buffer[seq & index_mask];
       handler(msg);
+      msg.metadata.sequence = m_sequence++;
       sequencer.publish(seq);
     };
 
@@ -119,7 +118,9 @@ private:
 
   using subscriber_callbacks_t = std::vector<std::function<void(message_t const&)>>;
   subscriber_callbacks_t m_on_message_callbacks{};
+
   std::string m_name;
+  std::size_t m_sequence{};
 };
 
 }// namespace flow

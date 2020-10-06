@@ -2,6 +2,7 @@
 #include <flow/channel.hpp>
 #include <flow/logging.hpp>
 #include <flow/registry.hpp>
+#include <flow/metadata.hpp>
 
 #include <cppcoro/sync_wait.hpp>
 
@@ -15,10 +16,12 @@ namespace {
 struct Point {
   double x;
   double y;
+
+  flow::metadata metadata{};
 };
 
 static constexpr std::size_t TOTAL_MESSAGES = 5000;
-static constexpr std::array CHANNEL_NAMES = {"small_points", "large_points"};
+static constexpr std::array CHANNEL_NAMES = { "small_points", "large_points" };
 cppcoro::static_thread_pool scheduler;
 
 volatile std::atomic_bool application_is_running = true;

@@ -1,5 +1,4 @@
-#include <flow/messages.hpp>
-#include <flow/system.hpp>
+#include <flow/flow.hpp>
 
 #include "mock/lidar/lidar_data.hpp"
 #include "mock/sensor_layer.hpp"
