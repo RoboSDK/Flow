@@ -20,8 +20,16 @@ std::string to_string(Point const& p)
   return ss.str();
 }
 
+bool confirm_name(auto& channel, std::string const& channel_name)
+{
+  const bool is_correct_name = channel.name() == channel_name;
+  if (not is_correct_name) {
+    flow::logging::error("Expected name of channel to be '{}'. Got {}", channel_name, channel.name());
+  }
+  return is_correct_name;
+}
+
 static constexpr std::size_t TOTAL_MESSAGES = 5000;
-static constexpr std::size_t BUFFER_SIZE = 4096;
 cppcoro::static_thread_pool scheduler;
 
 volatile std::atomic_bool application_is_running = true;
@@ -30,36 +38,42 @@ std::atomic_size_t messages_sent = 0;
 
 int main()
 {
-  flow::channel<Point> point_channel("points");
-  if (point_channel.name() != "points") {
-    flow::logging::error("Expected name of channel to be 'points'. Got {}", point_channel.name());
+  flow::channel<Point> small_points_channel("small_points");
+  flow::channel<Point> large_points_channel("large_points");
+
+  if (not confirm_name(small_points_channel, "small_points") or not confirm_name(large_points_channel, "large_points")) {
     return 1;
   }
 
-  // given by the publisher
-  auto on_request = [](Point& msg) {
+  large_points_channel.push_publisher([](Point& msg) {
     msg.x = 5.0;
     msg.y = 4.0;
-  };
+  });
 
-  flow::cancellation_handle cancellation_handle{};
-  flow::cancellable_callback<void, Point&> publisher(cancellation_handle.token(), std::move(on_request));
-  point_channel.push_publisher(std::move(publisher));
+  small_points_channel.push_publisher([](Point& msg) {
+    msg.x = 1.0;
+    msg.y = 1.0;
+  });
 
-  // given by the subscriber
-  auto on_message = [&](Point const& msg) {
+  large_points_channel.push_subscription([&](Point const& msg) {
     if (msg.x < 5.0 or msg.y < 4.0) {
       flow::logging::error("Got: {} Expected: {}", to_string(msg), to_string(Point{ 5.0, 4.0 }));
       application_is_running.exchange(false);
     }
     messages_sent.fetch_add(1, std::memory_order_relaxed);
-  };
+  });
 
-  flow::cancellable_callback<void, Point const&> subscription(cancellation_handle.token(), std::move(on_message));
-  point_channel.push_subscription(std::move(subscription));
+  small_points_channel.push_subscription([&](Point const& msg) {
+    if (msg.x < 1.0 or msg.y < 1.0) {
+      flow::logging::error("Got: {} Expected: {}", to_string(msg), to_string(Point{ 1.0, 1.0 }));
+      application_is_running.exchange(false);
+    }
+    messages_sent.fetch_add(1, std::memory_order_relaxed);
+  });
 
-  auto task = point_channel.open_communications(scheduler, application_is_running);
-  std::thread task_thread([&] { cppcoro::sync_wait(std::move(task)); });
+  auto small_points_task = small_points_channel.open_communications(scheduler, application_is_running);
+  auto large_points_task = large_points_channel.open_communications(scheduler, application_is_running);
+  std::thread task_thread([&] { cppcoro::sync_wait(cppcoro::when_all_ready(std::move(small_points_task), std::move(large_points_task))); });
 
   while (messages_sent.load(std::memory_order_relaxed) < TOTAL_MESSAGES and application_is_running.load()) {}
 
