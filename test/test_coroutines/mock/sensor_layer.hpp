@@ -4,7 +4,7 @@
 #include <flow/layer.hpp>
 #include <flow/task.hpp>
 
-namespace app {
+namespace mock {
 class sensor_layer : flow::layer<sensor_layer> {
 public:
   void register_channels(auto& registry)
@@ -14,4 +14,4 @@ public:
 private:
   lidar_task m_task;
 };
-}// namespace app
+}// namespace mock

@@ -4,7 +4,7 @@
 #include <numeric>
 #include <random>
 
-namespace app {
+namespace mock {
 struct lidar_driver {
   lidar_data drive()
   {
@@ -15,4 +15,4 @@ struct lidar_driver {
   std::random_device rd;
   std::uniform_real_distribution<double> dist{ mock::lidar::driver_distribution_range.first, mock::lidar::driver_distribution_range.second };
 };
-}// namespace app
+}// namespace mock

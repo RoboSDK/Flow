@@ -6,7 +6,7 @@
 
 int main()
 {
-  using namespace app;
+  using namespace mock;
   auto messages = flow::make_messages<lidar_data>();
   auto system = flow::make_system<transform_layer, sensor_layer>();
   flow::spin(system, messages);

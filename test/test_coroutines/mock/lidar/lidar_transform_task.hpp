@@ -11,7 +11,7 @@
 #include <flow/registry.hpp>
 #include <vector>
 
-namespace app {
+namespace mock {
 class lidar_transform_task final : public flow::task<lidar_transform_task> {
 public:
   void begin(flow::registry& channel_registry)
@@ -25,4 +25,4 @@ public:
   }
   std::size_t num_messages = 0;
 };
-}// namespace app
+}// namespace mock

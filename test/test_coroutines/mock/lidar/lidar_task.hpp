@@ -11,10 +11,10 @@
 
 namespace {
 static constexpr std::size_t TOTAL_MESSAGES = mock::lidar::total_messages;
-app::lidar_driver g_driver{};
+mock::lidar_driver g_driver{};
 }
 
-namespace app {
+namespace mock {
 class lidar_task final : public flow::task<lidar_task> {
 public:
   void begin(auto& channel_registry){
@@ -35,4 +35,4 @@ public:
 
   std::size_t m_num_messages = 0;
 };
-}// namespace app
+}// namespace mock

@@ -10,7 +10,7 @@ namespace flow {
 //    R"(Flow
 //
 //     Usage:
-//          app
+//          mock
 //
 //     Options:
 //              -h --help     Show this screen.
