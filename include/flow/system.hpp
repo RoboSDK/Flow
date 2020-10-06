@@ -1,17 +1,17 @@
 #ifndef FLOW_SYSTEM_HPP
 #define FLOW_SYSTEM_HPP
 
+#include "flow/channel.hpp"
 #include "flow/data_structures/mixed_array.hpp"
 #include "flow/data_structures/static_vector.hpp"
+#include "flow/messages.hpp"
 #include "flow/metaprogramming.hpp"
 #include "flow/registry.hpp"
-#include "flow/message_registry.hpp"
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all.hpp>
 #include <frozen/unordered_map.h>
 #include <type_traits>
-#include "flow/channel.hpp"
 
 namespace flow {
 template<typename... Layers>
@@ -35,7 +35,7 @@ requires no_repeated_layers<Layers...> auto make_system()
 }
 
 template<typename... message_ts>
-std::vector<cppcoro::task<void>> make_communication_tasks(auto& scheduler, flow::registry& channel_registry, message_registry<message_ts...> /*unused*/, volatile std::atomic_bool& system_is_running)
+std::vector<cppcoro::task<void>> make_communication_tasks(auto& scheduler, flow::registry& channel_registry, messages<message_ts...> /*unused*/, volatile std::atomic_bool& system_is_running)
 {
   using namespace flow::metaprogramming;
   std::vector<cppcoro::task<void>> communication_tasks{};
