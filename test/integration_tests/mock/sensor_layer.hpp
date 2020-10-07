@@ -12,6 +12,6 @@ public:
     flow::begin(m_task, registry);
   }
 private:
-  lidar_drive_task m_task;
+  mock::lidar_drive_task<> m_task;
 };
 }// namespace mock

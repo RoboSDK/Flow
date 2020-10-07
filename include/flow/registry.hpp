@@ -21,7 +21,7 @@ public:
     }
 
     auto cancellation_handle = flow::cancellation_handle{};
-    auto subscription = flow::cancellable_callback<void, message_t const&>(cancellation_handle.token(), std::move(on_message));
+    auto subscription = flow::cancellable_function<void(message_t const&)>(cancellation_handle.token(), std::move(on_message));
 
     auto& ch = m_channels.at<message_t>(channel_name);
     ch.push_subscription(std::move(subscription));
@@ -38,7 +38,7 @@ public:
     }
 
     auto cancellation_handle = flow::cancellation_handle{};
-    auto publisher = flow::cancellable_callback<void, message_t&>(cancellation_handle.token(), std::move(on_request));
+    auto publisher = flow::cancellable_function<void(message_t&)>(cancellation_handle.token(), std::move(on_request));
 
     auto& ch = m_channels.at<message_t>(channel_name);
     ch.push_publisher(std::move(publisher));
@@ -46,8 +46,9 @@ public:
     return callback_handle(std::move(cancellation_handle), m_program_is_running);
   }
 
-  template <typename message_t>
-  bool contains(std::string const& channel_name) {
+  template<typename message_t>
+  bool contains(std::string const& channel_name)
+  {
     return m_channels.contains<message_t>(channel_name);
   }
 
@@ -64,7 +65,7 @@ public:
 
     std::vector<std::reference_wrapper<channel<message_t>>> channels;
     for (const auto& name : channel_names) {
-       channels.push_back(m_channels.at<message_t>(name));
+      channels.push_back(m_channels.at<message_t>(name));
     }
 
     return channels;
@@ -76,7 +77,7 @@ private:
 
   /// Maps a type hash to all channel names associated with it
   std::unordered_map<std::size_t, std::vector<std::string>> m_channel_names;
-  volatile std::atomic_bool* m_program_is_running{nullptr};
+  volatile std::atomic_bool* m_program_is_running{ nullptr };
 };
 
 template<typename message_t>

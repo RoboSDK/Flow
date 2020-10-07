@@ -1,39 +1,43 @@
 #pragma once
 
+
+#include <flow/data_structures/static_vector.hpp>
+#include <flow/data_structures/tick_function.hpp>
+#include <flow/registry.hpp>
 #include <flow/task.hpp>
+
+#include <chrono>
 #include <random>
+#include <vector>
 
 #include "lidar_driver.hpp"
-#include <chrono>
-#include <flow/data_structures/static_vector.hpp>
-#include <flow/registry.hpp>
-#include <vector>
 
 namespace {
 static constexpr std::size_t TOTAL_MESSAGES = mock::defaults::total_messages;
 mock::lidar_driver g_driver{};
-}
+}// namespace
 
 namespace mock {
-template <std::size_t total_messages_t = mock::defaults::total_messages, std::size_t num_tasks = mock::defaults::num_publishers>
+template<std::size_t total_messages_t = mock::defaults::total_messages, std::size_t num_tasks = mock::defaults::num_publishers>
 class lidar_drive_task final : public flow::task<lidar_drive_task<total_messages_t, num_tasks>> {
 public:
-  void begin(auto& channel_registry){
+  void begin(auto& channel_registry)
+  {
     const auto on_request = [this](lidar_message& message) {
-      static bool done = false;
-       if (++m_num_messages >= TOTAL_MESSAGES and not done) {
-         flow::logging::info("Test complete: {} messages have been processed.", TOTAL_MESSAGES);
-         m_cb_handle.stop_everything();
-         done = true;
-       }
+      m_tick();
       message = g_driver.drive();
     };
 
-    m_cb_handle = flow::publish<lidar_message>("lidar_message", channel_registry, on_request);
+    m_cb_handle = flow::publish<lidar_message>("lidar_points", channel_registry, on_request);
+
+    constexpr auto tick_cycle = total_messages_t;
+    m_tick = flow::tick_function<void()>(tick_cycle, [this] {
+      flow::logging::info("Test complete: {} messages have been processed.", total_messages_t);
+      m_cb_handle.stop_everything();
+    });
   }
 
-  flow::callback_handle m_cb_handle;
-
-  std::size_t m_num_messages = 0;
+  flow::callback_handle m_cb_handle{};
+  flow::tick_function<void()> m_tick{};
 };
 }// namespace mock

@@ -7,7 +7,7 @@ namespace flow {
 //void begin(int argc, char** argv)
 //{
 //  static constexpr auto USAGE =
-//    R"(Flow
+//    return_t"(Flow
 //
 //     Usage:
 //          mock

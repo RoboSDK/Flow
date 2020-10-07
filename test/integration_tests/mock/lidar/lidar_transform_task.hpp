@@ -21,7 +21,7 @@ public:
       [[maybe_unused]] const auto transformed = std::reduce(std::begin(message.points), std::end(message.points), 0);
     };
 
-    [[maybe_unused]] flow::callback_handle handle = flow::subscribe<lidar_message>(mock::defaults::channel_name, channel_registry, on_message);
+    [[maybe_unused]] flow::callback_handle handle = flow::subscribe<lidar_message>("lidar_points", channel_registry, on_message);
   }
   std::size_t num_messages = 0;
 };
