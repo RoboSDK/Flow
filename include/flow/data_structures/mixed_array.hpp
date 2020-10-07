@@ -12,29 +12,29 @@ namespace flow {
 
 template<std::size_t N, typename... TypeSet>
 class mixed_array {
-  using MixedType = std::variant<TypeSet...>;
-  using Array = std::array<MixedType, N>;
+  using mixed_t = std::variant<TypeSet...>;
+  using array_t = std::array<mixed_t, N>;
 
 public:
   template<typename... Types>
   constexpr explicit mixed_array(Types &&... ts) : m_items{ { std::forward<Types>(ts)... } } {}
 
-  using iterator = typename Array::iterator;
-  using const_iterator = typename Array::const_iterator;
+  using iterator = typename array_t::iterator;
+  using const_iterator = typename array_t::const_iterator;
 
   constexpr decltype(auto) begin() { return std::begin(m_items); }
   constexpr decltype(auto) begin() const { return std::begin(m_items); }
   constexpr decltype(auto) end() { return std::end(m_items); }
   constexpr decltype(auto) end() const { return std::end(m_items); }
 
-  [[maybe_unused]] constexpr MixedType &front() const { return m_items.front(); }
-  [[maybe_unused]] constexpr MixedType &back() const { return m_items.back(); }
+  [[maybe_unused]] constexpr mixed_t&front() const { return m_items.front(); }
+  [[maybe_unused]] constexpr mixed_t&back() const { return m_items.back(); }
 
-  constexpr MixedType &operator[](std::size_t index) { return m_items[index]; }
+  constexpr mixed_t&operator[](std::size_t index) { return m_items[index]; }
   [[maybe_unused]] constexpr std::size_t size() const { return m_items.size(); }
 
 private:
-  Array m_items;
+  array_t m_items;
 };
 
 template<typename... Types>
