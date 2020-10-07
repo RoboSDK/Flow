@@ -2,13 +2,13 @@
 
 #include <functional>
 
-#include <cppcoro/single_producer_sequencer.hpp>
+#include <array>
 #include <cppcoro/sequence_barrier.hpp>
+#include <cppcoro/single_producer_sequencer.hpp>
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all.hpp>
 #include <cppcoro/when_all_ready.hpp>
-#include <array>
 
 namespace flow {
 /**
@@ -22,6 +22,10 @@ namespace flow {
  */
 template<typename message_t>
 class channel {
+  using task_t = cppcoro::task<void>;
+  using tasks_t = std::vector<task_t>;
+  static constexpr std::size_t BUFFER_SIZE = 4096;
+
 public:
   channel(std::string name) : m_name(std::move(name)) {}
 
@@ -37,7 +41,8 @@ public:
     return m_name;
   }
 
-  std::size_t hash() {
+  std::size_t hash()
+  {
     return typeid(message_t).hash_code() ^ std::hash<std::string>{}(m_name);
   }
 
@@ -50,61 +55,23 @@ public:
    * @param sequencer Handles buffer organization of messages
    * @return A coroutine that will be executed by flow::spin
    */
-  //  template<std::size_t BUFFER_SIZE>
-  cppcoro::task<void> open_communications(auto& scheduler, volatile std::atomic_bool& application_is_running)
+  task_t open_communications(auto& sched, volatile std::atomic_bool& app_is_running)
   {
-    static constexpr std::size_t BUFFER_SIZE = 4096;
-    cppcoro::sequence_barrier<std::size_t> barrier;
-    cppcoro::single_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };
+    using namespace cppcoro;
 
-    std::array<message_t, BUFFER_SIZE> buffer;
-    constexpr std::size_t index_mask = BUFFER_SIZE - 1;
-
-    using tasks_t = std::vector<cppcoro::task<void>>;
-    const auto from_handle_request = [&](std::function<void(message_t&)>&& handler) -> cppcoro::task<void> {
-      while (application_is_running.load(std::memory_order_relaxed)) {
-        size_t seq = co_await sequencer.claim_one(scheduler);
-        auto& msg = buffer[seq & index_mask];
-        handler(msg);
-        sequencer.publish(seq);
-      }
-
-      // send one last final message to allow the consumers to quit
-      size_t seq = co_await sequencer.claim_one(scheduler);
-      auto& msg = buffer[seq & index_mask];
-      handler(msg);
-      msg.metadata.sequence = m_sequence++;
-      sequencer.publish(seq);
+    struct context_t {
+      decltype(sched) scheduler;
+      volatile std::atomic_bool& application_is_running;// flag that keeps the coroutines spinning
+      sequence_barrier<std::size_t> barrier{};// notifies publishers that it can publish more
+      single_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };// controls sequence values for the message buffer
+      std::array<message_t, BUFFER_SIZE> buffer{};// the message buffer
+      std::size_t index_mask = BUFFER_SIZE - 1;// Used to mask the sequence number and get the index to access the buffer
     };
 
-    tasks_t on_request_tasks{};
-    for (auto&& handle_request : m_on_request_callbacks) {
-      on_request_tasks.push_back(from_handle_request(std::move(handle_request)));
-    };
+    context_t context{sched, app_is_running};
 
-    const auto from_handle_message = [&](std::function<void(message_t const&)>&& handler) -> cppcoro::task<void> {
-      /*
-       * Theoretically we should start reading at the 0th index, but for some reason
-       * the first message sent is empty, so the first message will be skipped.
-       */
-      size_t nextToRead = sizeof(message_t);
-      while (application_is_running.load(std::memory_order_relaxed)) {
-        // Wait until the next message is available
-        // There may be more than one available.
-        const size_t available = co_await sequencer.wait_until_published(nextToRead, scheduler);
-        do {
-          auto& msg = buffer[nextToRead & index_mask];
-          handler(msg);
-        } while (nextToRead++ != available);
-
-        barrier.publish(available);
-      }
-    };
-
-    tasks_t on_message_tasks{};
-    for (auto&& handle_message : m_on_message_callbacks) {
-      on_message_tasks.push_back(from_handle_message(std::move(handle_message)));
-    }
+    tasks_t on_request_tasks = make_publisher_tasks(context);
+    tasks_t on_message_tasks = make_subscriber_tasks(context);
 
     auto on_messages = cppcoro::when_all_ready(std::move(on_message_tasks));
     auto on_requests = cppcoro::when_all_ready(std::move(on_request_tasks));
@@ -113,6 +80,64 @@ public:
   }
 
 private:
+  tasks_t make_publisher_tasks(auto& context)
+  {
+    tasks_t on_request_tasks{};
+    for (auto&& handle_request : m_on_request_callbacks) {
+      on_request_tasks.push_back(make_publisher_task(std::move(handle_request), context));
+    };
+
+    return on_request_tasks;
+  }
+
+  task_t make_publisher_task(
+    std::function<void(message_t&)>&& handler,
+    auto& context)
+  {
+    while (context.application_is_running.load(std::memory_order_relaxed)) {
+      size_t seq = co_await context.sequencer.claim_one(context.scheduler);
+      auto& msg = context.buffer[seq & context.index_mask];
+      handler(msg);
+      context.sequencer.publish(seq);
+    }
+
+    // send one last final message to allow the consumers to quit
+    size_t seq = co_await context.sequencer.claim_one(context.scheduler);
+    auto& msg = context.buffer[seq & context.index_mask];
+    handler(msg);
+    msg.metadata.sequence = m_sequence++;
+    context.sequencer.publish(seq);
+  }
+
+  tasks_t make_subscriber_tasks(auto& context)
+  {
+    tasks_t on_message_tasks{};
+    for (auto&& handle_message : m_on_message_callbacks) {
+      on_message_tasks.push_back(make_subscriber_task(std::move(handle_message), context));
+    };
+
+    return on_message_tasks;
+  }
+
+  task_t make_subscriber_task(std::function<void(message_t const&)>&& handler, auto& context)
+  {
+    // Theoretically we should start reading at the 0th index, but for some reason
+    // the first message sent is empty, so the first message will be skipped.
+    size_t nextToRead = sizeof(message_t);
+
+    while (context.application_is_running.load(std::memory_order_relaxed)) {
+      // Wait until the next message is available
+      // There may be more than one available.
+      const size_t available = co_await context.sequencer.wait_until_published(nextToRead, context.scheduler);
+      do {
+        auto& msg = context.buffer[nextToRead & context.index_mask];
+        handler(msg);
+      } while (nextToRead++ != available);
+
+      context.barrier.publish(available);
+    }
+  }
+
   using publisher_callbacks_t = std::vector<std::function<void(message_t&)>>;
   publisher_callbacks_t m_on_request_callbacks{};
 
