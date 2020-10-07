@@ -18,7 +18,7 @@ endmacro()
 macro(add_catch_test test_name)
     make_test(${test_name} ${libraries})
 
-  # automatically discover test_behaviors that are defined in catch based test files you can modify the unittests. TEST_PREFIX to
+  # automatically discover unit_tests that are defined in catch based test files you can modify the unittests. TEST_PREFIX to
   # whatever you want, or use different for different binaries
   catch_discover_tests(
           ${test_name}
