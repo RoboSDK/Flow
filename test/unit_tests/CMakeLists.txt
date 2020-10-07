@@ -65,6 +65,7 @@ add_catch_test(test_string)
 add_catch_test(test_double_buffer)
 add_catch_test(test_cancellation)
 add_catch_test(test_channel_set)
+add_catch_test(test_ticking_callback)
 
 add_constexpr_catch_test(constexpr_tests)
 add_constexpr_catch_test(test_metaprogramming)
