@@ -66,9 +66,7 @@ public:
       single_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };// controls sequence values for the message buffer
       std::array<message_t, BUFFER_SIZE> buffer{};// the message buffer
       std::size_t index_mask = BUFFER_SIZE - 1;// Used to mask the sequence number and get the index to access the buffer
-    };
-
-    context_t context{sched, app_is_running};
+    } context{sched, app_is_running};
 
     tasks_t on_request_tasks = make_publisher_tasks(context);
     tasks_t on_message_tasks = make_subscriber_tasks(context);
