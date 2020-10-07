@@ -1,16 +1,23 @@
 #pragma once
 #include <utility>
+#include <iostream>
+#include <memory>
 
 namespace flow {
-template<std::size_t limit_t>
-class ticking_callback {
-  using callback_t = std::function<void()>;
+template <typename T>
+class ticking_callback;
+
+template <typename R, typename ...Args>
+class ticking_callback<R (Args...)> {
+  using callback_t = std::function<R(Args...)>;
 public:
-  ticking_callback(callback_t&& cb) : m_callback(std::move(cb)) {}
+
+  ticking_callback(size_t limit, callback_t&& callback) : m_limit(limit), m_callback(callback) {}
+
   bool operator()()
   {
     ++m_count;
-    m_count %= limit_t;
+    m_count %= m_limit;
     if (m_count > 0) {
       return false;
     }
@@ -20,7 +27,8 @@ public:
   }
 
 private:
-  std::size_t m_count = 0;
+  std::size_t m_count{};
+  std::size_t m_limit{};
   callback_t m_callback;
 };
 }// namespace flow

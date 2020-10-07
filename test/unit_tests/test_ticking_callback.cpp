@@ -3,11 +3,11 @@
 #include <cppitertools/range.hpp>
 
 TEST_CASE("Test ticking_callback behavior", "[ticking_callback]") {
-  static constexpr auto TICK_THIS_OFTEN = 3;
+  static constexpr std::size_t TICK_THIS_OFTEN = 3;
 
   bool called = false;
   std::size_t times_called = 0;
-  auto ticker = flow::ticking_callback<TICK_THIS_OFTEN>([&]{
+  auto ticker = flow::ticking_callback<void()>(TICK_THIS_OFTEN, [&]{
    called = true;
    times_called++;
   });

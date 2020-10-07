@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lidar/lidar_task.hpp"
+#include "lidar/lidar_drive_task.hpp"
 #include <flow/layer.hpp>
 #include <flow/task.hpp>
 
@@ -12,6 +12,6 @@ public:
     flow::begin(m_task, registry);
   }
 private:
-  lidar_task m_task;
+  lidar_drive_task m_task;
 };
 }// namespace mock

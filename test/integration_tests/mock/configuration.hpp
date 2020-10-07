@@ -1,14 +1,12 @@
 #pragma once
 
 namespace mock {
-namespace lidar {
-static constexpr std::size_t data_capacity = 100;
-static constexpr std::pair driver_distribution_range = {0, 10};
+namespace defaults {
+static constexpr std::size_t message_capacity = 100;
 static constexpr std::size_t total_messages = 1'000;
-static constexpr auto channel_name = "lidar_data";
 
-static constexpr std::size_t num_lidar_publishers = 10;
-static constexpr std::size_t num_lidar_subscribers = 10;
-static constexpr std::size_t num_message_ids = num_lidar_publishers * total_messages;
+static constexpr std::size_t num_publishers = 10;
+static constexpr std::size_t num_tasks = 10;
+static constexpr std::size_t num_sequences = num_publishers * total_messages;
 }
 }
