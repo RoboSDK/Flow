@@ -23,21 +23,24 @@ class lidar_drive_task final : public flow::task<lidar_drive_task<total_messages
 public:
   void begin(auto& channel_registry)
   {
+    // every publisher will tick concurrently
     const auto on_request = [this](lidar_message& message) {
       m_tick();
       message = g_driver.drive();
     };
 
-    m_cb_handle = flow::publish<lidar_message>("lidar_points", channel_registry, on_request);
+    std::generate_n(std::back_inserter(m_callback_handles), num_tasks, [&] {
+      return flow::publish<lidar_message>("lidar_points", channel_registry, on_request);
+    });
 
     constexpr auto tick_cycle = total_messages_t;
     m_tick = flow::tick_function(tick_cycle, [this] {
       flow::logging::info("Test complete: {} messages have been processed.", total_messages_t);
-      m_cb_handle.stop_everything();
+      m_callback_handles.front().stop_everything();// choose front arbitrarily
     });
   }
 
-  flow::callback_handle m_cb_handle{};
+  std::vector<flow::callback_handle> m_callback_handles{};
   flow::tick_function m_tick{};
 };
 }// namespace mock
