@@ -39,8 +39,15 @@ struct type_container {
  * @tparam The list of items
  * @return the size of the list
  */
+ // TODO: separate out all functions here like this
 template<typename... items_t>
-constexpr std::size_t size([[maybe_unused]] std::tuple<items_t...> list = std::tuple<items_t...>{})
+constexpr std::size_t size()
+{
+  return sizeof...(items_t);
+}
+
+template<typename... items_t>
+constexpr std::size_t size([[maybe_unused]] std::tuple<items_t...> list)
 {
   return sizeof...(items_t);
 }
