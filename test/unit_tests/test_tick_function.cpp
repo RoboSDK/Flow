@@ -9,7 +9,7 @@ TEST_CASE("Test tick_function behavior", "[tick_function]")
 
   bool called = false;
   std::size_t times_called = 0;
-  auto tick = flow::tick_function<void()>(TICK_THIS_OFTEN, [&] {
+  auto tick = flow::tick_function(TICK_THIS_OFTEN, [&] {
     called = true;
     times_called++;
   });
@@ -36,7 +36,7 @@ TEST_CASE("Test concurrent", "[tick_function]")
   constexpr auto TICK_THIS_OFTEN = 1;// always tick
 
   std::atomic_size_t num_ticks = 0;
-  auto tick = flow::tick_function<void()>(TICK_THIS_OFTEN, [&] {
+  auto tick = flow::tick_function(TICK_THIS_OFTEN, [&] {
     ++num_ticks;
   });
 
@@ -57,4 +57,75 @@ TEST_CASE("Test concurrent", "[tick_function]")
   }
 
   REQUIRE(num_ticks == TIMES_TO_CALL);
+}
+
+TEST_CASE("Test constructors and assignment operations", "[tick_function]")
+{
+  constexpr auto TICK_THIS_OFTEN = 3;// always tick
+
+  SECTION("Test copy operator=") {
+    bool ticked = false;
+    auto tick = flow::tick_function(TICK_THIS_OFTEN, [&] {
+           ticked = true;
+    });
+
+    tick();
+    auto copy = tick;
+    copy(); copy(); // tick!
+    REQUIRE(ticked);
+
+    ticked = false;
+    tick(); tick(); // tick!
+    REQUIRE(ticked);
+  }
+
+  SECTION("Test move operator=") {
+    bool ticked = false;
+    auto tick = flow::tick_function(TICK_THIS_OFTEN, [&] {
+           ticked = true;
+    });
+
+    tick();
+    auto moved = std::move(tick);
+    moved(); moved(); // tick!
+    REQUIRE(ticked);
+
+    // tick should be in an invalid state
+    ticked = false;
+    tick();  // should be noop
+    REQUIRE_FALSE(ticked);
+  }
+
+  SECTION("Test copy constructor") {
+    bool ticked = false;
+    auto tick = flow::tick_function(TICK_THIS_OFTEN, [&] {
+           ticked = true;
+    });
+
+    tick();
+    flow::tick_function copy(tick);
+    copy(); copy(); // tick!
+    REQUIRE(ticked);
+
+    ticked = false;
+    tick(); tick(); // tick!
+    REQUIRE(ticked);
+  }
+
+  SECTION("Test move constructor") {
+    bool ticked = false;
+    auto tick = flow::tick_function(TICK_THIS_OFTEN, [&] {
+           ticked = true;
+    });
+
+    tick();
+    flow::tick_function moved(std::move(tick));
+    moved(); moved(); // tick!
+    REQUIRE(ticked);
+
+    // tick should be in an invalid state
+    ticked = false;
+    tick();  // should be noop
+    REQUIRE_FALSE(ticked);
+  }
 }

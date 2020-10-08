@@ -31,13 +31,13 @@ public:
     m_cb_handle = flow::publish<lidar_message>("lidar_points", channel_registry, on_request);
 
     constexpr auto tick_cycle = total_messages_t;
-    m_tick = flow::tick_function<void()>(tick_cycle, [this] {
+    m_tick = flow::tick_function(tick_cycle, [this] {
       flow::logging::info("Test complete: {} messages have been processed.", total_messages_t);
       m_cb_handle.stop_everything();
     });
   }
 
   flow::callback_handle m_cb_handle{};
-  flow::tick_function<void()> m_tick{};
+  flow::tick_function m_tick{};
 };
 }// namespace mock

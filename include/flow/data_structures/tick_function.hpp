@@ -2,7 +2,6 @@
 #include <atomic>
 #include <iostream>
 #include <memory>
-#include <utility>
 #include <mutex>
 
 /**
@@ -10,12 +9,8 @@
  */
 
 namespace flow {
-template<typename T>
-class tick_function;
-
-template<typename R, typename... Args>
-class tick_function<R(Args...)> {
-  using callback_t = std::function<R(Args...)>;
+class tick_function {
+  using callback_t = std::function<void()>;
 
 public:
   tick_function() = default;
@@ -29,7 +24,7 @@ public:
   {
     other.m_count = 0;
     other.m_limit = 0;
-    other.m_callback = std::function<R(Args...)>{};
+    other.m_callback = [] {};
   }
 
   tick_function& operator=(tick_function const& other)
@@ -48,7 +43,8 @@ public:
 
     other.m_count = 0;
     other.m_limit = 0;
-    other.m_callback = std::function<R(Args...)>{};
+    other.m_callback = [] {};
+    return *this;
   }
 
   tick_function(size_t limit, callback_t&& callback) : m_limit(limit), m_callback(callback) {}
@@ -63,7 +59,6 @@ public:
     }
 
     m_callback();
-
     m_count.compare_exchange_strong(count, 0);
     return true;
   }
@@ -72,7 +67,6 @@ private:
   std::atomic_size_t m_count{};
   std::atomic_size_t m_limit{};
 
-  std::mutex m_callback_mutex;
   callback_t m_callback;
 };
 }// namespace flow
