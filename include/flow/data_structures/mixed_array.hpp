@@ -10,9 +10,9 @@
 
 namespace flow {
 
-template<std::size_t N, typename... TypeSet>
+template<std::size_t N, typename... set_of_types_t>
 class mixed_array {
-  using mixed_t = std::variant<TypeSet...>;
+  using mixed_t = std::variant<set_of_types_t...>;
   using array_t = std::array<mixed_t, N>;
 
 public:
@@ -37,10 +37,10 @@ private:
   array_t m_items;
 };
 
-template<typename... Types>
-constexpr auto make_mixed_array(Types &&... types)
+template<typename... types_t>
+constexpr auto make_mixed_array(types_t&&... types)
 {
-  auto type_set = metaprogramming::make_type_set<Types...>();
+  auto type_set = metaprogramming::make_type_set<types_t...>();
 
   const auto to_mixed_array = [&]<typename... TypeSet>(std::tuple<TypeSet...> /*unused*/) {
     return mixed_array<sizeof...(types), TypeSet...>(types...);
