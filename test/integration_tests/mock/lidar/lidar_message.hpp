@@ -5,7 +5,7 @@
 
 namespace mock {
 struct lidar_message {
-  static constexpr std::size_t capacity = mock::defaults::message_capacity;
+  static constexpr std::size_t capacity = configuration::defaults::message_capacity;
   std::vector<double> points;
 
   flow::metadata metadata{};

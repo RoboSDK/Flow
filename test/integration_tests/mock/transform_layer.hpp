@@ -13,6 +13,6 @@ public:
     flow::begin(m_task, registry);
   }
 private:
-  lidar_transform_task m_task;
+  lidar_transform_task<configuration::defaults> m_task;
 };
 }// namespace mock
