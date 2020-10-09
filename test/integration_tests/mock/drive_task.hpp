@@ -27,8 +27,8 @@ public:
       return flow::publish<typename config_t::message_t>(config_t::channel_name, channel_registry, on_request);
     });
 
-    constexpr auto tick_cycle = config_t::total_messages;
-    m_tick = flow::tick_function(tick_cycle, [this] {
+    constexpr auto tick_cycle = config_t::total_messages + 1; // publisher sends one extra message at the end
+    m_tick = flow::tick_function(tick_cycle + 1, [this] {
       flow::logging::info("Test complete: {} messages have been processed.", config_t::total_messages);
       m_callback_handles.front().stop_everything();// choose front arbitrarily
     });

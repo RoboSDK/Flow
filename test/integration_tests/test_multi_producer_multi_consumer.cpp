@@ -16,6 +16,7 @@ struct config_t {
   static constexpr std::size_t num_publishers = 10;
   static constexpr std::size_t num_subscriptions = 10;
   static constexpr std::size_t num_sequences = num_publishers * total_messages;
+  static constexpr std::size_t receive_messages = num_sequences * num_subscriptions;
 };
 
 int main()

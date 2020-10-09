@@ -10,6 +10,8 @@
 #include <cppcoro/when_all.hpp>
 #include <cppcoro/when_all_ready.hpp>
 
+#include "flow/logging.hpp"
+
 namespace flow {
 /**
  * A channel represents the central location where all communication happens between different tasks
@@ -24,7 +26,7 @@ template<typename message_t>
 class channel {
   using task_t = cppcoro::task<void>;
   using tasks_t = std::vector<task_t>;
-  static constexpr std::size_t BUFFER_SIZE = 4096;
+  static constexpr std::size_t BUFFER_SIZE = 64;
 
 public:
   channel(std::string name) : m_name(std::move(name)) {}
@@ -57,6 +59,7 @@ public:
    */
   task_t open_communications(auto& sched, volatile std::atomic_bool& app_is_running)
   {
+    flow::logging::info("opening communications");
     using namespace cppcoro;
 
     struct context_t {
@@ -70,6 +73,8 @@ public:
 
     tasks_t on_request_tasks = make_publisher_tasks(context);
     tasks_t on_message_tasks = make_subscriber_tasks(context);
+    flow::logging::info("subscriptions: {}", on_message_tasks.size());
+    flow::logging::info("publisher: {}", on_request_tasks.size());
 
     auto on_messages = cppcoro::when_all_ready(std::move(on_message_tasks));
     auto on_requests = cppcoro::when_all_ready(std::move(on_request_tasks));
@@ -93,18 +98,22 @@ private:
     auto& context)
   {
     while (context.application_is_running.load(std::memory_order_relaxed)) {
+      flow::logging::info("publishing...");
       size_t seq = co_await context.sequencer.claim_one(context.scheduler);
       auto& msg = context.buffer[seq & context.index_mask];
       handler(msg);
+      msg.metadata.sequence = m_sequence++;
       context.sequencer.publish(seq);
     }
 
     // send one last final message to allow the consumers to quit
     size_t seq = co_await context.sequencer.claim_one(context.scheduler);
     auto& msg = context.buffer[seq & context.index_mask];
+    flow::logging::info("Last published sequence number is: {}", m_sequence - 1);
     handler(msg);
     msg.metadata.sequence = m_sequence++;
     context.sequencer.publish(seq);
+    flow::logging::info("Done publishing...");
   }
 
   tasks_t make_subscriber_tasks(auto& context)
@@ -119,21 +128,21 @@ private:
 
   task_t make_subscriber_task(std::function<void(message_t const&)>&& handler, auto& context)
   {
-    // Theoretically we should start reading at the 0th index, but for some reason
-    // the first message sent is empty, so the first message will be skipped.
-    size_t nextToRead = sizeof(message_t);
+    size_t nextToRead = 0;
 
     while (context.application_is_running.load(std::memory_order_relaxed)) {
       // Wait until the next message is available
       // There may be more than one available.
       const size_t available = co_await context.sequencer.wait_until_published(nextToRead, context.scheduler);
       do {
+        flow::logging::info("consuming...");
         auto& msg = context.buffer[nextToRead & context.index_mask];
         handler(msg);
       } while (nextToRead++ != available);
 
       context.barrier.publish(available);
     }
+    flow::logging::info("Done consuming...");
   }
 
   using publisher_callbacks_t = std::vector<std::function<void(message_t&)>>;

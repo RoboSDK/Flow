@@ -36,7 +36,7 @@ static constexpr std::size_t TOTAL_MESSAGES = 5000;
 cppcoro::static_thread_pool scheduler;
 
 volatile std::atomic_bool application_is_running = true;
-std::atomic_size_t messages_sent = 0;
+std::atomic_size_t messages_received = 0;
 }// namespace
 
 int main()
@@ -63,7 +63,7 @@ int main()
       flow::logging::error("Got: {} Expected: {}", to_string(msg), to_string(Point{ 5.0, 4.0 }));
       application_is_running.exchange(false);
     }
-    messages_sent.fetch_add(1, std::memory_order_relaxed);
+    messages_received.fetch_add(1, std::memory_order_relaxed);
   });
 
   small_points_channel.push_subscription([&](Point const& msg) {
@@ -71,14 +71,14 @@ int main()
       flow::logging::error("Got: {} Expected: {}", to_string(msg), to_string(Point{ 1.0, 1.0 }));
       application_is_running.exchange(false);
     }
-    messages_sent.fetch_add(1, std::memory_order_relaxed);
+    messages_received.fetch_add(1, std::memory_order_relaxed);
   });
 
   auto small_points_task = small_points_channel.open_communications(scheduler, application_is_running);
   auto large_points_task = large_points_channel.open_communications(scheduler, application_is_running);
   std::thread task_thread([&] { cppcoro::sync_wait(cppcoro::when_all_ready(std::move(small_points_task), std::move(large_points_task))); });
 
-  while (messages_sent.load(std::memory_order_relaxed) < TOTAL_MESSAGES and application_is_running.load()) {}
+  while (messages_received.load(std::memory_order_relaxed) < TOTAL_MESSAGES and application_is_running.load()) {}
 
   int EXIT_CODE = EXIT_SUCCESS;
   if (not application_is_running.load()) {
