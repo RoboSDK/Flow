@@ -11,7 +11,7 @@ class testing_layer : flow::layer<testing_layer<tasks_t...>> {
   static constexpr std::size_t num_tasks = flow::metaprogramming::size<tasks_t...>();
 
 public:
-  void register_channels(auto& registry)
+  void begin(auto& registry)
   {
     std::for_each(std::begin(tasks), std::end(tasks), flow::make_visitor([&](auto& task) {
       flow::begin(task, registry);

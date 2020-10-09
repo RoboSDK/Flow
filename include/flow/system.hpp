@@ -57,7 +57,7 @@ void spin(auto system, auto message_registry)
 
   auto layers = make_layers(system);
   for (auto& layer : layers) {
-    std::visit([&](auto& l) { l.register_channels(channel_registry); }, layer);
+    std::visit([&](auto& l) { l.begin(channel_registry); }, layer);
   }
 
   cppcoro::static_thread_pool scheduler;
