@@ -3,7 +3,7 @@
 
 #include "flow/channel.hpp"
 #include "flow/data_structures/mixed_array.hpp"
-#include "flow/data_structures/static_vector.hpp"
+#include "flow/layer.hpp"
 #include "flow/messages.hpp"
 #include "flow/metaprogramming.hpp"
 #include "flow/registry.hpp"
@@ -12,6 +12,7 @@
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all.hpp>
 #include <frozen/unordered_map.h>
+#include <ranges>
 #include <type_traits>
 
 namespace flow {
@@ -40,7 +41,7 @@ std::vector<cppcoro::task<void>> make_communication_tasks(auto& scheduler, flow:
 {
   using namespace flow::metaprogramming;
   std::vector<cppcoro::task<void>> communication_tasks{};
-  for_each<message_ts...>([&]<typename message_t>(type_container<message_t> /*unused*/){
+  for_each<message_ts...>([&]<typename message_t>(type_container<message_t> /*unused*/) {
     auto channel_refs = channel_registry.template get_channels<message_t>();
     for (auto& channel : channel_refs) {
       communication_tasks.push_back(channel.get().open_communications(scheduler, system_is_running));
@@ -56,14 +57,20 @@ void spin(auto system, auto message_registry)
   flow::registry channel_registry(&system_is_running);
 
   auto layers = make_layers(system);
-  for (auto& layer : layers) {
-    std::visit([&](auto& l) { l.begin(channel_registry); }, layer);
-  }
+  std::ranges::for_each(layers, flow::make_visitor([&](auto& layer) {
+    //    flow::begin(layer, channel_registry);
+    layer.begin(channel_registry);
+  }));
 
   cppcoro::static_thread_pool scheduler;
 
   auto communication_tasks = make_communication_tasks(scheduler, channel_registry, message_registry, system_is_running);
   cppcoro::sync_wait(when_all_ready(std::move(communication_tasks)));
+
+  std::ranges::for_each(layers, flow::make_visitor([&](auto& layer) {
+    //    flow::end(layer);
+    layer.end();
+  }));
 }
 }// namespace flow
 #endif//FLOW_SYSTEM_HPP

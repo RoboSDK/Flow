@@ -34,6 +34,8 @@ public:
     });
   }
 
+  void end() {}
+
 private:
   std::vector<flow::callback_handle> m_callback_handles{};
   flow::tick_function m_tick{};

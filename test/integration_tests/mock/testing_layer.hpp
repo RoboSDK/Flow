@@ -5,6 +5,8 @@
 #include <flow/layer.hpp>
 #include <flow/task.hpp>
 
+#include <ranges>
+
 namespace mock {
 template<class... tasks_t>
 class testing_layer : flow::layer<testing_layer<tasks_t...>> {
@@ -13,8 +15,15 @@ class testing_layer : flow::layer<testing_layer<tasks_t...>> {
 public:
   void begin(auto& registry)
   {
-    std::for_each(std::begin(tasks), std::end(tasks), flow::make_visitor([&](auto& task) {
+    std::ranges::for_each(tasks, flow::make_visitor([&](auto& task) {
       flow::begin(task, registry);
+    }));
+  }
+
+  void end()
+  {
+    std::ranges::for_each(tasks, flow::make_visitor([&](auto& task) {
+           flow::end(task);
     }));
   }
 

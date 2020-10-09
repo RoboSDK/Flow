@@ -11,22 +11,21 @@ namespace flow {
  *
  * A tasks purpose is to do one thing, and do it well.
  */
-template<typename concrete_task_t>
-class task : public fluent::crtp<concrete_task_t, task> {
-public:
-  void begin(auto& registry);
+template<typename task_t>
+struct task : fluent::crtp<task_t, task> {
+  void begin(auto& registry) { this->underlying().begin(registry); }
+  void end() { this->underlying().end(); }
 };
-
-// Implementation
-template<typename concrete_task>
-void task<concrete_task>::begin(auto& registry)
-{
-  this->underlying().begin(registry);
-}
 
 template<typename task_t>
 void begin(flow::task<task_t>& task, auto& registry)
 {
   task.begin(registry);
+}
+
+template<typename task_t>
+void end(flow::task<task_t>& task)
+{
+  task.end();
 }
 }// namespace flow
