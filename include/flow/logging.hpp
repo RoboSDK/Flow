@@ -29,10 +29,25 @@ void error(Args &&... args)
 }
 
 template<typename... Args>
+void error_throw(Args &&... args)
+{
+  spdlog::error(std::forward<Args>(args)...);
+  throw std::runtime_error("Not critical error detected.");
+}
+
+template<typename... Args>
 void critical(Args &&... args)
 {
   spdlog::critical(std::forward<Args>(args)...);
 }
+
+template<typename... Args>
+void critical_throw(Args &&... args)
+{
+  spdlog::critical(std::forward<Args>(args)...);
+  throw std::runtime_error("Critical error detected.");
+}
+
 }// namespace src::logging
 
 #endif//MODULES_LOGGING_HPP
