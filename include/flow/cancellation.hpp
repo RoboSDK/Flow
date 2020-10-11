@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cppcoro/cancellation_registration.hpp>
 #include <cppcoro/cancellation_source.hpp>
 #include <cppcoro/cancellation_token.hpp>
@@ -51,18 +53,13 @@ class cancellable_function<return_t(args_t...)> {
 public:
   using callback_t = std::function<return_t(args_t...)>;
   cancellable_function(cppcoro::cancellation_token token, callback_t&& callback)
-    : m_cancel_token(token), m_current_callback(std::move(callback))
+    : m_cancel_token(token), m_callback(std::move(callback))
   {
   }
 
   return_t operator()(args_t&&... args)
   {
-    if (m_cancel_token.is_cancellation_requested() != m_change_callbacks) {
-      m_change_callbacks = m_cancel_token.is_cancellation_requested();
-      std::swap(m_current_callback, m_next_callback);
-    }
-
-    return m_current_callback(std::forward<args_t>(args)...);
+    return m_callback(std::forward<args_t>(args)...);
   }
 
   void throw_if_cancellation_requested()
@@ -77,10 +74,7 @@ public:
 
 
 private:
-  bool m_change_callbacks{ false };
-
   cppcoro::cancellation_token m_cancel_token;
-  callback_t m_current_callback;
-  callback_t m_next_callback = [](args_t... /*unused*/) -> return_t {};
+  callback_t m_callback;
 };
 }// namespace flow

@@ -10,6 +10,7 @@
 #include <cppcoro/when_all.hpp>
 #include <cppcoro/when_all_ready.hpp>
 
+#include "cancellation.hpp"
 #include "flow/logging.hpp"
 
 namespace flow {
@@ -17,15 +18,19 @@ namespace flow {
  * A channel represents the central location where all communication happens between different tasks
  * sharing information through messages
  *
- * It gets built up as publishers and subscribes are created by tasks. Once the begin phase is over, the open communication coroutine
- * begins and triggers all tasks to begin communication asynchronously.
+ * It gets built up as publishers and subscribes are created by tasks. Once the begin phase is over, the open
+ * communication coroutine begins and triggers all tasks to begin communication asynchronously.
  *
  * @tparam message_t The information being transmitted through this channel
  */
-template<typename message_t>
-class channel {
+template<typename message_t> class channel {
   using task_t = cppcoro::task<void>;
   using tasks_t = std::vector<task_t>;
+
+  using publisher_callback_t = flow::cancellable_function<void(message_t&)>;
+  using subscriber_callback_t = flow::cancellable_function<void(message_t const&)>;
+  using publisher_callbacks_t = std::vector<publisher_callback_t>;
+  using subscriber_callbacks_t = std::vector<subscriber_callback_t>;
   static constexpr std::size_t BUFFER_SIZE = 64;
 
 public:
@@ -35,18 +40,18 @@ public:
    * Called by registry when handing over ownership of the callback registered by a task
    * @param callback The request or message call back from a task
    */
-  void push_publisher(std::function<void(message_t&)>&& callback) { m_on_request_callbacks.push_back(std::move(callback)); }
-  void push_subscription(std::function<void(message_t const&)>&& callback) { m_on_message_callbacks.push_back(std::move(callback)); }
-
-  std::string_view name() const
+  void push_publisher(publisher_callback_t&& callback)
   {
-    return m_name;
+    m_on_request_callbacks.push_back(std::move(callback));
+  }
+  void push_subscription(subscriber_callback_t && callback)
+  {
+    m_on_message_callbacks.push_back(std::move(callback));
   }
 
-  std::size_t hash()
-  {
-    return typeid(message_t).hash_code() ^ std::hash<std::string>{}(m_name);
-  }
+  std::string_view name() const { return m_name; }
+
+  std::size_t hash() { return typeid(message_t).hash_code() ^ std::hash<std::string>{}(m_name); }
 
   /**
    * Called as part of the main routine through flow::spin
@@ -57,19 +62,21 @@ public:
    * @param sequencer Handles buffer organization of messages
    * @return A coroutine that will be executed by flow::spin
    */
-  task_t open_communications(auto& sched, volatile std::atomic_bool& app_is_running)
+  task_t open_communications(auto& sched, volatile auto& app_is_running)
   {
     flow::logging::info("opening communications");
     using namespace cppcoro;
 
     struct context_t {
       decltype(sched) scheduler;
-      volatile std::atomic_bool& application_is_running;// flag that keeps the coroutines spinning
+      decltype(app_is_running) application_is_running;// flag that keeps the coroutines spinning
       sequence_barrier<std::size_t> barrier{};// notifies publishers that it can publish more
-      single_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };// controls sequence values for the message buffer
+      single_producer_sequencer<std::size_t> sequencer{ barrier,
+        BUFFER_SIZE };// controls sequence values for the message buffer
       std::array<message_t, BUFFER_SIZE> buffer{};// the message buffer
-      std::size_t index_mask = BUFFER_SIZE - 1;// Used to mask the sequence number and get the index to access the buffer
-    } context{sched, app_is_running};
+      std::size_t index_mask =
+        BUFFER_SIZE - 1;// Used to mask the sequence number and get the index to access the buffer
+    } context{ sched, app_is_running };
 
     tasks_t on_request_tasks = make_publisher_tasks(context);
     tasks_t on_message_tasks = make_subscriber_tasks(context);
@@ -93,24 +100,22 @@ private:
     return on_request_tasks;
   }
 
-  task_t make_publisher_task(
-    std::function<void(message_t&)>&& handler,
-    auto& context)
+  task_t make_publisher_task(publisher_callback_t&& cancellable_handler, auto& context)
   {
-    while (context.application_is_running.load(std::memory_order_relaxed)) {
-      flow::logging::info("publishing...");
+    while (not cancellable_handler.is_cancellation_requested()) {
       size_t seq = co_await context.sequencer.claim_one(context.scheduler);
       auto& msg = context.buffer[seq & context.index_mask];
-      handler(msg);
+      cancellable_handler(msg);
       msg.metadata.sequence = m_sequence++;
       context.sequencer.publish(seq);
+      flow::logging::info("publishing...");
     }
 
     // send one last final message to allow the consumers to quit
     size_t seq = co_await context.sequencer.claim_one(context.scheduler);
     auto& msg = context.buffer[seq & context.index_mask];
     flow::logging::info("Last published sequence number is: {}", m_sequence - 1);
-    handler(msg);
+    cancellable_handler(msg);
     msg.metadata.sequence = m_sequence++;
     context.sequencer.publish(seq);
     flow::logging::info("Done publishing...");
@@ -126,29 +131,26 @@ private:
     return on_message_tasks;
   }
 
-  task_t make_subscriber_task(std::function<void(message_t const&)>&& handler, auto& context)
+  task_t make_subscriber_task(subscriber_callback_t&& handler, auto& context)
   {
-    size_t nextToRead = 0;
+    size_t next_to_read = 0;
 
-    while (context.application_is_running.load(std::memory_order_relaxed)) {
+    while (not handler.is_cancellation_requested()) {
       // Wait until the next message is available
       // There may be more than one available.
-      const size_t available = co_await context.sequencer.wait_until_published(nextToRead, context.scheduler);
+      const size_t available = co_await context.sequencer.wait_until_published(next_to_read, context.scheduler);
       do {
         flow::logging::info("consuming...");
-        auto& msg = context.buffer[nextToRead & context.index_mask];
+        auto& msg = context.buffer[next_to_read & context.index_mask];
         handler(msg);
-      } while (nextToRead++ != available);
+      } while (next_to_read++ != available);
 
       context.barrier.publish(available);
     }
     flow::logging::info("Done consuming...");
   }
 
-  using publisher_callbacks_t = std::vector<std::function<void(message_t&)>>;
   publisher_callbacks_t m_on_request_callbacks{};
-
-  using subscriber_callbacks_t = std::vector<std::function<void(message_t const&)>>;
   subscriber_callbacks_t m_on_message_callbacks{};
 
   std::string m_name;

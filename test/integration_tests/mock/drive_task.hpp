@@ -27,17 +27,19 @@ public:
       return flow::publish<typename config_t::message_t>(config_t::channel_name, channel_registry, on_request);
     });
 
-    constexpr auto tick_cycle = config_t::total_messages + 1; // publisher sends one extra message at the end
-    m_tick = flow::tick_function(tick_cycle + 1, [this] {
-      flow::logging::info("Test complete: {} messages have been processed.", config_t::total_messages);
-      m_callback_handles.front().stop_everything();// choose front arbitrarily
+    constexpr auto tick_cycle = config_t::total_messages; // publisher sends one extra message at the end
+    m_tick = flow::tick_function(tick_cycle, [this] {
+      std::ranges::for_each(m_callback_handles, [](auto& handle){
+        flow::logging::info("Disabling callback. {}", flow::to_string(handle));
+        handle.disable();
+      });
     });
   }
 
   void end() {}
 
 private:
-  std::vector<flow::callback_handle> m_callback_handles{};
+  std::vector<flow::callback_handle<typename config_t::default_config_t>> m_callback_handles{};
   flow::tick_function m_tick{};
 };
 }// namespace mock

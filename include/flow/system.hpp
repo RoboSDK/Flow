@@ -2,6 +2,7 @@
 #define FLOW_SYSTEM_HPP
 
 #include "flow/channel.hpp"
+#include "flow/configuration.hpp"
 #include "flow/data_structures/mixed_array.hpp"
 #include "flow/layer.hpp"
 #include "flow/messages.hpp"
@@ -12,32 +13,32 @@
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all.hpp>
 #include <frozen/unordered_map.h>
+
+#include <bitset>
 #include <ranges>
 #include <type_traits>
 
 namespace flow {
 template<typename... Layers>
-concept no_repeated_layers = std::is_same_v<std::tuple<Layers...>, decltype(metaprogramming::make_type_set<Layers...>(std::tuple<>()))>;
+concept no_repeated_layers =
+  std::is_same_v<std::tuple<Layers...>, decltype(metaprogramming::make_type_set<Layers...>(std::tuple<>()))>;
 
-template<typename... Layers>
-requires no_repeated_layers<Layers...> class system {
+template<typename... Layers> requires no_repeated_layers<Layers...> class system {
 };
 
-template<typename... Layers>
-requires no_repeated_layers<Layers...> auto make_layers(system<Layers...> /*unused*/)
+template<typename... Layers> requires no_repeated_layers<Layers...> auto make_layers(system<Layers...> /*unused*/)
 
 {
   return flow::make_mixed_array(Layers{}...);
 }
 
-template<typename... Layers>
-requires no_repeated_layers<Layers...> auto make_system()
-{
-  return system<Layers...>{};
-}
+template<typename... Layers> requires no_repeated_layers<Layers...> auto make_system() { return system<Layers...>{}; }
 
 template<typename... message_ts>
-std::vector<cppcoro::task<void>> make_communication_tasks(auto& scheduler, flow::registry& channel_registry, messages<message_ts...> /*unused*/, volatile std::atomic_bool& system_is_running)
+std::vector<cppcoro::task<void>> make_communication_tasks(auto& scheduler,
+  auto& channel_registry,
+  messages<message_ts...> /*unused*/,
+  volatile auto& system_is_running)
 {
   using namespace flow::metaprogramming;
   std::vector<cppcoro::task<void>> communication_tasks{};
@@ -51,13 +52,19 @@ std::vector<cppcoro::task<void>> make_communication_tasks(auto& scheduler, flow:
   return communication_tasks;
 }
 
-void spin(auto system, auto message_registry)
+template<typename config_t> void spin(auto system, auto message_registry)
 {
-  volatile std::atomic_bool system_is_running = true;
-  flow::registry channel_registry(&system_is_running);
+  /**
+   * Each bit is a 'vote' to keep the program running
+   * Once the bitset is all 0s, then the program stops.
+   * Callbacks will turn their own bit on during construction.
+   */
+  volatile typename config_t::atomic_bitset_t system_is_running{ false };
+  flow::registry<config_t> channel_registry(&system_is_running);
 
   auto layers = make_layers(system);
   std::ranges::for_each(layers, flow::make_visitor([&](auto& layer) {
+    // TODO: resolve issue with layer not inheriting from base layer correctly
     //    flow::begin(layer, channel_registry);
     layer.begin(channel_registry);
   }));
@@ -72,5 +79,7 @@ void spin(auto system, auto message_registry)
     layer.end();
   }));
 }
+
+void spin(auto system, auto message_registry) { spin<flow::configuration>(system, message_registry); }
 }// namespace flow
-#endif//FLOW_SYSTEM_HPP
+#endif// FLOW_SYSTEM_HPP

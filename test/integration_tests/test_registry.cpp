@@ -5,12 +5,13 @@
 #include <flow/registry.hpp>
 
 #include <cppcoro/sync_wait.hpp>
+#include <flow/configuration.hpp>
 
 /**
  * This test will create a single publisher and subscriber, send 10 messages and then quit.
  */
-void make_subscribers(flow::registry& channels);
-void make_publishers(flow::registry& channels);
+void make_subscribers(flow::registry<flow::configuration>& channels);
+void make_publishers(flow::registry<flow::configuration>& channels);
 
 namespace {
 struct Point {
@@ -29,14 +30,14 @@ static constexpr std::array CHANNEL_NAMES = { "small_points", "large_points" };
 static constexpr auto time_wait_for_coroutines = std::chrono::milliseconds (100);
 cppcoro::static_thread_pool scheduler;
 
-volatile std::atomic_bool application_is_running = true;
+volatile flow::configuration::atomic_bitset_t application_is_running{};
 std::atomic_size_t messages_received = 0;
 std::atomic_size_t messages_sent = 0;
 }// namespace
 
 int main()
 {
-  flow::registry channel_registry(&application_is_running);
+  auto channel_registry = flow::registry<flow::configuration>(&application_is_running);
   make_subscribers(channel_registry);
   make_publishers(channel_registry);
 
@@ -69,7 +70,8 @@ int main()
     prev_num_messages = messages_received.load(std::memory_order_relaxed);
   }
 
-  if (application_is_running.load(std::memory_order_relaxed)) {
+  const bool is_running = application_is_running.load(std::memory_order_relaxed).any();
+  if (is_running) {
     flow::logging::info("Tested channel: Sent {} messages and cancelled operation.", TOTAL_MESSAGES);
     application_is_running.exchange(false);
   }
@@ -80,7 +82,7 @@ int main()
   return EXIT_CODE;
 }
 
-void make_subscribers(flow::registry& channels)
+void make_subscribers(flow::registry<flow::configuration>& channels)
 {
   auto on_message = [](Point const& /*unused*/) {
     messages_received.fetch_add(1, std::memory_order_relaxed);
@@ -91,7 +93,7 @@ void make_subscribers(flow::registry& channels)
   }
 }
 
-void make_publishers(flow::registry& channels)
+void make_publishers(flow::registry<flow::configuration>& channels)
 {
   auto on_request = [&](Point& /*unused*/) {
     messages_sent.fetch_add(1, std::memory_order_relaxed);
