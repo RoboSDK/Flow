@@ -23,6 +23,7 @@ public:
       if (m_seq_tracker.test(seq)) {
         flow::logging::critical_throw("Received message was previously received. seq: ", seq);
       }
+      m_tick();
       m_seq_tracker.set(message.metadata.sequence);
     };
 
@@ -32,6 +33,7 @@ public:
 
     constexpr auto tick_cycle = config_t::total_messages;// publisher sends one extra message at the end
     m_tick = flow::tick_function(tick_cycle, [this] {
+      flow::logging::info("sub tick func called");
       std::ranges::for_each(m_callback_handles, [](auto& handle) {
         flow::logging::info("Disabling callback: {}", flow::to_string(handle));
         handle.disable();

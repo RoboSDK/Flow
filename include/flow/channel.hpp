@@ -111,13 +111,7 @@ private:
       flow::logging::info("publishing...");
     }
 
-    // send one last final message to allow the consumers to quit
-    size_t seq = co_await context.sequencer.claim_one(context.scheduler);
-    auto& msg = context.buffer[seq & context.index_mask];
     flow::logging::info("Last published sequence number is: {}", m_sequence - 1);
-    cancellable_handler(msg);
-    msg.metadata.sequence = m_sequence++;
-    context.sequencer.publish(seq);
     flow::logging::info("Done publishing...");
   }
 
