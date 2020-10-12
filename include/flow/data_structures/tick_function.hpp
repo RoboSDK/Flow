@@ -1,8 +1,6 @@
 #pragma once
 #include <atomic>
-#include <iostream>
 #include <memory>
-#include <mutex>
 
 /**
  * Tick functions are function wrappers that will trigger the callback every N ticks

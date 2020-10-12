@@ -37,15 +37,14 @@ template<typename... Layers> requires no_repeated_layers<Layers...> auto make_sy
 template<typename... message_ts>
 std::vector<cppcoro::task<void>> make_communication_tasks(auto& scheduler,
   auto& channel_registry,
-  messages<message_ts...> /*unused*/,
-  volatile auto& system_is_running)
+  messages<message_ts...> /*unused*/)
 {
   using namespace flow::metaprogramming;
   std::vector<cppcoro::task<void>> communication_tasks{};
   for_each<message_ts...>([&]<typename message_t>(type_container<message_t> /*unused*/) {
     auto channel_refs = channel_registry.template get_channels<message_t>();
     for (auto& channel : channel_refs) {
-      communication_tasks.push_back(channel.get().open_communications(scheduler, system_is_running));
+      communication_tasks.push_back(channel.get().open_communications(scheduler));
     }
   });
 
@@ -54,13 +53,7 @@ std::vector<cppcoro::task<void>> make_communication_tasks(auto& scheduler,
 
 template<typename config_t> void spin(auto system, auto message_registry)
 {
-  /**
-   * Each bit is a 'vote' to keep the program running
-   * Once the bitset is all 0s, then the program stops.
-   * Callbacks will turn their own bit on during construction.
-   */
-  volatile typename config_t::atomic_bitset_t system_is_running{ false };
-  flow::registry<config_t> channel_registry(&system_is_running);
+  flow::registry<config_t> channel_registry{};
 
   auto layers = make_layers(system);
   std::ranges::for_each(layers, flow::make_visitor([&](auto& layer) {
@@ -71,7 +64,7 @@ template<typename config_t> void spin(auto system, auto message_registry)
 
   cppcoro::static_thread_pool scheduler;
 
-  auto communication_tasks = make_communication_tasks(scheduler, channel_registry, message_registry, system_is_running);
+  auto communication_tasks = make_communication_tasks(scheduler, channel_registry, message_registry);
   cppcoro::sync_wait(when_all_ready(std::move(communication_tasks)));
 
   std::ranges::for_each(layers, flow::make_visitor([&](auto& layer) {

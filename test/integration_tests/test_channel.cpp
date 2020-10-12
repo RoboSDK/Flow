@@ -1,7 +1,12 @@
+#include <cppcoro/schedule_on.hpp>
 #include <cppcoro/sync_wait.hpp>
+#include <cppcoro/when_all_ready.hpp>
 #include <cppitertools/range.hpp>
+
 #include <flow/cancellation.hpp>
 #include <flow/channel.hpp>
+#include <flow/data_structures/tick_function.hpp>
+#include <flow/data_structures/timeout_function.hpp>
 #include <flow/logging.hpp>
 #include <flow/metadata.hpp>
 
@@ -33,65 +38,85 @@ bool confirm_name(auto& channel, std::string const& channel_name)
 }
 
 static constexpr std::size_t TOTAL_MESSAGES = 5000;
+static constexpr auto TIMEOUT_LIMIT = std::chrono::milliseconds(1000); // should be enough time to run this without timing out
 cppcoro::static_thread_pool scheduler;
-
-volatile std::atomic_bool application_is_running = true;
-std::atomic_size_t messages_received = 0;
 }// namespace
 
 int main()
 {
-  flow::channel<Point> small_points_channel("small_points");
-  flow::channel<Point> large_points_channel("large_points");
+  auto small_points_channel = flow::channel<Point>("small_points");
+  auto large_points_channel = flow::channel<Point>("large_points");
 
   if (not confirm_name(small_points_channel, "small_points") or not confirm_name(large_points_channel, "large_points")) {
     return 1;
   }
 
-  large_points_channel.push_publisher([](Point& msg) {
-    msg.x = 5.0;
-    msg.y = 4.0;
-  });
-
-  small_points_channel.push_publisher([](Point& msg) {
-    msg.x = 1.0;
-    msg.y = 1.0;
-  });
-
-  large_points_channel.push_subscription([&](Point const& msg) {
-    if (msg.x < 5.0 or msg.y < 4.0) {
-      flow::logging::error("Got: {} Expected: {}", to_string(msg), to_string(Point{ 5.0, 4.0 }));
-      application_is_running.exchange(false);
+  auto cancellation_sources = std::vector<cppcoro::cancellation_source>(4);
+  const auto cancel_tasks = [&] {
+    for (auto& cancel_source : cancellation_sources) {
+      cancel_source.request_cancellation();
     }
-    messages_received.fetch_add(1, std::memory_order_relaxed);
+  };
+
+  std::atomic_bool success = false;
+  auto tick = flow::tick_function(TOTAL_MESSAGES, [&] {
+    std::atomic_store(&success, true);
+    cancel_tasks();
   });
 
-  small_points_channel.push_subscription([&](Point const& msg) {
-    if (msg.x < 1.0 or msg.y < 1.0) {
-      flow::logging::error("Got: {} Expected: {}", to_string(msg), to_string(Point{ 1.0, 1.0 }));
-      application_is_running.exchange(false);
+  bool timed_out = false;
+  auto [_, timeout_routine] = flow::make_timeout_function(TIMEOUT_LIMIT, [&] {
+    timed_out = not std::atomic_load(&success);
+  });
+
+  using publisher_callback_t = flow::channel<Point>::publisher_callback_t;
+  using subscriber_callback_t = flow::channel<Point>::subscriber_callback_t;
+
+  auto large_points_pub_callback = publisher_callback_t{
+    cancellation_sources[0].token(), [](Point& msg) {
+      msg.x = 5.0;
+      msg.y = 4.0;
     }
-    messages_received.fetch_add(1, std::memory_order_relaxed);
-  });
+  };
 
-  auto small_points_task = small_points_channel.open_communications(scheduler, application_is_running);
-  auto large_points_task = large_points_channel.open_communications(scheduler, application_is_running);
-  std::thread task_thread([&] { cppcoro::sync_wait(cppcoro::when_all_ready(std::move(small_points_task), std::move(large_points_task))); });
+  auto small_points_pub_callback = publisher_callback_t{
+    cancellation_sources[1].token(), [](Point& msg) {
+      msg.x = 1.0;
+      msg.y = 1.0;
+    }
+  };
 
-  while (messages_received.load(std::memory_order_relaxed) < TOTAL_MESSAGES and application_is_running.load()) {}
+  auto large_points_sub_callback = subscriber_callback_t{
+    cancellation_sources[2].token(), [&](Point const& msg) {
+      tick();
+      if (msg.x < 5.0 or msg.y < 4.0) {
+        flow::logging::error("Got: {} Expected: {}", to_string(msg), to_string(Point{ 5.0, 4.0 }));
+      }
+    }
+  };
 
-  int EXIT_CODE = EXIT_SUCCESS;
-  if (not application_is_running.load()) {
-    flow::logging::error("Message published was not correct. The test has failed.");
-    EXIT_CODE = EXIT_FAILURE;
+  auto small_points_sub_callback = subscriber_callback_t{
+    cancellation_sources[3].token(),
+    [&](Point const& msg) {
+      tick();
+      if (msg.x < 1.0 or msg.y < 1.0) {
+        flow::logging::error("Got: {} Expected: {}", to_string(msg), to_string(Point{ 1.0, 1.0 }));
+      }
+    }
+  };
+
+  large_points_channel.push_publisher(std::move(large_points_pub_callback));
+  large_points_channel.push_subscription(std::move(large_points_sub_callback));
+  small_points_channel.push_publisher(std::move(small_points_pub_callback));
+  small_points_channel.push_subscription(std::move(small_points_sub_callback));
+
+  auto small_points_task = small_points_channel.open_communications(scheduler);
+  auto large_points_task = large_points_channel.open_communications(scheduler);
+
+  auto timeout_task = cppcoro::schedule_on(scheduler, timeout_routine());
+  cppcoro::sync_wait(cppcoro::when_all_ready(std::move(timeout_task), std::move(small_points_task), std::move(large_points_task)));
+  if (timed_out) {
+    flow::logging::error("Test timed out! Time limit is {} milliseconds", TIMEOUT_LIMIT.count());
   }
-  else {
-    flow::logging::info("Tested channel: Sent {} messages and cancelled operation.", TOTAL_MESSAGES);
-    application_is_running.exchange(false);
-  }
-
-  flow::logging::info("Waiting for task thread to join....");
-  if (task_thread.joinable()) { task_thread.join(); }
-  flow::logging::info("Joined!");
-  return EXIT_CODE;
+  return timed_out;
 }

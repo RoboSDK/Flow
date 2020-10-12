@@ -66,6 +66,7 @@ add_catch_test(test_double_buffer)
 add_catch_test(test_cancellation)
 add_catch_test(test_channel_set)
 add_catch_test(test_tick_function)
+add_catch_test(test_timeout_function)
 
 add_constexpr_catch_test(constexpr_tests)
 add_constexpr_catch_test(test_metaprogramming)

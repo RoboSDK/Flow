@@ -52,6 +52,7 @@ template<typename return_t, typename... args_t>
 class cancellable_function<return_t(args_t...)> {
 public:
   using callback_t = std::function<return_t(args_t...)>;
+
   cancellable_function(cppcoro::cancellation_token token, callback_t&& callback)
     : m_cancel_token(token), m_callback(std::move(callback))
   {
@@ -77,4 +78,22 @@ private:
   cppcoro::cancellation_token m_cancel_token;
   callback_t m_callback;
 };
+
+/**
+ * Return a pair of a cancellation handle and function
+ *
+ * The cancellation handle will control the function and may cancel it
+ * @tparam return_t The return type of the callback
+ * @tparam args_t The arguments for the callback
+ * @param callback The callback itself
+ * @return A function handle and callback pair
+ */
+template<typename return_t, typename... args_t>
+auto make_cancellable_function(std::function<return_t(args_t...)>&& callback)
+{
+  auto cancellation_handle = flow::cancellation_handle{};
+  auto function = flow::cancellable_function<return_t(args_t...)>(cancellation_handle.token(), std::move(callback));
+  return std::make_pair(cancellation_handle, function);
+}
+
 }// namespace flow

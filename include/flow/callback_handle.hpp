@@ -1,6 +1,9 @@
 #pragma once
 
 #include "flow/cancellation.hpp"
+#include "flow/logging.hpp"
+
+#include <sstream>
 
 namespace flow {
 enum class callback_type { publisher, subscription };
@@ -25,15 +28,9 @@ public:
   callback_handle& operator=(callback_handle&&) = default;
   callback_handle& operator=(callback_handle const&) = default;
 
-  callback_handle(callback_info&& info, cancellation_handle&& ch, volatile auto* program_is_running)
-    : m_info(std::move(info)), m_cancel_handle(std::move(ch)), m_program_is_running(program_is_running)
-  {
-    auto program_state = m_program_is_running->load(std::memory_order_relaxed);
-
-    auto program_after_enabling_callback = program_state;
-    program_after_enabling_callback.set(m_info.id);
-    m_program_is_running->compare_exchange_strong(program_state, program_after_enabling_callback);
-  }
+  callback_handle(callback_info&& info, cancellation_handle&& ch)
+    : m_info(std::move(info)), m_cancel_handle(std::move(ch))
+  {}
 
   std::size_t id() const { return m_info.id; };
   callback_type type() const { return m_info.type; }
@@ -49,28 +46,12 @@ public:
    */
   void disable()
   {
-    auto program_state = m_program_is_running->load(std::memory_order_relaxed);
-
-    auto program_state_after_disabling_this_callback = program_state;
-    program_state_after_disabling_this_callback.reset(m_info.id);
-    m_program_is_running->compare_exchange_strong(program_state, program_state_after_disabling_this_callback);
-
     m_cancel_handle.request_cancellation();
-  }
-
-  /**
-   * Stops all communication between channels and ends the program
-   */
-  void stop_everything()
-  {
-    const auto current_state = m_program_is_running->load(std::memory_order_relaxed);
-    m_program_is_running->compare_exchange_strong(current_state, false);
   }
 
 private:
   callback_info m_info;
   cancellation_handle m_cancel_handle;
-  volatile typename config_t::atomic_bitset_t* m_program_is_running{ nullptr };
 };
 
 std::string to_string(callback_type type)

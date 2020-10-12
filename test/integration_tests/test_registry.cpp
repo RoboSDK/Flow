@@ -1,17 +1,22 @@
 #include <flow/callback_handle.hpp>
 #include <flow/channel.hpp>
+#include <flow/data_structures/timeout_function.hpp>
 #include <flow/logging.hpp>
 #include <flow/metadata.hpp>
 #include <flow/registry.hpp>
 
+#include <cppcoro/schedule_on.hpp>
 #include <cppcoro/sync_wait.hpp>
+#include <cppcoro/when_all_ready.hpp>
 #include <flow/configuration.hpp>
 
+using callback_handle_t = flow::callback_handle<flow::configuration>;
+using callback_handles_t = std::vector<callback_handle_t>;
 /**
  * This test will create a single publisher and subscriber, send 10 messages and then quit.
  */
-void make_subscribers(flow::registry<flow::configuration>& channels);
-void make_publishers(flow::registry<flow::configuration>& channels);
+callback_handles_t make_subscribers(flow::registry<flow::configuration>& channels, std::atomic_size_t& counter);
+callback_handles_t make_publishers(flow::registry<flow::configuration>& channels);
 
 namespace {
 struct Point {
@@ -22,83 +27,82 @@ struct Point {
 };
 
 static constexpr std::size_t TOTAL_MESSAGES = 5000;
+static constexpr auto TIMEOUT_LIMIT = std::chrono::milliseconds(1500);// should be enough time to run this without timing out
 static constexpr std::array CHANNEL_NAMES = { "small_points", "large_points" };
 
-/**
- * Takes a bit of time to spin thread and coroutines up, need to sleep for 100 ms before checking
- */
-static constexpr auto time_wait_for_coroutines = std::chrono::milliseconds (100);
 cppcoro::static_thread_pool scheduler;
-
-volatile flow::configuration::atomic_bitset_t application_is_running{};
-std::atomic_size_t messages_received = 0;
-std::atomic_size_t messages_sent = 0;
 }// namespace
 
 int main()
 {
-  auto channel_registry = flow::registry<flow::configuration>(&application_is_running);
-  make_subscribers(channel_registry);
-  make_publishers(channel_registry);
+  std::atomic_size_t num_messages_received{ 0 };
+
+  auto channel_registry = flow::registry<flow::configuration>{};
+  auto handles = make_subscribers(channel_registry, num_messages_received);// each sub callback will increment
+  auto publisher_handles = make_publishers(channel_registry);
+
+  while (not publisher_handles.empty()) {
+    handles.push_back(std::move(publisher_handles.back()));
+    publisher_handles.pop_back();
+  }
 
   if (not channel_registry.contains<Point>("small_points") or not channel_registry.contains<Point>("large_points")) {
     flow::logging::error("Expected registry to contain both small_points and large_points. It was missing at least one");
     return EXIT_FAILURE;
   }
 
-  std::vector<cppcoro::task<void>> tasks{};
-  for (auto const& name : CHANNEL_NAMES) {
-    auto& point_channel = channel_registry.get_channel<Point>(name);
-    auto communications_task = point_channel.open_communications(scheduler, application_is_running);
-    tasks.push_back(std::move(communications_task));
+  std::atomic_bool timed_out{ false };
+  auto [_, timeout_routine] = flow::make_timeout_function(TIMEOUT_LIMIT, [&] {
+    std::atomic_store(&timed_out, std::atomic_load(&num_messages_received) < TOTAL_MESSAGES);
+  });
+
+  auto small_points_comm_task = channel_registry.get_channel<Point>("small_points").open_communications(scheduler);
+  auto large_points_comm_task = channel_registry.get_channel<Point>("large_points").open_communications(scheduler);
+  auto timeout_task = cppcoro::schedule_on(scheduler, timeout_routine());
+
+  auto promise = std::async(
+    [&] {
+      cppcoro::sync_wait(cppcoro::when_all_ready(std::move(small_points_comm_task), std::move(large_points_comm_task), std::move(timeout_task)));
+    });
+
+  while (std::atomic_load(&num_messages_received) < TOTAL_MESSAGES and not std::atomic_load(&timed_out)) {}
+
+  for (auto& handle : handles) {
+    handle.disable();
   }
 
-  std::thread task_thread([&] { cppcoro::sync_wait(cppcoro::when_all(std::move(tasks))); });
+  promise.get();
 
-  int EXIT_CODE = EXIT_SUCCESS;
-  std::size_t prev_num_messages = messages_received.load(std::memory_order_relaxed);
-  while (messages_received.load(std::memory_order_relaxed) < TOTAL_MESSAGES) {
+  flow::logging::info("Tested channel: Sent {} messages and cancelled operation.", TOTAL_MESSAGES);
 
-    // if test fails maybe it  because of this? We wait 10 ms for coroutines to start
-    std::this_thread::sleep_for(time_wait_for_coroutines);
-    if (prev_num_messages == messages_received.load(std::memory_order_relaxed)) {
-      application_is_running.exchange(false);
-      flow::logging::error("Expect 5000 messages to be received, but only received {} and sent {}", prev_num_messages, messages_sent.load(std::memory_order_relaxed));
-      EXIT_CODE = EXIT_FAILURE;
-      break;
-    }
-    prev_num_messages = messages_received.load(std::memory_order_relaxed);
+  if (timed_out) {
+    flow::logging::error("Test timed out! Time limit is {} milliseconds", TIMEOUT_LIMIT.count());
   }
-
-  const bool is_running = application_is_running.load(std::memory_order_relaxed).any();
-  if (is_running) {
-    flow::logging::info("Tested channel: Sent {} messages and cancelled operation.", TOTAL_MESSAGES);
-    application_is_running.exchange(false);
-  }
-
-  flow::logging::info("Waiting for task thread to join....");
-  if (task_thread.joinable()) { task_thread.join(); }
-  flow::logging::info("Joined!");
-  return EXIT_CODE;
+  return timed_out;
 }
 
-void make_subscribers(flow::registry<flow::configuration>& channels)
+callback_handles_t make_subscribers(flow::registry<flow::configuration>& channels, std::atomic_size_t& counter)
 {
-  auto on_message = [](Point const& /*unused*/) {
-    messages_received.fetch_add(1, std::memory_order_relaxed);
+  auto on_message = [&](Point const& /*unused*/) {
+    std::atomic_fetch_add(&counter, 1);
   };
 
+  callback_handles_t handles{};
   for (const auto& channel_name : CHANNEL_NAMES) {
-    flow::subscribe<Point>(channel_name, channels, on_message);
+    auto callback_handle = flow::subscribe<Point>(channel_name, channels, on_message);
+    handles.push_back(std::move(callback_handle));
   }
+  return handles;
 }
 
-void make_publishers(flow::registry<flow::configuration>& channels)
+callback_handles_t make_publishers(flow::registry<flow::configuration>& channels)
 {
-  auto on_request = [&](Point& /*unused*/) {
-    messages_sent.fetch_add(1, std::memory_order_relaxed);
-  };
+  auto on_request = [&](Point& /*unused*/) {};
+
+  callback_handles_t handles{};
   for (const auto& channel_name : CHANNEL_NAMES) {
-    flow::publish<Point>(channel_name, channels, on_request);
+    auto callback_handle = flow::publish<Point>(channel_name, channels, on_request);
+    handles.push_back(std::move(callback_handle));
   }
+  return handles;
 }

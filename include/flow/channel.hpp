@@ -11,7 +11,6 @@
 #include <cppcoro/when_all_ready.hpp>
 
 #include "cancellation.hpp"
-#include "flow/logging.hpp"
 
 namespace flow {
 /**
@@ -26,14 +25,14 @@ namespace flow {
 template<typename message_t> class channel {
   using task_t = cppcoro::task<void>;
   using tasks_t = std::vector<task_t>;
+  static constexpr std::size_t BUFFER_SIZE = 64;
 
+public:
   using publisher_callback_t = flow::cancellable_function<void(message_t&)>;
   using subscriber_callback_t = flow::cancellable_function<void(message_t const&)>;
   using publisher_callbacks_t = std::vector<publisher_callback_t>;
   using subscriber_callbacks_t = std::vector<subscriber_callback_t>;
-  static constexpr std::size_t BUFFER_SIZE = 64;
 
-public:
   channel(std::string name) : m_name(std::move(name)) {}
 
   /**
@@ -62,26 +61,22 @@ public:
    * @param sequencer Handles buffer organization of messages
    * @return A coroutine that will be executed by flow::spin
    */
-  task_t open_communications(auto& sched, volatile auto& app_is_running)
+  task_t open_communications(auto& sched)
   {
-    flow::logging::info("opening communications");
     using namespace cppcoro;
 
     struct context_t {
       decltype(sched) scheduler;
-      decltype(app_is_running) application_is_running;// flag that keeps the coroutines spinning
       sequence_barrier<std::size_t> barrier{};// notifies publishers that it can publish more
       single_producer_sequencer<std::size_t> sequencer{ barrier,
         BUFFER_SIZE };// controls sequence values for the message buffer
       std::array<message_t, BUFFER_SIZE> buffer{};// the message buffer
       std::size_t index_mask =
         BUFFER_SIZE - 1;// Used to mask the sequence number and get the index to access the buffer
-    } context{ sched, app_is_running };
+    } context{ sched };
 
     tasks_t on_request_tasks = make_publisher_tasks(context);
     tasks_t on_message_tasks = make_subscriber_tasks(context);
-    flow::logging::info("subscriptions: {}", on_message_tasks.size());
-    flow::logging::info("publisher: {}", on_request_tasks.size());
 
     auto on_messages = cppcoro::when_all_ready(std::move(on_message_tasks));
     auto on_requests = cppcoro::when_all_ready(std::move(on_request_tasks));
@@ -108,11 +103,13 @@ private:
       cancellable_handler(msg);
       msg.metadata.sequence = m_sequence++;
       context.sequencer.publish(seq);
-      flow::logging::info("publishing...");
     }
 
-    flow::logging::info("Last published sequence number is: {}", m_sequence - 1);
-    flow::logging::info("Done publishing...");
+    size_t seq = co_await context.sequencer.claim_one(context.scheduler);
+    auto& msg = context.buffer[seq & context.index_mask];
+    cancellable_handler(msg);
+    msg.metadata.sequence = m_sequence++;
+    context.sequencer.publish(seq);
   }
 
   tasks_t make_subscriber_tasks(auto& context)
@@ -134,14 +131,12 @@ private:
       // There may be more than one available.
       const size_t available = co_await context.sequencer.wait_until_published(next_to_read, context.scheduler);
       do {
-        flow::logging::info("consuming...");
         auto& msg = context.buffer[next_to_read & context.index_mask];
         handler(msg);
       } while (next_to_read++ != available);
 
       context.barrier.publish(available);
     }
-    flow::logging::info("Done consuming...");
   }
 
   publisher_callbacks_t m_on_request_callbacks{};

@@ -14,11 +14,13 @@ namespace flow {
 template<typename config_t>
 class registry {
 public:
-  registry(volatile auto* program_is_running) : m_program_is_running(program_is_running) {}
-
   template<typename message_t>
   flow::callback_handle<config_t> register_subscription(std::string&& channel_name, std::function<void(message_t const&)>&& on_message)
   {
+    if (m_current_callback_id >= config_t::global::max_callbacks) {
+      flow::logging::critical_throw("Current callback id is {}. Max callbacks is {}. Increase the value in configuration::global::max_callbacks.", m_current_callback_id, config_t::global::max_callbacks);
+    }
+
     if (not m_channels.contains<message_t>(channel_name)) {
       m_channels.put(channel<message_t>(channel_name));
       m_channel_names[hash<message_t>()].push_back(channel_name);
@@ -30,10 +32,6 @@ public:
     auto& ch = m_channels.at<message_t>(channel_name);
     ch.push_subscription(std::move(subscription));
 
-    if (m_current_callback_id >= config_t::global::max_callbacks) {
-      flow::logging::critical_throw("Current callback id is {}. Max callbacks is {}. Increase the value in configuration::global::max_callbacks.", m_current_callback_id, config_t::global::max_callbacks);
-    }
-
     auto info = callback_info{
       .id = m_current_callback_id,
       .type = callback_type::subscription,
@@ -42,12 +40,16 @@ public:
     };
 
     ++m_current_callback_id;
-    return callback_handle<config_t>(std::move(info), std::move(cancellation_handle), m_program_is_running);
+    return callback_handle<config_t>(std::move(info), std::move(cancellation_handle));
   }
 
   template<typename message_t>
   flow::callback_handle<config_t> register_publisher(std::string&& channel_name, std::function<void(message_t&)>&& on_request)
   {
+    if (m_current_callback_id >= config_t::global::max_callbacks) {
+      flow::logging::critical_throw("Current callback id is {}. Max callbacks is {}. Increase the value in configuration::global::max_callbacks.", m_current_callback_id, config_t::global::max_callbacks);
+    }
+
     if (not m_channels.contains<message_t>(channel_name)) {
       m_channels.put(channel<message_t>(channel_name));
       m_channel_names[hash<message_t>()].push_back(channel_name);
@@ -59,10 +61,6 @@ public:
     auto& ch = m_channels.at<message_t>(channel_name);
     ch.push_publisher(std::move(publisher));
 
-    if (m_current_callback_id >= config_t::global::max_callbacks) {
-      flow::logging::critical_throw("Current callback id is {}. Max callbacks is {}. Increase the value in configuration::global::max_callbacks.", m_current_callback_id, config_t::global::max_callbacks);
-    }
-
     auto info = callback_info{
       .id = m_current_callback_id,
       .type = callback_type::publisher,
@@ -71,7 +69,7 @@ public:
     };
 
     ++m_current_callback_id;
-    return callback_handle<config_t>(std::move(info), std::move(cancellation_handle), m_program_is_running);
+    return callback_handle<config_t>(std::move(info), std::move(cancellation_handle));
   }
 
   template<typename message_t>
@@ -106,7 +104,6 @@ private:
 
   /// Maps a type hash to all channel names associated with it
   std::unordered_map<std::size_t, std::vector<std::string>> m_channel_names;
-  volatile std::atomic<std::bitset<config_t::global::max_callbacks>>* m_program_is_running{ nullptr };
 };
 
 template<typename message_t>

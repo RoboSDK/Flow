@@ -25,7 +25,7 @@ void test_cancellable(M& dummy_message)
   REQUIRE(cancellable.is_cancellation_requested());
 
   cancellable(dummy_message);// should call null callback
-  REQUIRE(called_back == false);
+  REQUIRE(called_back == true);
   try {
     cancellable.throw_if_cancellation_requested();
   }
