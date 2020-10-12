@@ -2,6 +2,6 @@
 
 namespace flow {
 struct metadata {
-  std::size_t sequence;
+  std::size_t sequence{};
 };
 }// namespace flow

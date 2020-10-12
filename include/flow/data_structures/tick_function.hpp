@@ -12,12 +12,12 @@ class tick_function {
 
 public:
   tick_function() = default;
-  tick_function(tick_function const& other) : m_count(other.m_count.load(std::memory_order_relaxed)),
-                                              m_limit(other.m_limit.load(std::memory_order_relaxed)),
+  tick_function(tick_function const& other) : m_count(other.m_count.load()),
+                                              m_limit(other.m_limit.load()),
                                               m_callback(other.m_callback) {}
 
-  tick_function(tick_function&& other) noexcept : m_count(other.m_count.load(std::memory_order_relaxed)),
-                                                  m_limit(other.m_limit.load(std::memory_order_relaxed)),
+  tick_function(tick_function&& other) noexcept : m_count(other.m_count.load()),
+                                                  m_limit(other.m_limit.load()),
                                                   m_callback(std::move(other.m_callback))
   {
     other.m_count = 0;
@@ -27,16 +27,16 @@ public:
 
   tick_function& operator=(tick_function const& other)
   {
-    m_count = other.m_count.load(std::memory_order_relaxed);
-    m_limit = other.m_limit.load(std::memory_order_relaxed);
+    m_count = other.m_count.load();
+    m_limit = other.m_limit.load();
     m_callback = other.m_callback;
     return *this;
   }
 
   tick_function& operator=(tick_function&& other) noexcept
   {
-    m_count = other.m_count.load(std::memory_order_relaxed);
-    m_limit = other.m_limit.load(std::memory_order_relaxed);
+    m_count = other.m_count.load();
+    m_limit = other.m_limit.load();
     m_callback = std::move(other.m_callback);
 
     other.m_count = 0;
@@ -59,6 +59,10 @@ public:
     m_callback();
     m_count.compare_exchange_strong(count, 0);
     return true;
+  }
+
+  std::size_t count() const {
+    return std::atomic_load(&m_count);
   }
 
 private:

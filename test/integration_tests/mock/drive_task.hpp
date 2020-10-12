@@ -19,8 +19,8 @@ public:
     // every publisher will tick concurrently
     static typename config_t::driver_t driver{};
     const auto on_request = [this](typename config_t::message_t& message) {
-      m_tick();
       message = driver.drive();
+      m_tick();
     };
 
     std::generate_n(std::back_inserter(m_callback_handles), config_t::num_publishers, [&] {

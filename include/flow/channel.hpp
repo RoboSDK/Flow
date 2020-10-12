@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <mutex>
 
 #include <array>
 #include <cppcoro/sequence_barrier.hpp>
@@ -22,7 +23,8 @@ namespace flow {
  *
  * @tparam message_t The information being transmitted through this channel
  */
-template<typename message_t> class channel {
+template<typename message_t>
+class channel {
   using task_t = cppcoro::task<void>;
   using tasks_t = std::vector<task_t>;
   static constexpr std::size_t BUFFER_SIZE = 64;
@@ -43,7 +45,7 @@ public:
   {
     m_on_request_callbacks.push_back(std::move(callback));
   }
-  void push_subscription(subscriber_callback_t && callback)
+  void push_subscription(subscriber_callback_t&& callback)
   {
     m_on_message_callbacks.push_back(std::move(callback));
   }
@@ -101,14 +103,14 @@ private:
       size_t seq = co_await context.sequencer.claim_one(context.scheduler);
       auto& msg = context.buffer[seq & context.index_mask];
       cancellable_handler(msg);
-      msg.metadata.sequence = m_sequence++;
+      msg.metadata.sequence = ++m_sequence;
       context.sequencer.publish(seq);
     }
 
     size_t seq = co_await context.sequencer.claim_one(context.scheduler);
     auto& msg = context.buffer[seq & context.index_mask];
     cancellable_handler(msg);
-    msg.metadata.sequence = m_sequence++;
+    msg.metadata.sequence = ++m_sequence;
     context.sequencer.publish(seq);
   }
 

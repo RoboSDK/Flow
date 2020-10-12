@@ -1,4 +1,5 @@
 #include <flow/flow.hpp>
+#include <flow/configuration.hpp>
 
 #include "mock/drive_task.hpp"
 #include "mock/lidar/lidar_driver.hpp"
@@ -18,9 +19,7 @@ struct config_t {
   static constexpr std::size_t num_sequences = num_publishers * total_messages;
   static constexpr std::size_t receive_messages = num_sequences * num_subscriptions;
 
-  struct global {
-    static constexpr std::size_t max_callbacks = 64;
-  };
+  using default_config_t = flow::configuration;
 };
 
 int main()
@@ -35,5 +34,5 @@ int main()
 
   auto messages = flow::make_messages<config_t::message_t>();
   auto system = flow::make_system<sensor_layer_t, transform_layer_t>();
-  flow::spin(system, messages, config_t{});
+  flow::spin<config_t::default_config_t>(system, messages);
 }
