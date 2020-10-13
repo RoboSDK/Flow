@@ -27,7 +27,7 @@ struct Point {
 };
 
 static constexpr std::size_t TOTAL_MESSAGES = 5000;
-static constexpr auto TIMEOUT_LIMIT = std::chrono::milliseconds(1500);// should be enough time to run this without timing out
+static constexpr auto TIMEOUT_LIMIT = std::chrono::milliseconds(3000);// should be enough time to run this without timing out
 static constexpr std::array CHANNEL_NAMES = { "small_points", "large_points" };
 
 cppcoro::static_thread_pool scheduler;
@@ -58,7 +58,9 @@ int main()
 
   auto small_points_comm_task = channel_registry.get_channel<Point>("small_points").open_communications(scheduler);
   auto large_points_comm_task = channel_registry.get_channel<Point>("large_points").open_communications(scheduler);
-  auto timeout_task = cppcoro::schedule_on(scheduler, timeout_routine());
+
+  cppcoro::static_thread_pool timeout_scheduler;
+  auto timeout_task = cppcoro::schedule_on(timeout_scheduler, timeout_routine());
 
   auto promise = std::async(
     [&] {

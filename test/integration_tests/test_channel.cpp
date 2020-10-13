@@ -38,7 +38,7 @@ bool confirm_name(auto& channel, std::string const& channel_name)
 }
 
 static constexpr std::size_t TOTAL_MESSAGES = 5000;
-static constexpr auto TIMEOUT_LIMIT = std::chrono::milliseconds(1000); // should be enough time to run this without timing out
+static constexpr auto TIMEOUT_LIMIT = std::chrono::milliseconds(3000); // should be enough time to run this without timing out
 cppcoro::static_thread_pool scheduler;
 }// namespace
 
@@ -113,7 +113,8 @@ int main()
   auto small_points_task = small_points_channel.open_communications(scheduler);
   auto large_points_task = large_points_channel.open_communications(scheduler);
 
-  auto timeout_task = cppcoro::schedule_on(scheduler, timeout_routine());
+  cppcoro::static_thread_pool timeout_scheduler;
+  auto timeout_task = cppcoro::schedule_on(timeout_scheduler, timeout_routine());
   cppcoro::sync_wait(cppcoro::when_all_ready(std::move(timeout_task), std::move(small_points_task), std::move(large_points_task)));
   if (timed_out) {
     flow::logging::error("Test timed out! Time limit is {} milliseconds", TIMEOUT_LIMIT.count());
