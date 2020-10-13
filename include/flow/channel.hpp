@@ -24,11 +24,11 @@ namespace flow {
  *
  * @tparam message_t The information being transmitted through this channel
  */
-template<typename message_t>
+template<typename message_t, typename config_t>
 class channel {
   using task_t = cppcoro::task<void>;
   using tasks_t = std::vector<task_t>;
-  static constexpr std::size_t BUFFER_SIZE = 64;
+  static constexpr std::size_t BUFFER_SIZE = config_t::channel::message_buffer_size;
 
 public:
   using publisher_callback_t = flow::cancellable_function<void(message_t&)>;

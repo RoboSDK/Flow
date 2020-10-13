@@ -8,6 +8,7 @@
 #include <flow/data_structures/tick_function.hpp>
 #include <flow/data_structures/timeout_function.hpp>
 #include <flow/logging.hpp>
+#include <flow/configuration.hpp>
 
 /**
  * This test will create a single publisher and subscriber, send 10 message_registry and then quit.
@@ -41,8 +42,8 @@ cppcoro::static_thread_pool scheduler;
 
 int main()
 {
-  auto small_points_channel = flow::channel<Point>("small_points");
-  auto large_points_channel = flow::channel<Point>("large_points");
+  auto small_points_channel = flow::channel<Point, flow::configuration>("small_points");
+  auto large_points_channel = flow::channel<Point, flow::configuration>("large_points");
 
   if (not confirm_name(small_points_channel, "small_points") or not confirm_name(large_points_channel, "large_points")) {
     return 1;
@@ -66,8 +67,8 @@ int main()
     timed_out = not std::atomic_load(&success);
   });
 
-  using publisher_callback_t = flow::channel<Point>::publisher_callback_t;
-  using subscriber_callback_t = flow::channel<Point>::subscriber_callback_t;
+  using publisher_callback_t = flow::channel<Point, flow::configuration>::publisher_callback_t;
+  using subscriber_callback_t = flow::channel<Point, flow::configuration>::subscriber_callback_t;
 
   auto large_points_pub_callback = publisher_callback_t{
     cancellation_sources[0].token(), [](Point& msg) {

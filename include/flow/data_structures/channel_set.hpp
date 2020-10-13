@@ -5,6 +5,8 @@
 #include "flow/channel.hpp"
 
 namespace flow {
+
+template <typename config_t>
 class channel_set {
 public:
   template<typename message_t>
@@ -21,7 +23,7 @@ public:
   template<typename message_t>
   auto& at(std::string const& channel_name)
   {
-    return std::any_cast<channel<message_t>&>(m_items.at(hash<message_t>(channel_name)));
+    return std::any_cast<channel<message_t, config_t>&>(m_items.at(hash<message_t>(channel_name)));
   }
 
 private:

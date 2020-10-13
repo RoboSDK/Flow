@@ -6,7 +6,11 @@
 namespace flow {
 struct configuration {
   struct global {
-    static constexpr auto max_callbacks = 64;
+    static constexpr std::size_t max_callbacks = 64;
+  };
+
+  struct channel {
+    static constexpr std::size_t message_buffer_size = 64;
   };
 };
 }

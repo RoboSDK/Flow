@@ -1,6 +1,7 @@
 #include <catch2/catch.hpp>
 #include <flow/channel.hpp>
 #include <flow/data_structures/channel_set.hpp>
+#include <flow/configuration.hpp>
 
 namespace {
 struct Point {
@@ -14,7 +15,7 @@ SCENARIO("channel set can store and retrieve channels correctly", "[channel_set]
 
   GIVEN("An empty channel set")
   {
-    flow::channel_set channels;
+    flow::channel_set<flow::configuration> channels;
 
     REQUIRE_FALSE(channels.contains<int>("num"));
     REQUIRE_FALSE(channels.contains<Point>("point"));
@@ -22,7 +23,7 @@ SCENARIO("channel set can store and retrieve channels correctly", "[channel_set]
 
     WHEN("a channel is inserted")
     {
-      flow::channel<Point> large_points_channel("large_points");
+      flow::channel<Point, flow::configuration> large_points_channel("large_points");
       channels.put(std::move(large_points_channel));
 
       THEN("channels set is not empty")
@@ -37,8 +38,8 @@ SCENARIO("channel set can store and retrieve channels correctly", "[channel_set]
 
     WHEN("a two channels are inserted")
     {
-      flow::channel<Point> large_points_channel("large_points");
-      flow::channel<Point> small_points_channel("small_points");
+      flow::channel<Point, flow::configuration> large_points_channel("large_points");
+      flow::channel<Point, flow::configuration> small_points_channel("small_points");
       channels.put(std::move(large_points_channel));
       channels.put(std::move(small_points_channel));
 
