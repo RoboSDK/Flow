@@ -17,7 +17,7 @@
 namespace flow {
 /**
  * A channel represents the central location where all communication happens between different tasks
- * sharing information through messages
+ * sharing information through message_registry
  *
  * It gets built up as publishers and subscribes are created by tasks. Once the begin phase is over, the open
  * communication coroutine begins and triggers all tasks to begin communication asynchronously.
@@ -39,7 +39,7 @@ public:
   channel(std::string name) : m_name(std::move(name)) {}
 
   /**
-   * Called by registry when handing over ownership of the callback registered by a task
+   * Called by channel_registry when handing over ownership of the callback registered by a task
    * @param callback The request or message call back from a task
    */
   void push_publisher(publisher_callback_t&& callback)
@@ -61,7 +61,7 @@ public:
    * @param tp The threadpool created by flow::spin
    * @param io A scheduler for asynchronous io
    * @param barrier Handles signals for publishing/subscribing between tasks
-   * @param sequencer Handles buffer organization of messages
+   * @param sequencer Handles buffer organization of message_registry
    * @return A coroutine that will be executed by flow::spin
    */
   task_t open_communications(auto& sched)

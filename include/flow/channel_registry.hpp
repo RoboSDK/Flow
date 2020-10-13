@@ -12,7 +12,7 @@
 namespace flow {
 
 template<typename config_t>
-class registry {
+class channel_registry {
 public:
   template<typename message_t>
   flow::callback_handle<config_t> register_subscription(std::string&& channel_name, std::function<void(message_t const&)>&& on_message)

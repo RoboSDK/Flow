@@ -1,10 +1,10 @@
 #pragma once
 
 
+#include <flow/channel_registry.hpp>
 #include <flow/data_structures/static_vector.hpp>
 #include <flow/data_structures/tick_function.hpp>
 #include <flow/message.hpp>
-#include <flow/registry.hpp>
 #include <flow/task.hpp>
 
 #include <chrono>

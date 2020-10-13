@@ -2,12 +2,12 @@
 
 namespace flow {
 template<typename... ts>
-struct messages {
+struct message_registry {
 };
 
 template<typename... message_ts>
 constexpr auto make_messages()
 {
-  return messages<message_ts...>{};
+  return message_registry<message_ts...>{};
 }
 }// namespace flow

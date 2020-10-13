@@ -2,12 +2,12 @@
 #define FLOW_SYSTEM_HPP
 
 #include "flow/channel.hpp"
+#include "flow/channel_registry.hpp"
 #include "flow/configuration.hpp"
 #include "flow/data_structures/mixed_array.hpp"
 #include "flow/layer.hpp"
-#include "flow/messages.hpp"
+#include "flow/message_registry.hpp"
 #include "flow/metaprogramming.hpp"
-#include "flow/registry.hpp"
 
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>
@@ -37,7 +37,7 @@ template<typename... Layers> requires no_repeated_layers<Layers...> auto make_sy
 template<typename... message_ts>
 std::vector<cppcoro::task<void>> make_communication_tasks(auto& scheduler,
   auto& channel_registry,
-  messages<message_ts...> /*unused*/)
+  message_registry<message_ts...> /*unused*/)
 {
   using namespace flow::metaprogramming;
   std::vector<cppcoro::task<void>> communication_tasks{};
@@ -53,7 +53,7 @@ std::vector<cppcoro::task<void>> make_communication_tasks(auto& scheduler,
 
 template<typename config_t> void spin(auto system, auto message_registry)
 {
-  flow::registry<config_t> channel_registry{};
+  flow::channel_registry<config_t> channel_registry{};
 
   auto layers = make_layers(system);
   std::ranges::for_each(layers, flow::make_visitor([&](auto& layer) {

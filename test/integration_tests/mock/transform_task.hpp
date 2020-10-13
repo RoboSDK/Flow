@@ -1,7 +1,7 @@
 #pragma once
 
+#include <flow/channel_registry.hpp>
 #include <flow/message.hpp>
-#include <flow/registry.hpp>
 #include <flow/task.hpp>
 #include <numeric>
 
@@ -49,12 +49,12 @@ public:
     constexpr std::size_t expected_messages = config_t::receive_messages + config_t::num_subscriptions; // each sub will receive 1 extra message to cancel
 
     if (total_messages < expected_messages) {
-      flow::logging::critical_throw("Expected the number of messages to be received to be at least {}. Received {}", expected_messages, total_messages);
+      flow::logging::critical_throw("Expected the number of message_registry to be received to be at least {}. Received {}", expected_messages, total_messages);
     }
   }
 
 private:
-  static constexpr auto seq_buffer = 10; // extra messages sent by pub before stopping
+  static constexpr auto seq_buffer = 10; // extra message_registry sent by pub before stopping
   std::array<std::size_t, config_t::num_sequences + seq_buffer> m_seq_tracker{};
   std::vector<flow::callback_handle<typename config_t::default_config_t>> m_callback_handles{};
   flow::tick_function m_tick{};

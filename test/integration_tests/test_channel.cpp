@@ -10,7 +10,7 @@
 #include <flow/logging.hpp>
 
 /**
- * This test will create a single publisher and subscriber, send 10 messages and then quit.
+ * This test will create a single publisher and subscriber, send 10 message_registry and then quit.
  */
 namespace {
 struct Point {

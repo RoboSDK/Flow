@@ -1,7 +1,7 @@
 #pragma once
 
+#include "flow/message_registry.hpp"
 #include "flow/system.hpp"
-#include "flow/messages.hpp"
 
 namespace flow {
 /**
