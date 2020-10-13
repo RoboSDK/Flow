@@ -27,7 +27,7 @@ public:
       return flow::publish<typename config_t::message_t>(config_t::channel_name, channel_registry, on_request);
     });
 
-    constexpr auto tick_cycle = config_t::total_messages;
+    constexpr auto tick_cycle = config_t::num_sequences;
     m_tick = flow::tick_function(tick_cycle, [this] {
       std::ranges::for_each(m_callback_handles, [](auto& handle){
         flow::logging::info("Disabling callback. {}", flow::to_string(handle));

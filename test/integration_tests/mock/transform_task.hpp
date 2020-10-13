@@ -19,12 +19,11 @@ public:
     const auto on_message = [this](typename config_t::message_t const& message) {
       [[maybe_unused]] const auto transformed = std::reduce(std::begin(message.points), std::end(message.points), 0);
 
-      auto seq = message.metadata.sequence;
-      auto seq_count = std::atomic_ref<std::size_t>(m_seq_tracker[seq]);
+      auto seq_count = std::atomic_ref<std::size_t>(m_seq_tracker[message.metadata.sequence]);
       ++seq_count;
 
       if (seq_count.load() > config_t::num_subscriptions) {
-        flow::logging::critical_throw("Received the same sequence more times than the number of subscriptions. seq: {} count: {}", seq, m_seq_tracker[seq]);
+        flow::logging::critical_throw("Received the same sequence more times than the number of subscriptions. seq: {} count: {}", message.metadata.sequence, m_seq_tracker[message.metadata.sequence]);
       }
 
       m_tick();

@@ -4,8 +4,8 @@
 #include <mutex>
 
 #include <array>
+#include <cppcoro/multi_producer_sequencer.hpp>
 #include <cppcoro/sequence_barrier.hpp>
-#include <cppcoro/single_producer_sequencer.hpp>
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all.hpp>
@@ -70,11 +70,9 @@ public:
     struct context_t {
       decltype(sched) scheduler;
       sequence_barrier<std::size_t> barrier{};// notifies publishers that it can publish more
-      single_producer_sequencer<std::size_t> sequencer{ barrier,
-        BUFFER_SIZE };// controls sequence values for the message buffer
+      multi_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };// controls sequence values for the message buffer
       std::array<message_t, BUFFER_SIZE> buffer{};// the message buffer
-      std::size_t index_mask =
-        BUFFER_SIZE - 1;// Used to mask the sequence number and get the index to access the buffer
+      std::size_t index_mask = BUFFER_SIZE - 1;// Used to mask the sequence number and get the index to access the buffer
     } context{ sched };
 
     tasks_t on_request_tasks = make_publisher_tasks(context);
@@ -129,17 +127,19 @@ private:
   task_t make_subscriber_task(subscriber_callback_t&& handler, auto& context)
   {
     size_t next_to_read = 0;
+    size_t last_known_published = 0;
 
     while (not handler.is_cancellation_requested()) {
       // Wait until the next message is available
       // There may be more than one available.
-      const size_t available = co_await context.sequencer.wait_until_published(next_to_read, context.scheduler);
+      const size_t available = co_await context.sequencer.wait_until_published(next_to_read, context.sequencer.last_published_after(last_known_published), context.scheduler);
       do {
         auto& message = context.buffer[next_to_read & context.index_mask];
         handler(message);
       } while (next_to_read++ != available);
 
       context.barrier.publish(available);
+      last_known_published = available;
     }
   }
 
