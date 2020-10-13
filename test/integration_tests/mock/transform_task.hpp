@@ -20,9 +20,10 @@ public:
       [[maybe_unused]] const auto transformed = std::reduce(std::begin(message.points), std::end(message.points), 0);
 
       auto seq = message.metadata.sequence;
-      m_seq_tracker[seq]++;
+      auto seq_count = std::atomic_ref<std::size_t>(m_seq_tracker[seq]);
+      ++seq_count;
 
-      if (m_seq_tracker[seq] > config_t::num_subscriptions) {
+      if (seq_count.load() > config_t::num_subscriptions) {
         flow::logging::critical_throw("Received the same sequence more times than the number of subscriptions. seq: {} count: {}", seq, m_seq_tracker[seq]);
       }
 
@@ -33,7 +34,7 @@ public:
       return flow::subscribe<typename config_t::message_t>(config_t::channel_name, channel_registry, on_message);
     });
 
-    constexpr auto tick_cycle = config_t::total_messages * config_t::num_subscriptions;
+    constexpr auto tick_cycle = config_t::receive_messages;
     m_tick = flow::tick_function(tick_cycle, [this] {
       std::ranges::for_each(m_callback_handles, [](auto& handle) {
         flow::logging::info("Disabling callback: {}", flow::to_string(handle));
@@ -44,15 +45,17 @@ public:
 
   void end()
   {
-    auto total_messages = std::reduce(std::begin(m_seq_tracker), std::end(m_seq_tracker), 0);
+    auto total_messages = std::reduce(std::begin(m_seq_tracker), std::end(m_seq_tracker), config_t::num_subscriptions);
+    constexpr std::size_t expected_messages = config_t::receive_messages + config_t::num_subscriptions; // each sub will receive 1 extra message to cancel
 
-    if (total_messages != config_t::receive_messages) {
-      flow::logging::critical_throw("Expected all the number of messages to be received to be {}. Received {}", config_t::receive_messages, total_messages);
+    if (total_messages < expected_messages) {
+      flow::logging::critical_throw("Expected the number of messages to be received to be at least {}. Received {}", expected_messages, total_messages);
     }
   }
 
 private:
-  std::array<std::size_t, config_t::receive_messages> m_seq_tracker{};
+  static constexpr auto seq_buffer = 10; // extra messages sent by pub before stopping
+  std::array<std::size_t, config_t::num_sequences + seq_buffer> m_seq_tracker{};
   std::vector<flow::callback_handle<typename config_t::default_config_t>> m_callback_handles{};
   flow::tick_function m_tick{};
 };

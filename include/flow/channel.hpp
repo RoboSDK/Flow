@@ -35,7 +35,48 @@ public:
   using publisher_callbacks_t = std::vector<publisher_callback_t>;
   using subscriber_callbacks_t = std::vector<subscriber_callback_t>;
 
+
+  channel() = default;
   channel(std::string name) : m_name(std::move(name)) {}
+
+  channel(channel const& other)
+    : m_on_request_callbacks(other.m_on_request_callbacks),
+      m_on_message_callbacks(other.m_on_message_callbacks),
+      m_name(other.m_name),
+      m_sequence(std::atomic_load(&other.m_sequence)) {}
+
+  channel(channel&& other) noexcept
+    : m_on_request_callbacks(std::move(other.m_on_request_callbacks)),
+      m_on_message_callbacks(std::move(other.m_on_message_callbacks)),
+      m_name(std::move(other.m_name)),
+      m_sequence(std::atomic_load(&other.m_sequence))
+  {
+    other.m_on_request_callbacks.clear();
+    other.m_on_message_callbacks.clear();
+    other.m_name.clear();
+    std::atomic_store(&other.m_sequence, 0);
+  }
+
+  channel& operator=(channel const& other)
+  {
+    m_on_request_callbacks = other.m_on_request_callbacks;
+    m_on_message_callbacks = other.m_on_message_callbacks;
+    m_name = other.m_name;
+    std::atomic_store(&m_sequence, other.m_sequence);
+  }
+
+  channel& operator=(channel&& other) noexcept
+  {
+    m_on_request_callbacks = std::move(other.m_on_request_callbacks),
+    m_on_message_callbacks = std::move(other.m_on_message_callbacks),
+    m_name = std::move(other.m_name),
+    m_sequence = std::atomic_load(&other.m_sequence);
+
+    other.m_on_request_callbacks.clear();
+    other.m_on_message_callbacks.clear();
+    other.m_name.clear();
+    std::atomic_store(&other.m_sequence, 0);
+  }
 
   /**
    * Called by registry when handing over ownership of the callback registered by a task
@@ -145,7 +186,7 @@ private:
   subscriber_callbacks_t m_on_message_callbacks{};
 
   std::string m_name;
-  std::size_t m_sequence{};
+  std::atomic_size_t m_sequence{};
 };
 
 }// namespace flow
