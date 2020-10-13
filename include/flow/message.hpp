@@ -2,7 +2,7 @@
 
 namespace flow {
 template<typename message_t>
-struct message_wrapper {
+struct message {
   using type = message_t;
   struct metadata_t {
     std::size_t sequence{};

@@ -12,7 +12,7 @@
 #include <cppcoro/when_all_ready.hpp>
 
 #include "flow/cancellation.hpp"
-#include "flow/message_wrapper.hpp"
+#include "flow/message.hpp"
 
 namespace flow {
 /**
@@ -73,7 +73,7 @@ public:
         return std::array<message_t, BUFFER_SIZE>{};
       }
       else {
-        return std::array<message_wrapper<message_t>, BUFFER_SIZE>{};
+        return std::array<message<message_t>, BUFFER_SIZE>{};
       }
     };
 

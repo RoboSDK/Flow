@@ -1,8 +1,8 @@
 #pragma once
 
+#include <flow/message.hpp>
 #include <flow/registry.hpp>
 #include <flow/task.hpp>
-#include <flow/message_wrapper.hpp>
 #include <numeric>
 
 namespace mock {
