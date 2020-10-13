@@ -1,8 +1,5 @@
 #pragma once
 
-#include <bitset>
-#include <atomic>
-
 namespace flow {
 struct configuration {
   struct global {
@@ -10,7 +7,7 @@ struct configuration {
   };
 
   struct channel {
-    static constexpr std::size_t message_buffer_size = 64;
+    static constexpr std::size_t message_buffer_size = 1024;
   };
 };
 }
