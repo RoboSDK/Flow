@@ -35,48 +35,7 @@ public:
   using publisher_callbacks_t = std::vector<publisher_callback_t>;
   using subscriber_callbacks_t = std::vector<subscriber_callback_t>;
 
-
-  channel() = default;
   channel(std::string name) : m_name(std::move(name)) {}
-
-  channel(channel const& other)
-    : m_on_request_callbacks(other.m_on_request_callbacks),
-      m_on_message_callbacks(other.m_on_message_callbacks),
-      m_name(other.m_name),
-      m_sequence(std::atomic_load(&other.m_sequence)) {}
-
-  channel(channel&& other) noexcept
-    : m_on_request_callbacks(std::move(other.m_on_request_callbacks)),
-      m_on_message_callbacks(std::move(other.m_on_message_callbacks)),
-      m_name(std::move(other.m_name)),
-      m_sequence(std::atomic_load(&other.m_sequence))
-  {
-    other.m_on_request_callbacks.clear();
-    other.m_on_message_callbacks.clear();
-    other.m_name.clear();
-    std::atomic_store(&other.m_sequence, 0);
-  }
-
-  channel& operator=(channel const& other)
-  {
-    m_on_request_callbacks = other.m_on_request_callbacks;
-    m_on_message_callbacks = other.m_on_message_callbacks;
-    m_name = other.m_name;
-    std::atomic_store(&m_sequence, other.m_sequence);
-  }
-
-  channel& operator=(channel&& other) noexcept
-  {
-    m_on_request_callbacks = std::move(other.m_on_request_callbacks),
-    m_on_message_callbacks = std::move(other.m_on_message_callbacks),
-    m_name = std::move(other.m_name),
-    m_sequence = std::atomic_load(&other.m_sequence);
-
-    other.m_on_request_callbacks.clear();
-    other.m_on_message_callbacks.clear();
-    other.m_name.clear();
-    std::atomic_store(&other.m_sequence, 0);
-  }
 
   /**
    * Called by registry when handing over ownership of the callback registered by a task
@@ -140,18 +99,20 @@ private:
 
   task_t make_publisher_task(publisher_callback_t&& cancellable_handler, auto& context)
   {
+    auto message_sequence = std::atomic_ref<std::size_t>{ m_sequence };
+
     while (not cancellable_handler.is_cancellation_requested()) {
-      size_t seq = co_await context.sequencer.claim_one(context.scheduler);
-      auto& msg = context.buffer[seq & context.index_mask];
-      cancellable_handler(msg);
-      msg.metadata.sequence = ++m_sequence;
-      context.sequencer.publish(seq);
+      size_t buffer_sequence = co_await context.sequencer.claim_one(context.scheduler);
+      auto& message = context.buffer[buffer_sequence & context.index_mask];
+      cancellable_handler(message);
+      message.metadata.sequence = ++message_sequence;
+      context.sequencer.publish(buffer_sequence);
     }
 
     size_t seq = co_await context.sequencer.claim_one(context.scheduler);
-    auto& msg = context.buffer[seq & context.index_mask];
-    cancellable_handler(msg);
-    msg.metadata.sequence = ++m_sequence;
+    auto& message = context.buffer[seq & context.index_mask];
+    cancellable_handler(message);
+    message.metadata.sequence = ++message_sequence;
     context.sequencer.publish(seq);
   }
 
@@ -174,8 +135,8 @@ private:
       // There may be more than one available.
       const size_t available = co_await context.sequencer.wait_until_published(next_to_read, context.scheduler);
       do {
-        auto& msg = context.buffer[next_to_read & context.index_mask];
-        handler(msg);
+        auto& message = context.buffer[next_to_read & context.index_mask];
+        handler(message);
       } while (next_to_read++ != available);
 
       context.barrier.publish(available);
@@ -186,7 +147,7 @@ private:
   subscriber_callbacks_t m_on_message_callbacks{};
 
   std::string m_name;
-  std::atomic_size_t m_sequence{};
+  std::size_t m_sequence{};
 };
 
 }// namespace flow
