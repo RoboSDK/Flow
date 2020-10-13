@@ -2,7 +2,6 @@
 #include <flow/channel.hpp>
 #include <flow/data_structures/timeout_function.hpp>
 #include <flow/logging.hpp>
-#include <flow/metadata.hpp>
 #include <flow/registry.hpp>
 
 #include <cppcoro/schedule_on.hpp>
@@ -22,8 +21,6 @@ namespace {
 struct Point {
   double x;
   double y;
-
-  flow::metadata metadata{};
 };
 
 static constexpr std::size_t TOTAL_MESSAGES = 5000;

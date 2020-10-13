@@ -29,21 +29,13 @@ public:
   callback_handle& operator=(callback_handle const&) = default;
 
   callback_handle(callback_info&& info, cancellation_handle&& ch)
-    : m_info(std::move(info)), m_cancel_handle(std::move(ch))
-  {}
+    : m_info(std::move(info)), m_cancel_handle(std::move(ch)) {}
 
   std::size_t id() const { return m_info.id; };
   callback_type type() const { return m_info.type; }
   std::string channel_name() const { return m_info.channel_name; }
   std::reference_wrapper<const std::type_info> message_info() const { return m_info.message_type; }
 
-  /**
-   * Each callback can 'vote' to turn off the application by disabling itself
-   *
-   * Once all callbacks are disabled, then the program stops
-   *
-   * A disabled callback then becomes a noop
-   */
   void disable()
   {
     m_cancel_handle.request_cancellation();

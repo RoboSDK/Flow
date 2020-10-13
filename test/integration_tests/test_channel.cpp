@@ -8,7 +8,6 @@
 #include <flow/data_structures/tick_function.hpp>
 #include <flow/data_structures/timeout_function.hpp>
 #include <flow/logging.hpp>
-#include <flow/metadata.hpp>
 
 /**
  * This test will create a single publisher and subscriber, send 10 messages and then quit.
@@ -17,8 +16,6 @@ namespace {
 struct Point {
   double x;
   double y;
-
-  flow::metadata metadata{};
 };
 
 std::string to_string(Point const& p)

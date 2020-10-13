@@ -11,7 +11,8 @@
 #include <cppcoro/when_all.hpp>
 #include <cppcoro/when_all_ready.hpp>
 
-#include "cancellation.hpp"
+#include "flow/cancellation.hpp"
+#include "flow/message_wrapper.hpp"
 
 namespace flow {
 /**
@@ -67,12 +68,24 @@ public:
   {
     using namespace cppcoro;
 
+    const auto message_buffer = [] {
+      if constexpr (is_wrapped<message_t>()) {
+        return std::array<message_t, BUFFER_SIZE>{};
+      }
+      else {
+        return std::array<message_wrapper<message_t>, BUFFER_SIZE>{};
+      }
+    };
+
+    using buffer_t = decltype(message_buffer());
+    using scheduler_t = decltype(sched);
+
     struct context_t {
-      decltype(sched) scheduler;
+      scheduler_t scheduler;
       sequence_barrier<std::size_t> barrier{};// notifies publishers that it can publish more
       multi_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };// controls sequence values for the message buffer
-      std::array<message_t, BUFFER_SIZE> buffer{};// the message buffer
       std::size_t index_mask = BUFFER_SIZE - 1;// Used to mask the sequence number and get the index to access the buffer
+      buffer_t buffer{};// the message buffer
     } context{ sched };
 
     tasks_t on_request_tasks = make_publisher_tasks(context);
@@ -85,6 +98,16 @@ public:
   }
 
 private:
+  void invoke_handler(auto& handler, auto& message)
+  {
+    if constexpr (is_wrapped<message_t>()) {
+      std::invoke(handler, message);
+    }
+    else {
+      std::invoke(handler, message.message);
+    }
+  }
+
   tasks_t make_publisher_tasks(auto& context)
   {
     tasks_t on_request_tasks{};
@@ -99,19 +122,19 @@ private:
   {
     auto message_sequence = std::atomic_ref<std::size_t>{ m_sequence };
 
-    while (not cancellable_handler.is_cancellation_requested()) {
+    const auto handle_message = [&]() -> task_t {
       size_t buffer_sequence = co_await context.sequencer.claim_one(context.scheduler);
-      auto& message = context.buffer[buffer_sequence & context.index_mask];
-      cancellable_handler(message);
-      message.metadata.sequence = ++message_sequence;
+      auto& message_wrapper = context.buffer[buffer_sequence & context.index_mask];
+      message_wrapper.metadata.sequence = message_sequence.fetch_add(1);
+      invoke_handler(cancellable_handler, message_wrapper);
       context.sequencer.publish(buffer_sequence);
+    };
+
+    while (not cancellable_handler.is_cancellation_requested()) {
+      co_await handle_message();
     }
 
-    size_t seq = co_await context.sequencer.claim_one(context.scheduler);
-    auto& message = context.buffer[seq & context.index_mask];
-    cancellable_handler(message);
-    message.metadata.sequence = ++message_sequence;
-    context.sequencer.publish(seq);
+    co_await handle_message();
   }
 
   tasks_t make_subscriber_tasks(auto& context)
@@ -134,8 +157,8 @@ private:
       // There may be more than one available.
       const size_t available = co_await context.sequencer.wait_until_published(next_to_read, context.sequencer.last_published_after(last_known_published), context.scheduler);
       do {
-        auto& message = context.buffer[next_to_read & context.index_mask];
-        handler(message);
+        auto& message_wrapper = context.buffer[next_to_read & context.index_mask];
+        invoke_handler(handler, message_wrapper);
       } while (next_to_read++ != available);
 
       context.barrier.publish(available);

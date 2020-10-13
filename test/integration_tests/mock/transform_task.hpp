@@ -2,6 +2,7 @@
 
 #include <flow/registry.hpp>
 #include <flow/task.hpp>
+#include <flow/message_wrapper.hpp>
 #include <numeric>
 
 namespace mock {
@@ -16,27 +17,27 @@ public:
 
   void begin(auto& channel_registry)
   {
-    const auto on_message = [this](typename config_t::message_t const& message) {
-      [[maybe_unused]] const auto transformed = std::reduce(std::begin(message.points), std::end(message.points), 0);
+    using message_t = typename config_t::message_t;
 
-      auto seq_count = std::atomic_ref<std::size_t>(m_seq_tracker[message.metadata.sequence]);
-      ++seq_count;
+    const auto on_message = [this](message_t const& wrapped_msg) {
+      [[maybe_unused]] const auto transformed = std::reduce(std::begin(wrapped_msg.message.points), std::end(wrapped_msg.message.points), 0);
 
-      if (seq_count.load() > config_t::num_subscriptions) {
-        flow::logging::critical_throw("Received the same sequence more times than the number of subscriptions. seq: {} count: {}", message.metadata.sequence, m_seq_tracker[message.metadata.sequence]);
+      auto seq_count = std::atomic_ref<std::size_t>(m_seq_tracker[wrapped_msg.metadata.sequence]);
+
+      if (seq_count.fetch_add(1) > config_t::num_subscriptions) {
+        flow::logging::critical_throw("Received the same sequence more times than the number of subscriptions. seq: {} count: {}", wrapped_msg.metadata.sequence, seq_count.load());
       }
 
       m_tick();
     };
 
     std::generate_n(std::back_inserter(m_callback_handles), config_t::num_subscriptions, [&] {
-      return flow::subscribe<typename config_t::message_t>(config_t::channel_name, channel_registry, on_message);
+      return flow::subscribe<message_t>(config_t::channel_name, channel_registry, on_message);
     });
 
     constexpr auto tick_cycle = config_t::receive_messages;
     m_tick = flow::tick_function(tick_cycle, [this] {
       std::ranges::for_each(m_callback_handles, [](auto& handle) {
-        flow::logging::info("Disabling callback: {}", flow::to_string(handle));
         handle.disable();
       });
     });
