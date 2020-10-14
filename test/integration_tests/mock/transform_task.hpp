@@ -45,6 +45,10 @@ public:
 
   void end()
   {
+    for (std::size_t i = 0; i < config_t::num_sequences; ++i) {
+      assert(m_seq_tracker[i] >= config_t::num_subscriptions);
+    }
+
     auto total_messages = std::reduce(std::begin(m_seq_tracker), std::end(m_seq_tracker), config_t::num_subscriptions);
     constexpr std::size_t expected_messages = config_t::receive_messages + config_t::num_subscriptions; // each sub will receive 1 extra message to cancel
 
