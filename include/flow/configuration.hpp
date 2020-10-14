@@ -3,7 +3,7 @@
 namespace flow {
 struct configuration {
   struct global {
-    static constexpr std::size_t max_callbacks = 64;
+    static constexpr std::size_t max_callbacks = 256;
   };
 
   struct channel {
