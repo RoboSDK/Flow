@@ -35,7 +35,7 @@ TEST_CASE("Test concurrent", "[tick_function]")
   constexpr auto TICKS_PER_THREAD = 1000;
   constexpr auto TICK_THIS_OFTEN = 1;// always tick
 
-  std::atomic_size_t num_ticks = 0;
+  std::size_t num_ticks = 0;
   auto tick = flow::tick_function(TICK_THIS_OFTEN, [&] {
     ++num_ticks;
   });
