@@ -6,6 +6,7 @@ struct message {
   using type = message_t;
   struct metadata_t {
     std::size_t sequence{};
+    bool last_message{};
   } metadata{};
 
   message_t message{};

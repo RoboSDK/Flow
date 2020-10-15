@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
-set(CMAKE_REQUIRED_FLAGS -fcoroutines)
+set(CMAKE_REQUIRED_FLAGS -fcoroutines -gdwarf-3)
 # Set the project name to your project name, my project isn't very descriptive
 project(Flow CXX)
 

@@ -1,16 +1,18 @@
 #pragma once
 
+#include <algorithm>
 #include <functional>
-#include <mutex>
-
 #include <array>
+
 #include <cppcoro/multi_producer_sequencer.hpp>
 #include <cppcoro/sequence_barrier.hpp>
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
-#include <cppcoro/when_all.hpp>
 #include <cppcoro/when_all_ready.hpp>
 
+#include <coz.h>
+
+#include "flow/atomic.hpp"
 #include "flow/cancellation.hpp"
 #include "flow/message.hpp"
 
@@ -120,21 +122,25 @@ private:
 
   task_t make_publisher_task(publisher_callback_t&& cancellable_handler, auto& context)
   {
-    auto message_sequence = std::atomic_ref<std::size_t>{ m_sequence };
+    const auto handle_message = [&](bool last_message) -> task_t {
+      co_await context.scheduler.schedule();
 
-    const auto handle_message = [&]() -> task_t {
-      size_t buffer_sequence = co_await context.sequencer.claim_one(context.scheduler);
+      const auto buffer_sequence = co_await context.sequencer.claim_one(context.scheduler);
       auto& message_wrapper = context.buffer[buffer_sequence & context.index_mask];
-      message_wrapper.metadata.sequence = message_sequence.fetch_add(1);
+      flow::atomic_increment(m_sequence);
+      message_wrapper.metadata.sequence = m_sequence;
+      message_wrapper.metadata.last_message = last_message;
       invoke_handler(cancellable_handler, message_wrapper);
+
       context.sequencer.publish(buffer_sequence);
     };
 
     while (not cancellable_handler.is_cancellation_requested()) {
-      co_await handle_message();
+      co_await handle_message(false);
+      //      COZ_PROGRESS_NAMED("published")
     }
 
-    co_await handle_message();
+    co_await handle_message(true);
   }
 
   tasks_t make_subscriber_tasks(auto& context)
@@ -149,20 +155,25 @@ private:
 
   task_t make_subscriber_task(subscriber_callback_t&& handler, auto& context)
   {
-    size_t next_to_read = 0;
-    size_t last_known_published = 0;
+    co_await context.scheduler.schedule();
 
+    std::size_t next_to_read = 0;
     while (not handler.is_cancellation_requested()) {
       // Wait until the next message is available
       // There may be more than one available.
-      const size_t available = co_await context.sequencer.wait_until_published(next_to_read, context.sequencer.last_published_after(last_known_published), context.scheduler);
+
+      const size_t available = co_await context.sequencer.wait_until_published(next_to_read, next_to_read - 1, context.scheduler);
       do {
         auto& message_wrapper = context.buffer[next_to_read & context.index_mask];
         invoke_handler(handler, message_wrapper);
-      } while (next_to_read++ != available);
+        if (message_wrapper.metadata.last_message) {
+          context.barrier.publish(next_to_read);
+          co_return;
+        }
 
+      } while (next_to_read++ != available);
       context.barrier.publish(available);
-      last_known_published = available;
+      //      COZ_PROGRESS_NAMED("processed")
     }
   }
 
