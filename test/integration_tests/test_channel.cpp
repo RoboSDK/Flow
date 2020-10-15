@@ -62,11 +62,6 @@ int main()
     cancel_tasks();
   });
 
-  bool timed_out = false;
-  auto [_, timeout_routine] = flow::make_timeout_function(TIMEOUT_LIMIT, [&] {
-    timed_out = not std::atomic_load(&success);
-  });
-
   using publisher_callback_t = flow::channel<Point, flow::configuration>::publisher_callback_t;
   using subscriber_callback_t = flow::channel<Point, flow::configuration>::subscriber_callback_t;
 
@@ -111,11 +106,5 @@ int main()
   auto small_points_task = small_points_channel.open_communications(scheduler);
   auto large_points_task = large_points_channel.open_communications(scheduler);
 
-  cppcoro::static_thread_pool timeout_scheduler;
-  auto timeout_task = cppcoro::schedule_on(timeout_scheduler, timeout_routine());
-  cppcoro::sync_wait(cppcoro::when_all_ready(std::move(timeout_task), std::move(small_points_task), std::move(large_points_task)));
-  if (timed_out) {
-    flow::logging::error("Test timed out! Time limit is {} milliseconds", TIMEOUT_LIMIT.count());
-  }
-  return timed_out;
+  cppcoro::sync_wait(cppcoro::when_all_ready(std::move(small_points_task), std::move(large_points_task)));
 }

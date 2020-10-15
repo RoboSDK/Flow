@@ -29,3 +29,5 @@ add_coroutine_test(test_1000_msg_1_pub_1_sub)
 add_coroutine_test(test_1000_msg_1_pub_10_sub)
 add_coroutine_test(test_1000_msg_10_pub_1_sub)
 add_coroutine_test(test_1000_msg_10_pub_10_sub)
+
+add_coroutine_test(test_1000_msg_10_pub_2_sub)

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <algorithm>
-#include <functional>
 #include <array>
+#include <functional>
 
 #include <cppcoro/multi_producer_sequencer.hpp>
 #include <cppcoro/sequence_barrier.hpp>
@@ -137,7 +137,6 @@ private:
 
     while (not cancellable_handler.is_cancellation_requested()) {
       co_await handle_message(false);
-      //      COZ_PROGRESS_NAMED("published")
     }
 
     co_await handle_message(true);
@@ -173,7 +172,6 @@ private:
 
       } while (next_to_read++ != available);
       context.barrier.publish(available);
-      //      COZ_PROGRESS_NAMED("processed")
     }
   }
 

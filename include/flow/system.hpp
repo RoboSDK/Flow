@@ -14,7 +14,6 @@
 #include <cppcoro/when_all.hpp>
 #include <frozen/unordered_map.h>
 
-#include <bitset>
 #include <ranges>
 #include <type_traits>
 

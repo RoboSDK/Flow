@@ -13,6 +13,7 @@ target_link_libraries(flow
         PUBLIC
         Threads::Threads
         liburing::liburing
+        ${CMAKE_DL_LIBS}
         cppcoro
 
         PRIVATE

@@ -24,7 +24,6 @@ struct Point {
 };
 
 static constexpr std::size_t TOTAL_MESSAGES = 5000;
-static constexpr auto TIMEOUT_LIMIT = std::chrono::milliseconds(3000);// should be enough time to run this without timing out
 static constexpr std::array CHANNEL_NAMES = { "small_points", "large_points" };
 
 cppcoro::static_thread_pool scheduler;
@@ -48,36 +47,21 @@ int main()
     return EXIT_FAILURE;
   }
 
-  std::atomic_bool timed_out{ false };
-  auto [_, timeout_routine] = flow::make_timeout_function(TIMEOUT_LIMIT, [&] {
-    std::atomic_store(&timed_out, std::atomic_load(&num_messages_received) < TOTAL_MESSAGES);
-  });
-
   auto small_points_comm_task = channel_registry.get_channel<Point>("small_points").open_communications(scheduler);
   auto large_points_comm_task = channel_registry.get_channel<Point>("large_points").open_communications(scheduler);
 
-  cppcoro::static_thread_pool timeout_scheduler;
-  auto timeout_task = cppcoro::schedule_on(timeout_scheduler, timeout_routine());
-
   auto promise = std::async(
     [&] {
-      cppcoro::sync_wait(cppcoro::when_all_ready(std::move(small_points_comm_task), std::move(large_points_comm_task), std::move(timeout_task)));
+      cppcoro::sync_wait(cppcoro::when_all_ready(std::move(small_points_comm_task), std::move(large_points_comm_task)));
     });
 
-  while (std::atomic_load(&num_messages_received) < TOTAL_MESSAGES and not std::atomic_load(&timed_out)) {}
+  while (std::atomic_load(&num_messages_received) < TOTAL_MESSAGES) {}
 
   for (auto& handle : handles) {
     handle.disable();
   }
 
-  promise.get();
-
   flow::logging::info("Tested channel: Sent {} message_registry and cancelled operation.", TOTAL_MESSAGES);
-
-  if (timed_out) {
-    flow::logging::error("Test timed out! Time limit is {} milliseconds", TIMEOUT_LIMIT.count());
-  }
-  return timed_out;
 }
 
 callback_handles_t make_subscribers(flow::channel_registry<flow::configuration>& channels, std::atomic_size_t& counter)
