@@ -82,28 +82,22 @@ public:
       }
     };
 
-    [[maybe_unused]] std::size_t num_publishers_active = 0;
-    [[maybe_unused]] std::size_t num_subscribers_active = 0;
-
-    [[maybe_unused]] std::size_t num_publishers_waiting = 0;
-    [[maybe_unused]] std::size_t num_subscriptions_waiting = 0;
-
     using buffer_t = decltype(message_buffer());
     using scheduler_t = decltype(sched);
 
     struct context_t {
       scheduler_t& scheduler;
-      std::size_t* num_publishers_active;
-      std::size_t* num_subscriptions_active;
-      std::size_t* num_publishers_waiting;
-      std::size_t* num_subscriptions_waiting;
+      std::size_t num_publishers_active{};
+      std::size_t num_subscriptions_active{};
+      std::size_t num_publishers_waiting{};
+      std::size_t num_subscriptions_waiting{};
       sequence_barrier<std::size_t> barrier{};// notifies publishers that it can publish more
       multi_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };// controls sequence values for the message buffer
       std::size_t index_mask = BUFFER_SIZE - 1;// Used to mask the sequence number and get the index to access the buffer
       buffer_t buffer{};// the message buffer
       std::atomic_bool publishers_are_active = false;
       std::atomic_bool subscriptions_are_active = false;
-    } context{ sched, &num_publishers_active, &num_subscribers_active, &num_publishers_waiting, &num_subscriptions_waiting };
+    } context{ sched, };
 
 
     tasks_t on_request_tasks = make_publisher_tasks(context);
@@ -140,11 +134,11 @@ private:
   {
     co_await context.scheduler.schedule();
 
-    auto& num_pubs_waiting = *context.num_publishers_waiting;
-    auto& num_subs_waiting = *context.num_subscriptions_waiting;
+    auto& num_pubs_waiting = context.num_publishers_waiting;
+    auto& num_subs_waiting = context.num_subscriptions_waiting;
 
-    auto& num_subscribers = *context.num_subscriptions_active;
-    auto& num_publishers = *context.num_publishers_active;
+    auto& num_subscribers = context.num_subscriptions_active;
+    auto& num_publishers = context.num_publishers_active;
 
     auto& subscribers_active = context.subscriptions_are_active;
     auto& publishers_active = context.publishers_are_active;
@@ -207,15 +201,15 @@ private:
     auto& subscriptions_active = context.subscriptions_are_active;
     subscriptions_active.store(true);
 
-    auto& num_subs = *context.num_subscriptions_active;
+    auto& num_subs = context.num_subscriptions_active;
     flow::atomic_increment(num_subs);
 
     std::atomic_size_t next_to_read = 0;
 
     auto& pubs_active = context.publishers_are_active;
-    auto& num_pubs = *context.num_publishers_active;
-    auto& num_pubs_waiting = *context.num_publishers_waiting;
-    auto& num_subs_waiting = *context.num_subscriptions_waiting;
+    auto& num_pubs = context.num_publishers_active;
+    auto& num_pubs_waiting = context.num_publishers_waiting;
+    auto& num_subs_waiting = context.num_subscriptions_waiting;
     std::size_t last_published = 0;
 
     static std::mutex m;
