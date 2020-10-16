@@ -35,7 +35,7 @@ bool confirm_name(auto& channel, std::string const& channel_name)
   return is_correct_name;
 }
 
-static constexpr std::size_t TOTAL_MESSAGES = 5000;
+static constexpr std::size_t num_messages = 5000;
 static constexpr auto TIMEOUT_LIMIT = std::chrono::milliseconds(3000); // should be enough time to run this without timing out
 cppcoro::static_thread_pool scheduler;
 }// namespace
@@ -57,7 +57,7 @@ int main()
   };
 
   std::atomic_bool success = false;
-  auto tick = flow::tick_function(TOTAL_MESSAGES, [&] {
+  auto tick = flow::tick_function(num_messages, [&] {
     flow::logging::info("cancelling!");
     std::atomic_store(&success, true);
     cancel_tasks();

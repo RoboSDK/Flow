@@ -1,5 +1,5 @@
-#include <flow/flow.hpp>
 #include <flow/configuration.hpp>
+#include <flow/flow.hpp>
 
 #include "mock/drive_task.hpp"
 #include "mock/lidar/lidar_driver.hpp"
@@ -13,13 +13,9 @@ struct config_t {
 
   static constexpr auto channel_name = "lidar_points";
 
-  static constexpr std::size_t total_messages = 1;
+  static constexpr std::size_t num_messages = 1;
   static constexpr std::size_t num_publishers = 1;
   static constexpr std::size_t num_subscriptions = 1;
-  static constexpr std::size_t num_sequences = num_publishers * total_messages;
-  static constexpr std::size_t padded_num_sequences = num_sequences + num_publishers * 2;
-static constexpr std::size_t receive_messages = num_sequences * num_subscriptions;
-
   using default_config_t = flow::configuration;
 };
 

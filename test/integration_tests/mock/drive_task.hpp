@@ -22,7 +22,7 @@ public:
 
     // every publisher will tick concurrently
     static driver_t driver{};
-    const auto on_request = [this](message_t & wrapped_msg) {
+    const auto on_request = [this](message_t& wrapped_msg) {
       wrapped_msg.message = driver.drive();
       m_tick();
     };
@@ -31,9 +31,9 @@ public:
       return flow::publish<message_t>(config_t::channel_name, channel_registry, on_request);
     });
 
-    constexpr auto tick_cycle = config_t::num_sequences;
+    constexpr auto tick_cycle = config_t::num_publishers * config_t::num_messages;
     m_tick = flow::tick_function(tick_cycle, [this] {
-      std::ranges::for_each(m_callback_handles, [](auto& handle){
+      std::ranges::for_each(m_callback_handles, [](auto& handle) {
         flow::logging::info("Disabling callback. {}", flow::to_string(handle));
         handle.disable();
       });

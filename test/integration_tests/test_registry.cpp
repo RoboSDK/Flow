@@ -23,7 +23,7 @@ struct Point {
   double y;
 };
 
-static constexpr std::size_t TOTAL_MESSAGES = 5000;
+static constexpr std::size_t num_messages = 5000;
 static constexpr std::array CHANNEL_NAMES = { "small_points", "large_points" };
 
 cppcoro::static_thread_pool scheduler;
@@ -55,13 +55,13 @@ int main()
       cppcoro::sync_wait(cppcoro::when_all_ready(std::move(small_points_comm_task), std::move(large_points_comm_task)));
     });
 
-  while (std::atomic_load(&num_messages_received) < TOTAL_MESSAGES) {}
+  while (std::atomic_load(&num_messages_received) < num_messages) {}
 
   for (auto& handle : handles) {
     handle.disable();
   }
 
-  flow::logging::info("Tested channel: Sent {} message_registry and cancelled operation.", TOTAL_MESSAGES);
+  flow::logging::info("Tested channel: Sent {} message_registry and cancelled operation.", num_messages);
 }
 
 callback_handles_t make_subscribers(flow::channel_registry<flow::configuration>& channels, std::atomic_size_t& counter)
