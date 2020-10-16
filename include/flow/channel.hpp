@@ -89,14 +89,11 @@ public:
       scheduler_t& scheduler;
       std::size_t num_publishers_active{};
       std::size_t num_subscriptions_active{};
-      std::size_t num_publishers_waiting{};
-      std::size_t num_subscriptions_waiting{};
       sequence_barrier<std::size_t> barrier{};// notifies publishers that it can publish more
       multi_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };// controls sequence values for the message buffer
       std::size_t index_mask = BUFFER_SIZE - 1;// Used to mask the sequence number and get the index to access the buffer
       buffer_t buffer{};// the message buffer
       std::atomic_bool publishers_are_active = false;
-      std::atomic_bool subscriptions_are_active = false;
     } context{
       sched,
     };
@@ -136,23 +133,18 @@ private:
   {
     co_await context.scheduler.schedule();
 
-    auto& num_pubs_waiting = context.num_publishers_waiting;
-
     auto& num_subscribers = context.num_subscriptions_active;
     auto& num_publishers = context.num_publishers_active;
-
     auto& publishers_active = context.publishers_are_active;
     publishers_active.store(true);
 
     std::size_t last_buffer_sequence = 0;
     const auto handle_message = [&](bool last_message) -> task_t {
-      flow::logging::info("pub spin");
+      flow::logging::info("sub status: num subs: {} num pubs: {} ", flow::atomic_read(num_subscribers), flow::atomic_read(num_publishers));
 
-      flow::atomic_increment(num_pubs_waiting);
       const auto buffer_sequence = co_await context.sequencer.claim_one(context.scheduler);
       last_buffer_sequence = buffer_sequence;
       flow::logging::info("pub: buffer_sequence {}", buffer_sequence);
-      flow::atomic_decrement(num_pubs_waiting);
 
       auto& message_wrapper = context.buffer[buffer_sequence & context.index_mask];
       message_wrapper.metadata.sequence = flow::atomic_increment(m_sequence);
@@ -168,16 +160,12 @@ private:
     }
 
     flow::atomic_decrement(num_publishers);
-    flow::logging::debug("decrementing");
 
     while (flow::atomic_read(num_subscribers) > 0 and last_buffer_sequence <= context.barrier.last_published()) {
-      flow::logging::info("final pub");
-      flow::logging::info("waiting in final pub");
       co_await handle_message(true);
-      flow::logging::info("done waiting");
     }
 
-    flow::logging::info("done final pub");
+    flow::logging::info("pub done: num subs: {} num pubs: {} ", flow::atomic_read(num_subscribers), flow::atomic_read(num_publishers));
     co_return;
   }
 
@@ -194,34 +182,21 @@ private:
   task_t make_subscriber_task(subscriber_callback_t&& handler, auto& context)
   {
     co_await context.scheduler.schedule();
-    auto& subscriptions_active = context.subscriptions_are_active;
-    subscriptions_active.store(true);
 
-    auto& num_subs = context.num_subscriptions_active;
-    flow::atomic_increment(num_subs);
+    auto& num_subscribers = context.num_subscriptions_active;
+    auto& num_publishers = context.num_publishers_active;
+    auto& pubs_active = context.publishers_are_active;
+
+    flow::atomic_increment(num_subscribers);
 
     std::atomic_size_t next_to_read = 0;
-
-    auto& pubs_active = context.publishers_are_active;
-    auto& num_pubs = context.num_publishers_active;
-    auto& num_pubs_waiting = context.num_publishers_waiting;
-    auto& num_subs_waiting = context.num_subscriptions_waiting;
     std::size_t last_published = 0;
 
-    static std::mutex m;
     const auto handle_message = [&]() -> task_t {
-      flow::logging::info(
-        "sub spin: num subs: {} num pubs: {} subs waiting: {} pubs waiting: {}",
-        flow::atomic_read(num_subs),
-        flow::atomic_read(num_pubs),
-        flow::atomic_read(num_subs_waiting),
-        flow::atomic_read(num_pubs_waiting));
+      flow::logging::info("sub spin: num subs: {} num pubs: {} ", flow::atomic_read(num_subscribers), flow::atomic_read(num_publishers));
 
-
-      flow::atomic_increment(num_subs_waiting);
       flow::logging::info("waiting sub: next to read {} last published {} last published after: {}", next_to_read, last_published, context.sequencer.last_published_after(last_published));
       const size_t available = co_await context.sequencer.wait_until_published(next_to_read, last_published, context.scheduler);
-      flow::atomic_decrement(num_subs_waiting);
 
       do {
         const std::size_t current_sequence = next_to_read;
@@ -233,13 +208,12 @@ private:
       last_published = available;
     };
 
-    while (not handler.is_cancellation_requested() and (not pubs_active or num_pubs > 0)) {
+    while (not handler.is_cancellation_requested() and (not pubs_active or num_publishers > 0)) {
       co_await handle_message();
     }
 
-    flow::atomic_decrement(num_subs);
-    flow::logging::info("subs done");
-    flow::logging::info("sub status: num subs: {} num pubs: {} subs waiting: {} pubs waiting: {}", flow::atomic_read(num_subs), flow::atomic_read(num_pubs), flow::atomic_read(num_subs_waiting), flow::atomic_read(num_pubs_waiting));
+    flow::atomic_decrement(num_subscribers);
+    flow::logging::info("sub done: num subs: {} num pubs: {} ", flow::atomic_read(num_subscribers), flow::atomic_read(num_publishers));
     co_return;
   }
 
