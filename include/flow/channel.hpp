@@ -97,7 +97,9 @@ public:
       buffer_t buffer{};// the message buffer
       std::atomic_bool publishers_are_active = false;
       std::atomic_bool subscriptions_are_active = false;
-    } context{ sched, };
+    } context{
+      sched,
+    };
 
 
     tasks_t on_request_tasks = make_publisher_tasks(context);
@@ -135,18 +137,16 @@ private:
     co_await context.scheduler.schedule();
 
     auto& num_pubs_waiting = context.num_publishers_waiting;
-    auto& num_subs_waiting = context.num_subscriptions_waiting;
 
     auto& num_subscribers = context.num_subscriptions_active;
     auto& num_publishers = context.num_publishers_active;
 
-    auto& subscribers_active = context.subscriptions_are_active;
     auto& publishers_active = context.publishers_are_active;
     publishers_active.store(true);
 
     std::size_t last_buffer_sequence = 0;
     const auto handle_message = [&](bool last_message) -> task_t {
-      flow::logging::info("pub spin: num subs: {} num pubs: {} subs waiting: {} pubs waiting: {}", flow::atomic_read(num_subscribers), flow::atomic_read(num_publishers), flow::atomic_read(num_subs_waiting), flow::atomic_read(num_pubs_waiting));
+      flow::logging::info("pub spin");
 
       flow::atomic_increment(num_pubs_waiting);
       const auto buffer_sequence = co_await context.sequencer.claim_one(context.scheduler);
@@ -163,25 +163,21 @@ private:
     };
 
     flow::atomic_increment(num_publishers);
-    while (not cancellable_handler.is_cancellation_requested() and (not subscribers_active or num_subscribers > 0)) {
+    while (not cancellable_handler.is_cancellation_requested()) {
       co_await handle_message(false);
     }
 
     flow::atomic_decrement(num_publishers);
-    static std::mutex m;
-    {
-      std::lock_guard l{ m };
-      flow::logging::debug("decrementing");
+    flow::logging::debug("decrementing");
 
-      while (flow::atomic_read(num_publishers) == 0 and (flow::atomic_read(num_subs_waiting) > 0 or flow::atomic_read(num_subscribers) > 0) and last_buffer_sequence <= context.barrier.last_published()) {
-        flow::logging::info("final pub");
-        flow::logging::info("waiting in final pub");
-        co_await handle_message(true);
-        flow::logging::info("done waiting");
-      }
+    while (flow::atomic_read(num_subscribers) > 0 and last_buffer_sequence <= context.barrier.last_published()) {
+      flow::logging::info("final pub");
+      flow::logging::info("waiting in final pub");
+      co_await handle_message(true);
+      flow::logging::info("done waiting");
     }
+
     flow::logging::info("done final pub");
-    flow::logging::info("pub status: num subs: {} num pubs: {} subs waiting: {} pubs waiting: {}", flow::atomic_read(num_subscribers), flow::atomic_read(num_publishers), flow::atomic_read(num_subs_waiting), flow::atomic_read(num_pubs_waiting));
     co_return;
   }
 
@@ -242,31 +238,6 @@ private:
     }
 
     flow::atomic_decrement(num_subs);
-    {
-      std::lock_guard l{ m };
-      std::this_thread::yield();
-      static constexpr auto wait_time = std::chrono::seconds(1);
-      auto start = std::chrono::high_resolution_clock::now();
-
-      while (flow::atomic_read(num_subs) == 0 and (flow::atomic_read(num_pubs_waiting) > 0 or flow::atomic_read(num_pubs) > 0)) {
-        flow::logging::info("final sub");
-
-        while (flow::atomic_read(num_pubs) == 1 and flow::atomic_read(num_pubs_waiting) == 0) {
-          auto duration = std::chrono::high_resolution_clock::now() - start;
-          std::this_thread::yield();
-          if (duration >= wait_time) {
-            flow::logging::warn("timed out waiting for pub to to wait for me to publish");
-            co_return;
-          }
-        }
-
-        if (flow::atomic_read(num_pubs_waiting) == 0 and flow::atomic_read(num_pubs) == 0) break;
-        flow::logging::info("final sub waiting");
-        co_await handle_message();
-        flow::logging::info("final sub waiting done");
-        std::this_thread::yield();
-      }
-    }
     flow::logging::info("subs done");
     flow::logging::info("sub status: num subs: {} num pubs: {} subs waiting: {} pubs waiting: {}", flow::atomic_read(num_subs), flow::atomic_read(num_pubs), flow::atomic_read(num_subs_waiting), flow::atomic_read(num_pubs_waiting));
     co_return;
