@@ -23,6 +23,14 @@ T atomic_read(std::atomic<T>& t)
 }
 
 template<typename T>
+T atomic_read(std::atomic_ref<T>& t)
+{
+  auto current = t.load();
+  while (not t.compare_exchange_weak(current, current)) {}
+  return current;
+}
+
+template<typename T>
 auto atomic_increment(T&& t)
 {
   const auto perform_increment = [](auto& val) {
@@ -43,6 +51,14 @@ auto atomic_increment(T&& t)
 
 template<typename T>
 auto atomic_increment(std::atomic<T>& t)
+{
+  auto current_value = t.load();
+  while (not t.compare_exchange_weak(current_value, current_value + 1)) {}
+  return current_value + 1;
+}
+
+template<typename T>
+auto atomic_increment(std::atomic_ref<T>& t)
 {
   auto current_value = t.load();
   while (not t.compare_exchange_weak(current_value, current_value + 1)) {}
@@ -77,6 +93,14 @@ auto atomic_post_increment(std::atomic<T>& t)
 }
 
 template<typename T>
+auto atomic_post_increment(std::atomic_ref<T>& t)
+{
+  auto current_value = t.load();
+  while (not t.compare_exchange_weak(current_value, current_value + 1)) {}
+  return current_value;
+}
+
+template<typename T>
 auto atomic_decrement(T&& t)
 {
   const auto perform_decrement = [](auto& val) {
@@ -94,9 +118,17 @@ auto atomic_decrement(T&& t)
     return perform_decrement(ref);
   }
 }
-template<typename T>
 
+template<typename T>
 auto atomic_decrement(std::atomic<T>& t)
+{
+  auto current_value = t.load();
+  while (not t.compare_exchange_weak(current_value, current_value - 1)) {}
+  return current_value - 1;
+}
+
+template<typename T>
+auto atomic_decrement(std::atomic_ref<T>& t)
 {
   auto current_value = t.load();
   while (not t.compare_exchange_weak(current_value, current_value - 1)) {}
