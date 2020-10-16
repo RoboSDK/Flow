@@ -6,6 +6,7 @@
 #include <cppcoro/operation_cancelled.hpp>
 
 #include <iostream>
+#include <cassert>
 
 /**
  * This module is dedicated to the cancellation_handle and cancellation_callback.
@@ -56,6 +57,7 @@ public:
   cancellable_function(cppcoro::cancellation_token token, callback_t&& callback)
     : m_cancel_token(token), m_callback(std::move(callback))
   {
+    assert(token.can_be_cancelled());
   }
 
   return_t operator()(args_t&&... args)

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sstream>
+
 namespace flow {
 template<typename message_t>
 struct message {
@@ -30,4 +32,18 @@ constexpr auto is_wrapped() -> bool
 {
   return false;
 }
+
+template <typename message_t>
+std::string to_string(message<message_t> const& msg)
+{
+  std::stringstream ss;
+
+  ss << "message {";
+  ss << "sequence : " << msg.metadata.sequence;
+  ss << ", last_message : " << std::boolalpha << msg.metadata.last_message;
+  ss << ", message_type: " << typeid(message_t).name();
+  ss << "}";
+  return ss.str();
+}
+
 }// namespace flow

@@ -50,17 +50,13 @@ public:
   bool operator()()
   {
     {
-      std::lock_guard lock{m_callback_mutex};
-
+      std::lock_guard lock{m_count_mutex};
       if (++m_count < m_limit) {
         return false;
       }
 
       m_count = 0;
-    }
 
-    {
-      std::lock_guard lock{m_callback_mutex};
       m_callback();
     }
     return true;
@@ -72,10 +68,10 @@ public:
   }
 
 private:
-  std::mutex m_count_mutex;
-  std::mutex m_callback_mutex;
-  std::size_t m_count;
-  std::size_t m_limit;
+  std::mutex m_count_mutex{};
+  std::mutex m_callback_mutex{};
+  std::size_t m_count{};
+  std::size_t m_limit{};
 
   callback_t m_callback;
 };

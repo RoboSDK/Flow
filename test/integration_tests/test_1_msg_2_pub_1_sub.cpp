@@ -17,7 +17,8 @@ struct config_t {
   static constexpr std::size_t num_publishers = 2;
   static constexpr std::size_t num_subscriptions = 1;
   static constexpr std::size_t num_sequences = num_publishers * total_messages;
-  static constexpr std::size_t receive_messages = num_sequences * num_subscriptions;
+  static constexpr std::size_t padded_num_sequences = num_sequences + num_publishers * 2;
+static constexpr std::size_t receive_messages = num_sequences * num_subscriptions;
 
   using default_config_t = flow::configuration;
 };

@@ -7,9 +7,7 @@
 namespace mock {
 struct lidar_driver {
   static constexpr std::size_t NUM_PRECOMPUTED_MESSAGES = 1'000;
-  lidar_driver() {
-    std::generate(std::begin(messages), std::end(messages), [this]{ return make_message(); });
-  }
+  lidar_driver() = default;
 
   lidar_message make_message()
   {
@@ -20,7 +18,8 @@ struct lidar_driver {
 
   lidar_message drive()
   {
-    return messages[current_message % NUM_PRECOMPUTED_MESSAGES];
+    current_message %= NUM_PRECOMPUTED_MESSAGES;
+    return messages[current_message++];
   }
 
 

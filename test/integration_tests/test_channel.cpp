@@ -58,6 +58,7 @@ int main()
 
   std::atomic_bool success = false;
   auto tick = flow::tick_function(TOTAL_MESSAGES, [&] {
+    flow::logging::info("cancelling!");
     std::atomic_store(&success, true);
     cancel_tasks();
   });

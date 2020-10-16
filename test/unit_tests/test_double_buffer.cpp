@@ -20,7 +20,7 @@ TEST_CASE("Test reading and writing in different threads", "[read_and_write_mult
 
   flow::double_buffer<Point> val{3.0, 4.0};
 
-  constexpr std::size_t N = 10'000;
+  constexpr std::size_t N = 1'000;
 
   const auto read_from_val = [&] {
     for ([[maybe_unused]] const auto i : iter::range(N)) {
