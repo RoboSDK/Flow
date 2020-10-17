@@ -56,7 +56,7 @@ private:
   cancellation_handle m_cancel_handle;
 };
 
-std::string to_string(callback_type type)
+inline std::string to_string(callback_type type)
 {
   // TODO: use reflection here
   switch (type) {
@@ -75,7 +75,7 @@ template<typename config_t>
 std::string to_string(callback_handle<config_t> const& handle)
 {
   std::stringstream ss;
-  ss << "callback_handle: {";
+  ss << "callback_handle: { ";
   const auto add_pair = [&ss](std::string_view item_name, auto&& item, std::string_view delim = ",") {
     ss << delim << " " << item_name << ": " << std::forward<decltype(item)>(item);
   };
@@ -84,7 +84,7 @@ std::string to_string(callback_handle<config_t> const& handle)
   add_pair("channel_name", handle.channel_name());
   add_pair("message", handle.message_info().get().name());
   add_pair("is_disabled", handle.is_disabled() ? "true" : "false");
-  ss << "}";
+  ss << " }";
 
   return ss.str();
 }

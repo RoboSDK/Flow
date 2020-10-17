@@ -36,7 +36,7 @@ private:
   connection m_publishers;
 };
 
-std::string to_string(channel_status& s)
+inline std::string to_string(channel_status& s)
 {
   std::stringstream ss;
   ss << "channel_status: {";
@@ -47,7 +47,7 @@ std::string to_string(channel_status& s)
   add_pair("publishers_are_active", s.publishers_are_active() ? "true" : "false");
   add_pair("num_subscribers", s.num_subscribers());
   add_pair("subscribers_are_active", s.subscribers_are_active() ? "true" : "false");
-  ss << "}";
+  ss << " }";
 
   return ss.str();
 }

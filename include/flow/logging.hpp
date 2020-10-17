@@ -2,12 +2,21 @@
 #define MODULES_CORE_LOGGING_HPP
 
 #include <spdlog/spdlog.h>
+#include <sstream>
 
 namespace flow::logging {
 template<typename... Args>
 void info(Args &&... args)
 {
-  spdlog::info(std::forward<Args>(args)...);
+  const auto log_with_thread_id = [](auto&& content, auto&&... the_rest)
+  {
+    std::stringstream ss;
+//    ss << "[" << std::hash<std::thread::id>{}(std::this_thread::get_id()) << "] " << content;
+    ss << "[" << std::hash<std::thread::id>{}(std::this_thread::get_id()) << "] " << content;
+    spdlog::info(ss.str().c_str(), std::forward<decltype(the_rest)>(the_rest)...);
+  };
+
+  log_with_thread_id(std::forward<Args>(args)...);
 }
 
 template<typename... Args>
