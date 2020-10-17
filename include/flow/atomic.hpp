@@ -23,7 +23,7 @@ T atomic_read(std::atomic<T>& t)
 }
 
 template<typename T>
-T atomic_read(std::atomic_ref<T>& t)
+T atomic_read(std::atomic_ref<T> t)
 {
   auto current = t.load();
   while (not t.compare_exchange_weak(current, current)) {}
@@ -58,7 +58,7 @@ auto atomic_increment(std::atomic<T>& t)
 }
 
 template<typename T>
-auto atomic_increment(std::atomic_ref<T>& t)
+auto atomic_increment(std::atomic_ref<T> t)
 {
   auto current_value = t.load();
   while (not t.compare_exchange_weak(current_value, current_value + 1)) {}
@@ -93,7 +93,7 @@ auto atomic_post_increment(std::atomic<T>& t)
 }
 
 template<typename T>
-auto atomic_post_increment(std::atomic_ref<T>& t)
+auto atomic_post_increment(std::atomic_ref<T> t)
 {
   auto current_value = t.load();
   while (not t.compare_exchange_weak(current_value, current_value + 1)) {}
@@ -128,7 +128,7 @@ auto atomic_decrement(std::atomic<T>& t)
 }
 
 template<typename T>
-auto atomic_decrement(std::atomic_ref<T>& t)
+auto atomic_decrement(std::atomic_ref<T> t)
 {
   auto current_value = t.load();
   while (not t.compare_exchange_weak(current_value, current_value - 1)) {}
@@ -144,4 +144,11 @@ T1 atomic_assignment(T1& t1, T2 t2)
   return t2;
 }
 
+template<typename T1, typename T2>
+T1 atomic_assignment(std::atomic_ref<T1> t1, T2 t2)
+{
+  auto t1_copy = t1.load();
+  while (not t1.compare_exchange_weak(t1_copy, t2)) {}
+  return t2;
+}
 }// namespace flow

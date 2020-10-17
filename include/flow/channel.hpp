@@ -16,6 +16,7 @@
 
 #include "flow/atomic.hpp"
 #include "flow/cancellation.hpp"
+#include "flow/channel_status.hpp"
 #include "flow/logging.hpp"
 #include "flow/message.hpp"
 
@@ -87,16 +88,14 @@ public:
 
     struct context_t {
       scheduler_t& scheduler;
-      std::size_t num_publishers_active{};
-      std::size_t num_subscriptions_active{};
+      channel_status status{};
+
       sequence_barrier<std::size_t> barrier{};// notifies publishers that it can publish more
       multi_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };// controls sequence values for the message buffer
+
       std::size_t index_mask = BUFFER_SIZE - 1;// Used to mask the sequence number and get the index to access the buffer
       buffer_t buffer{};// the message buffer
-      std::atomic_bool publishers_are_active = false;
-    } context{
-      sched,
-    };
+    } context{ sched };
 
 
     tasks_t on_request_tasks = make_publisher_tasks(context);
@@ -109,7 +108,7 @@ public:
   }
 
 private:
-  void invoke_handler(auto& handler, auto& message)
+  void invoke(auto& handler, auto& message)
   {
     if constexpr (is_wrapped<message_t>()) {
       std::invoke(handler, message);
@@ -132,40 +131,37 @@ private:
   task_t make_publisher_task(publisher_callback_t&& cancellable_handler, auto& context)
   {
     co_await context.scheduler.schedule();
+    auto& status = context.status;
 
-    auto& num_subscribers = context.num_subscriptions_active;
-    auto& num_publishers = context.num_publishers_active;
-    auto& publishers_active = context.publishers_are_active;
-    publishers_active.store(true);
+    status.publishers_are_active().store(true);
 
     std::size_t last_buffer_sequence = 0;
     const auto handle_message = [&](bool last_message) -> task_t {
-      flow::logging::info("sub status: num subs: {} num pubs: {} ", flow::atomic_read(num_subscribers), flow::atomic_read(num_publishers));
+      flow::logging::info("pub spin: {}", flow::to_string(status));
 
       const auto buffer_sequence = co_await context.sequencer.claim_one(context.scheduler);
       last_buffer_sequence = buffer_sequence;
       flow::logging::info("pub: buffer_sequence {}", buffer_sequence);
 
       auto& message_wrapper = context.buffer[buffer_sequence & context.index_mask];
-      message_wrapper.metadata.sequence = flow::atomic_increment(m_sequence);
+      message_wrapper.metadata.sequence = ++std::atomic_ref(m_sequence);
       message_wrapper.metadata.last_message = last_message;
 
-      invoke_handler(cancellable_handler, message_wrapper);
+      invoke(cancellable_handler, message_wrapper);
       context.sequencer.publish(buffer_sequence);
     };
 
-    flow::atomic_increment(num_publishers);
+    ++status.num_publishers();
     while (not cancellable_handler.is_cancellation_requested()) {
       co_await handle_message(false);
     }
+    --status.num_publishers();
 
-    flow::atomic_decrement(num_publishers);
-
-    while (flow::atomic_read(num_subscribers) > 0 and last_buffer_sequence <= context.barrier.last_published()) {
+    while (status.num_subscribers() > 0 and last_buffer_sequence <= context.barrier.last_published()) {
       co_await handle_message(true);
     }
 
-    flow::logging::info("pub done: num subs: {} num pubs: {} ", flow::atomic_read(num_subscribers), flow::atomic_read(num_publishers));
+    flow::logging::info("pub done: {}", flow::to_string(status));
     co_return;
   }
 
@@ -182,18 +178,14 @@ private:
   task_t make_subscriber_task(subscriber_callback_t&& handler, auto& context)
   {
     co_await context.scheduler.schedule();
-
-    auto& num_subscribers = context.num_subscriptions_active;
-    auto& num_publishers = context.num_publishers_active;
-    auto& pubs_active = context.publishers_are_active;
-
-    flow::atomic_increment(num_subscribers);
+    auto& status = context.status;
+    ++status.num_subscribers(); // for each thread
 
     std::atomic_size_t next_to_read = 0;
-    std::size_t last_published = 0;
+    std::atomic_size_t last_published = 0;
 
     const auto handle_message = [&]() -> task_t {
-      flow::logging::info("sub spin: num subs: {} num pubs: {} ", flow::atomic_read(num_subscribers), flow::atomic_read(num_publishers));
+      flow::logging::info("sub spin: {}", flow::to_string(status));
 
       flow::logging::info("waiting sub: next to read {} last published {} last published after: {}", next_to_read, last_published, context.sequencer.last_published_after(last_published));
       const size_t available = co_await context.sequencer.wait_until_published(next_to_read, last_published, context.scheduler);
@@ -201,19 +193,19 @@ private:
       do {
         const std::size_t current_sequence = next_to_read;
         auto& message_wrapper = context.buffer[current_sequence & context.index_mask];
-        invoke_handler(handler, message_wrapper);
+        invoke(handler, message_wrapper);
       } while (flow::atomic_post_increment(next_to_read) < available);
 
       context.barrier.publish(available);
       last_published = available;
     };
 
-    while (not handler.is_cancellation_requested() and (not pubs_active or num_publishers > 0)) {
+    while (not handler.is_cancellation_requested() and (not status.publishers_are_active() or status.num_publishers() > 0)) {
       co_await handle_message();
     }
 
-    flow::atomic_decrement(num_subscribers);
-    flow::logging::info("sub done: num subs: {} num pubs: {} ", flow::atomic_read(num_subscribers), flow::atomic_read(num_publishers));
+    --status.num_subscribers();
+    flow::logging::info("sub done: {}", flow::to_string(status));
     co_return;
   }
 
