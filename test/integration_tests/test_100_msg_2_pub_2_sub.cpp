@@ -1,5 +1,5 @@
-#include <flow/configuration.hpp>
 #include <flow/flow.hpp>
+#include <flow/configuration.hpp>
 
 #include "mock/drive_task.hpp"
 #include "mock/lidar/lidar_driver.hpp"
@@ -13,16 +13,15 @@ struct config_t {
 
   static constexpr auto channel_name = "lidar_points";
 
-  static constexpr std::size_t num_messages = 1'000;
-  static constexpr std::size_t num_publishers = 10;
-  static constexpr std::size_t num_subscriptions = 10;
-  using default_config_t = flow::configuration;
+  static constexpr std::size_t num_messages = 1'00;
+  static constexpr std::size_t num_publishers = 2;
+  static constexpr std::size_t num_subscriptions = 2;
+using default_config_t = flow::configuration;
 };
 
 int main()
 {
   using namespace mock;
-  flow::begin();
 
   using drive_task_t = drive_task<config_t>;
   using transform_task_t = transform_task<config_t>;

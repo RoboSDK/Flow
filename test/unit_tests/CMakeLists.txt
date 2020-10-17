@@ -68,7 +68,7 @@ add_catch_test(test_channel_set)
 add_catch_test(test_tick_function)
 add_catch_test(test_timeout_function)
 add_catch_test(test_atomics)
-add_catch_test(test_async_id_generator)
+add_catch_test(test_id_generator)
 
 add_constexpr_catch_test(constexpr_tests)
 add_constexpr_catch_test(test_metaprogramming)

@@ -1,7 +1,8 @@
 #pragma once
+#include <optional>
 
 #include "flow/atomic.hpp"
-#include <optional>
+#include "flow/data_structures/id_generator.hpp"
 
 namespace flow {
 class channel_status {
@@ -31,9 +32,14 @@ public:
     return std::atomic_ref(m_subscribers.active);
   }
 
+  auto get_id() {
+    return m_make_id();
+  }
+
 private:
   connection m_subscribers;
   connection m_publishers;
+  id_generator m_make_id;
 };
 
 inline std::string to_string(channel_status& s)

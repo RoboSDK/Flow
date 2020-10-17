@@ -1,4 +1,4 @@
-list(APPEND source_files flow.cpp)
+list(APPEND source_files flow.cpp spin_wait.cpp)
 
 if (BUILD_SHARED_LIBS)
     add_library(flow SHARED ${source_files})

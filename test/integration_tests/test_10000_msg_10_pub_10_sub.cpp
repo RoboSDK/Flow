@@ -13,7 +13,7 @@ struct config_t {
 
   static constexpr auto channel_name = "lidar_points";
 
-  static constexpr std::size_t num_messages = 1'000;
+  static constexpr std::size_t num_messages = 10'000;
   static constexpr std::size_t num_publishers = 10;
   static constexpr std::size_t num_subscriptions = 10;
   using default_config_t = flow::configuration;
