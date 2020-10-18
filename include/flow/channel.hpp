@@ -11,6 +11,7 @@
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all_ready.hpp>
+#include <cppcoro/sync_wait.hpp>
 
 #include <coz.h>
 #include <unordered_set>
@@ -132,8 +133,8 @@ private:
 
   task_t make_publisher_task(publisher_callback_t&& callback, auto& context)
   {
-    static constexpr std::size_t STRIDE_LENGTH = config_t::channel::message_buffer_size;
-    co_await context.scheduler.schedule();
+    static constexpr std::size_t STRIDE_LENGTH = 1;
+//    co_await context.scheduler.schedule();
     auto& status = context.status;
     auto id = status.get_id();
 
@@ -165,12 +166,13 @@ private:
     };
 
     ++status.num_publishers();
-    while (not callback.is_cancellation_requested()) {
-      co_await handle_message(false);
+    while (not callback.is_cancellation_requested() and status.subscribers_are_active()) {
+      cppcoro::sync_wait(handle_message(false));
     }
     --status.num_publishers();
 
-    while (status.num_subscribers() > 0 and last_buffer_sequence <= context.barrier.last_published()) {
+    while ((status.num_subscribers() > 0 or not status.subscribers_are_active()) and last_buffer_sequence <= context.barrier.last_published()) {
+      flow::logging::info("[pub:{}] flush: last_buffer_sequence {} <= context.barrier.last_published(): {}", id, last_buffer_sequence, context.barrier.last_published());
       co_await handle_message(true);
     }
 
@@ -190,14 +192,14 @@ private:
 
   task_t make_subscriber_task(subscriber_callback_t&& callback, auto& context)
   {
-    co_await context.scheduler.schedule();
+//    co_await context.scheduler.schedule();
     auto& status = context.status;
     auto id = status.get_id();
     status.subscribers_are_active().store(true);
     ++status.num_subscribers();// for each thread
 
     flow::spin_wait wait;
-    std::atomic_size_t next_to_read = 0;
+    std::atomic_size_t next_to_read = 1;
     std::atomic_size_t last_published = 0;
 
     const auto handle_message = [&]() -> task_t {
@@ -232,6 +234,15 @@ private:
     }
 
     --status.num_subscribers();
+
+    //    while (status.num_publishers() > 0 and last_published <= context.sequencer.last_published_after(last_published)) {
+    while (status.num_publishers() > 0 and status.num_subscribers() == 0) {
+      flow::logging::info("[sub:{}] flush: available: {}", id, last_published);
+      status.subscribers_are_active().store(false);
+      co_await handle_message();
+    }
+    status.subscribers_are_active().store(true);
+
     flow::logging::info("[sub:{}] done: {}", id, flow::to_string(status));
     co_return;
   }

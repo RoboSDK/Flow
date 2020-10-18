@@ -22,10 +22,26 @@ public:
 
     const auto on_message = [&]([[maybe_unused]] message_t const& wrapped_msg) {
       flow::atomic_increment(m_message_count);
+      m_tick();
     };
 
     std::generate_n(std::back_inserter(m_callback_handles), config_t::num_subscriptions, [&] {
       return flow::subscribe<message_t>(config_t::channel_name, channel_registry, on_message);
+    });
+
+    constexpr auto tick_cycle = config_t::num_publishers * config_t::num_messages;
+    m_tick = flow::tick_function(tick_cycle, [this] {
+      if constexpr (config_t::cancel_delayed) {
+        static bool is_canceled = false;
+        if (is_canceled) return;
+
+        std::ranges::for_each(m_callback_handles, [](auto& handle) {
+          flow::logging::info("Disabling callback. {}", flow::to_string(handle));
+          handle.disable();
+        });
+
+        is_canceled = true;
+      }
     });
   }
 
@@ -39,5 +55,6 @@ public:
 private:
   std::size_t m_message_count{};
   std::vector<flow::callback_handle<typename config_t::default_config_t>> m_callback_handles{};
+  flow::tick_function m_tick{};
 };
 }// namespace mock

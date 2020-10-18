@@ -11,7 +11,7 @@ struct config_t {
   using driver_t = mock::lidar_driver;
   using message_t = flow::message<mock::lidar_message>;
 
-  static constexpr bool cancel_delayed = false;
+  static constexpr bool cancel_delayed = true;
 
   static constexpr auto channel_name = "lidar_points";
 

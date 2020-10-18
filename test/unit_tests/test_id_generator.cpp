@@ -39,7 +39,7 @@ TEST_CASE("Test async id generator", "[id_generator]")
 
 TEST_CASE("Test multi thread", "[id_generator]")
 {
-  static constexpr std::size_t num_threads = 1'000;
+  static constexpr std::size_t num_threads = 100;
 
   auto generate_id = flow::id_generator{};
   auto ids = std::unordered_set<std::size_t>{};

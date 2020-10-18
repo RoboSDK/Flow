@@ -37,8 +37,8 @@ public:
   }
 
 private:
-  connection m_subscribers;
-  connection m_publishers;
+  connection m_subscribers{.quantity=0, .active=true};
+  connection m_publishers{.quantity=0, .active=false};
   id_generator m_make_id;
 };
 

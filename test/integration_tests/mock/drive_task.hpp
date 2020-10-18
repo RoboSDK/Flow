@@ -33,14 +33,17 @@ public:
 
     constexpr auto tick_cycle = config_t::num_publishers * config_t::num_messages;
     m_tick = flow::tick_function(tick_cycle, [this] {
-      static bool is_canceled = false;
-      if (is_canceled) return;
+      if constexpr (not config_t::cancel_delayed) {
+        static bool is_canceled = false;
+        if (is_canceled) return;
 
-      std::ranges::for_each(m_callback_handles, [](auto& handle) {
-        flow::logging::info("Disabling callback. {}", flow::to_string(handle));
-        handle.disable();
-      });
-      is_canceled = true;
+        std::ranges::for_each(m_callback_handles, [](auto& handle) {
+          flow::logging::info("Disabling callback. {}", flow::to_string(handle));
+          handle.disable();
+        });
+
+        is_canceled = true;
+      }
     });
   }
 

@@ -34,13 +34,8 @@ int main()
   std::atomic_size_t num_messages_received{ 0 };
 
   auto channel_registry = flow::channel_registry<flow::configuration>{};
-  auto handles = make_subscribers(channel_registry, num_messages_received);// each sub callback will increment
-  auto publisher_handles = make_publishers(channel_registry);
-
-  while (not publisher_handles.empty()) {
-    handles.push_back(std::move(publisher_handles.back()));
-    publisher_handles.pop_back();
-  }
+  auto subscriber_handles = make_subscribers(channel_registry, num_messages_received);// each sub callback will increment
+  [[maybe_unused]] auto publisher_handles = make_publishers(channel_registry);
 
   if (not channel_registry.contains<Point>("small_points") or not channel_registry.contains<Point>("large_points")) {
     flow::logging::error("Expected channel_registry to contain both small_points and large_points. It was missing at least one");
@@ -57,7 +52,11 @@ int main()
 
   while (std::atomic_load(&num_messages_received) < num_messages) {}
 
-  for (auto& handle : handles) {
+  for (auto& handle : publisher_handles) {
+    handle.disable();
+  }
+
+  for (auto& handle : subscriber_handles) {
     handle.disable();
   }
 
