@@ -210,7 +210,7 @@ private:
 
       flow::logging::info("[sub:{}] WAIT: next to read {} last published {} last published after: {}", id, next_to_read, last_published, context.sequencer.last_published_after(last_published));
       const size_t available = co_await context.sequencer.wait_until_published(next_to_read, last_published, context.scheduler);
-      flow::logging::info("[sub:{}] GOT: available: {}", available);
+      flow::logging::info("[sub:{}] GOT: available: {}", id, available);
 
       do {
         const std::size_t current_sequence = next_to_read;
