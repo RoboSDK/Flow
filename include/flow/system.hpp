@@ -62,7 +62,8 @@ template<typename config_t> void spin(auto system, auto message_registry)
     layer.begin(channel_registry);
   }));
 
-  cppcoro::static_thread_pool scheduler{0};
+  cppcoro::static_thread_pool scheduler{};
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   auto communication_tasks = make_communication_tasks(scheduler, channel_registry, message_registry);
   cppcoro::sync_wait(when_all_ready(std::move(communication_tasks)));

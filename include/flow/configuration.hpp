@@ -7,7 +7,7 @@ struct configuration {
   };
 
   struct channel {
-    static constexpr std::size_t message_buffer_size = 2048;
+    static constexpr std::size_t message_buffer_size = 4096;
   };
 };
 }
