@@ -22,6 +22,9 @@ public:
 
     const auto on_message = [&]([[maybe_unused]] message_t const& wrapped_msg) {
       flow::atomic_increment(m_message_count);
+      if (wrapped_msg.message.magic_number != 42) {
+        std::atomic_ref(m_message_data_is_correct).store(false);
+      }
       m_tick();
     };
 
@@ -47,6 +50,10 @@ public:
 
   void end()
   {
+    if (not m_message_data_is_correct) {
+      flow::logging::critical_throw("Expected message data to contain the magic number 42, but it did not");
+    }
+
     if (m_message_count == 0) {
       flow::logging::critical_throw("Expected the number of messages received to be received to be at least {}. Received {}", m_message_count);
     }
@@ -56,5 +63,6 @@ private:
   std::size_t m_message_count{};
   std::vector<flow::callback_handle<typename config_t::default_config_t>> m_callback_handles{};
   flow::tick_function m_tick{};
+  bool m_message_data_is_correct{true};
 };
 }// namespace mock
