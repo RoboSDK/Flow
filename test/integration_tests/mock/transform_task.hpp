@@ -54,8 +54,8 @@ public:
       flow::logging::critical_throw("Expected message data to contain the magic number 42, but it did not");
     }
 
-    if (m_message_count == 0) {
-      flow::logging::critical_throw("Expected the number of messages received to be received to be at least {}. Received {}", m_message_count);
+    if (m_message_count == 0 and config_t::cancel_delayed) {
+      flow::logging::critical_throw("Expected to receive any messages! Got 0");
     }
   }
 

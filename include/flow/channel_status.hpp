@@ -12,6 +12,10 @@ class channel_status {
   };
 
 public:
+  channel_status(std::size_t num_publishers, std::size_t num_subscribers)
+    : m_publishers{  .quantity = num_publishers, .active = false  },
+      m_subscribers{  .quantity = num_subscribers, .active = true  } {}
+
   auto num_publishers()
   {
     return std::atomic_ref(m_publishers.quantity);
@@ -32,13 +36,14 @@ public:
     return std::atomic_ref(m_subscribers.active);
   }
 
-  auto get_id() {
+  auto get_id()
+  {
     return m_make_id();
   }
 
 private:
-  connection m_subscribers{.quantity=0, .active=true};
-  connection m_publishers{.quantity=0, .active=false};
+  connection m_publishers{};
+  connection m_subscribers{};
   id_generator m_make_id;
 };
 
