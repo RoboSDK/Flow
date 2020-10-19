@@ -23,6 +23,7 @@ struct config_t {
 
 int main()
 {
+  flow::begin();
   using namespace mock;
 
   using drive_task_t = drive_task<config_t>;
