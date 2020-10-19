@@ -5,8 +5,8 @@
 #include <cppcoro/cancellation_token.hpp>
 #include <cppcoro/operation_cancelled.hpp>
 
-#include <iostream>
 #include <cassert>
+#include <iostream>
 
 /**
  * This module is dedicated to the cancellation_handle and cancellation_callback.
@@ -53,6 +53,7 @@ template<typename return_t, typename... args_t>
 class cancellable_function<return_t(args_t...)> {
 public:
   using callback_t = std::function<return_t(args_t...)>;
+  using is_cancellable = std::true_type;
 
   cancellable_function(cppcoro::cancellation_token token, callback_t&& callback)
     : m_cancel_token(token), m_callback(std::move(callback))
@@ -97,5 +98,12 @@ auto make_cancellable_function(std::function<return_t(args_t...)>&& callback)
   auto function = flow::cancellable_function<return_t(args_t...)>(cancellation_handle.token(), std::move(callback));
   return std::make_pair(cancellation_handle, function);
 }
+
+template<typename T>
+concept cancellable_callback = requires
+{
+  typename T::is_cancellable;
+};
+
 
 }// namespace flow

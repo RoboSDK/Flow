@@ -8,13 +8,12 @@ namespace flow {
 class channel_status {
   struct connection {
     std::size_t quantity{};
-    bool active{};
   };
 
 public:
   channel_status(std::size_t num_publishers, std::size_t num_subscribers)
-    : m_publishers{  .quantity = num_publishers, .active = false  },
-      m_subscribers{  .quantity = num_subscribers, .active = true  } {}
+    : m_publishers{  .quantity = num_publishers },
+      m_subscribers{  .quantity = num_subscribers } {}
 
   auto num_publishers()
   {
@@ -26,17 +25,7 @@ public:
     return std::atomic_ref(m_subscribers.quantity);
   }
 
-  auto publishers_are_active()
-  {
-    return std::atomic_ref(m_publishers.active);
-  }
-
-  auto subscribers_are_active()
-  {
-    return std::atomic_ref(m_subscribers.active);
-  }
-
-  auto get_id()
+  auto generate_coroutine_id()
   {
     return m_make_id();
   }
@@ -55,9 +44,7 @@ inline std::string to_string(channel_status& s)
     ss << delim << " " << item_name << ": " << std::forward<decltype(item)>(item);
   };
   add_pair("num_publishers", s.num_publishers(), "");
-  add_pair("publishers_are_active", s.publishers_are_active() ? "true" : "false");
   add_pair("num_subscribers", s.num_subscribers());
-  add_pair("subscribers_are_active", s.subscribers_are_active() ? "true" : "false");
   ss << " }";
 
   return ss.str();

@@ -61,6 +61,25 @@ public:
 
   std::string_view name() const { return m_name; }
 
+  /**
+   * All messages are wrapped with flow::message<message_t> that contains metadata.
+   *
+   * If the user wants to use a flow::message<> wrapper, this will allow them to receive the
+   * wrapped message type through a callback and look at the metadata
+   *
+   * This is used at compile time to get the buffer type
+   * @return A buffer that contains the message buffer type
+   */
+  constexpr auto select_message_type()
+  {
+    if constexpr (is_wrapped<message_t>()) {
+      return std::array<message_t, BUFFER_SIZE>{};
+    }
+    else {
+      return std::array<message<message_t>, BUFFER_SIZE>{};
+    }
+  }
+
   std::size_t hash() { return typeid(message_t).hash_code() ^ std::hash<std::string>{}(m_name); }
 
   /**
@@ -72,55 +91,49 @@ public:
    * @param sequencer Handles buffer organization of message_registry
    * @return A coroutine that will be executed by flow::spin
    */
-  task_t open_communications([[maybe_unused]] auto& sched)
+  task_t open_communications(cppcoro::static_thread_pool& thread_pool_scheduler)
   {
     using namespace cppcoro;
+    using buffer_t = decltype(select_message_type());
 
-    const auto message_buffer = [] {
-      if constexpr (is_wrapped<message_t>()) {
-        return std::array<message_t, BUFFER_SIZE>{};
-      }
-      else {
-        return std::array<message<message_t>, BUFFER_SIZE>{};
-      }
-    };
+    const std::size_t num_publishers = m_on_request_callbacks.size();
+    const std::size_t num_subscribers = m_on_message_callbacks.size();
 
-    using buffer_t = decltype(message_buffer());
-    using scheduler_t = decltype(sched);
-
-    [[maybe_unused]] const std::size_t num_publishers = m_on_request_callbacks.size();
-    [[maybe_unused]] const std::size_t num_subscribers = m_on_message_callbacks.size();
 
     struct context_t {
-      scheduler_t& scheduler;
+      static_thread_pool& scheduler;
       channel_status status;
 
-      sequence_barrier<std::size_t> barrier{};// notifies publishers that it can publish more
-      multi_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };// controls sequence values for the message buffer
+      sequence_barrier<std::size_t> barrier{};
+      multi_producer_sequencer<std::size_t> sequencer{ barrier, BUFFER_SIZE };
 
-      std::size_t index_mask = BUFFER_SIZE - 1;// Used to mask the sequence number and get the index to access the buffer
-      buffer_t buffer{};// the message buffer
-    } context{ sched, channel_status{ num_publishers, num_subscribers } };
+      std::size_t index_mask = BUFFER_SIZE - 1;
+      buffer_t buffer{};
+    } context{ thread_pool_scheduler, channel_status{ num_publishers, num_subscribers } };
 
 
-    tasks_t merged = make_subscriber_tasks(context);
-    tasks_t on_request_tasks = make_publisher_tasks(context);
+    const auto merge_tasks = [](tasks_t&& lhs, tasks_t&& rhs) {
+      tasks_t tasks(lhs.size() + rhs.size());
+      std::ranges::move(lhs, std::begin(tasks));
+      std::ranges::move(rhs, std::next(std::begin(tasks), static_cast<long int>(lhs.size())));
+      return tasks;
+    };
 
-    for (auto&& other : on_request_tasks) {
-      merged.push_back(std::move(other));
-    }
+    // When coroutines begin, they begin in order
+    // We purposefully put subscriber tasks first because they need to request messages
+    tasks_t merged = merge_tasks(make_subscriber_tasks(context), make_publisher_tasks(context));
 
     co_await cppcoro::when_all_ready(std::move(merged));
   }
 
 private:
-  void invoke(auto& callback, auto& message)
+  void invoke(cancellable_callback auto& callback, auto& wrapped_message)
   {
     if constexpr (is_wrapped<message_t>()) {
-      std::invoke(callback, message);
+      std::invoke(callback, wrapped_message);
     }
     else {
-      std::invoke(callback, message.message);
+      std::invoke(callback, wrapped_message.message);
     }
   }
 
@@ -136,25 +149,26 @@ private:
 
   task_t make_publisher_task(publisher_callback_t&& callback, auto& context)
   {
+    // TODO: Move this to config
+    // This is how many messages a publish routine should request from the sequencer before asking or more
     static constexpr std::size_t STRIDE_LENGTH = 1;
-    auto& status = context.status;
-    [[maybe_unused]] auto id = status.get_id();
 
-    status.publishers_are_active().store(true);
+    auto& channel_status = context.status;
+    auto coroutine_id = channel_status.generate_coroutine_id(); // used for logging purposes
+
 
     std::size_t last_buffer_sequence = 0;
-    const auto handle_message = [&](bool last_message) -> task_t {
-      flow::logging::trace("[pub:{}] spin: last_buffer_sequencer {} {}", id, last_buffer_sequence, flow::to_string(status));
+    const auto spin_publisher = [&]() -> task_t {
+      flow::logging::trace("[pub:{}] spin: last_buffer_sequencer {} {}", coroutine_id, last_buffer_sequence, flow::to_string(channel_status));
 
       const auto buffer_sequences = co_await context.sequencer.claim_up_to(STRIDE_LENGTH, context.scheduler);
 
-      for (auto const& buffer_sequence : buffer_sequences) {
+      for (const auto& buffer_sequence : buffer_sequences) {
         last_buffer_sequence = buffer_sequence;
-        flow::logging::trace("[pub:{}] buffer_sequence {}", id, buffer_sequence);
+        flow::logging::trace("[pub:{}] buffer_sequence {}", coroutine_id, buffer_sequence);
 
         auto& message_wrapper = context.buffer[buffer_sequence & context.index_mask];
         message_wrapper.metadata.sequence = ++std::atomic_ref(m_sequence);
-        message_wrapper.metadata.last_message = last_message;
 
         const auto callback_routine = [&]() -> task_t {
           invoke(callback, message_wrapper);
@@ -167,18 +181,19 @@ private:
       context.sequencer.publish(buffer_sequences);
     };
 
-    while (not callback.is_cancellation_requested() and status.num_subscribers() > 0) {
-      cppcoro::sync_wait(handle_message(false));
-    }
-    --status.num_publishers();
 
-    status.publishers_are_active().store(false);
-    while (status.num_publishers() == 0 and status.num_subscribers() > 0 and (last_buffer_sequence <= (context.barrier.last_published() + config_t::channel::message_buffer_size))) {
-      flow::logging::trace("[pub:{}] flush: last_buffer_sequence {} <= context.barrier.last_published(): {}", id, last_buffer_sequence, context.barrier.last_published());
-      co_await handle_message(true);
+    while (not callback.is_cancellation_requested() and channel_status.num_subscribers() > 0) {
+      cppcoro::sync_wait(spin_publisher());
+    }
+    --channel_status.num_publishers();
+
+    // if any subscribers waiting, flush them out TODO:: clean up this boolean logic
+    while (channel_status.num_publishers() == 0 and channel_status.num_subscribers() > 0 and (last_buffer_sequence <= (context.barrier.last_published() + config_t::channel::message_buffer_size))) {
+      flow::logging::trace("[pub:{}] flush: last_buffer_sequence {} <= context.barrier.last_published(): {}", coroutine_id, last_buffer_sequence, context.barrier.last_published());
+      co_await spin_publisher();
     }
 
-    flow::logging::trace("[pub:{}] done: {}", id, flow::to_string(status));
+    flow::logging::trace("[pub:{}] done: {}", coroutine_id, flow::to_string(channel_status));
     co_return;
   }
 
@@ -195,23 +210,24 @@ private:
   task_t make_subscriber_task(subscriber_callback_t&& callback, auto& context)
   {
     auto& status = context.status;
-    [[maybe_unused]] auto id = status.get_id();
-    status.subscribers_are_active().store(true);
+    auto coroutine_id = status.generate_coroutine_id();
 
-    flow::spin_wait wait;
     std::atomic_size_t next_to_read = 1;
     std::atomic_size_t last_published = 0;
 
-    const auto handle_message = [&]() -> task_t {
-      flow::logging::trace("[sub:{}] spin: {}", id, flow::to_string(status));
 
-      flow::logging::trace("[sub:{}] WAIT: next to read {} last published {} last published after: {}", id, next_to_read, last_published, context.sequencer.last_published_after(last_published));
+    const auto spin_subscriber = [&]() -> task_t {
+      flow::logging::trace("[sub:{}] spin: {}", coroutine_id, flow::to_string(status));
+
+      flow::logging::trace("[sub:{}] WAIT: next to read {} last published {} last published after: {}", coroutine_id, next_to_read, last_published, context.sequencer.last_published_after(last_published));
       const size_t available = co_await context.sequencer.wait_until_published(next_to_read, last_published, context.scheduler);
-      flow::logging::trace("[sub:{}] GOT: available: {}", id, available);
+      flow::logging::trace("[sub:{}] GOT: available: {}", coroutine_id, available);
 
       while (flow::atomic_post_increment(next_to_read) < available) {
+
         const std::size_t current_sequence = next_to_read;
         auto& message_wrapper = context.buffer[current_sequence & context.index_mask];
+
         const auto callback_routine = [&]() -> task_t {
           invoke(callback, message_wrapper);
           co_return;
@@ -224,19 +240,19 @@ private:
       last_published = available;
     };
 
+
     while (not callback.is_cancellation_requested() and status.num_publishers() > 0) {
-      co_await handle_message();
+      co_await spin_subscriber();
     }
 
     --status.num_subscribers();
 
     while (status.num_publishers() > 0 and status.num_subscribers() == 0 and next_to_read < context.sequencer.last_published_after(last_published)) {
-      flow::logging::debug("[sub:{}] flush: available: {}", id, last_published);
-      status.subscribers_are_active().store(false);
-      co_await handle_message();
+      flow::logging::debug("[sub:{}] flush: available: {}", coroutine_id, last_published);
+      co_await spin_subscriber();
     }
 
-    flow::logging::trace("[sub:{}] done: {}", id, flow::to_string(status));
+    flow::logging::trace("[sub:{}] done: {}", coroutine_id, flow::to_string(status));
     co_return;
   }
 
