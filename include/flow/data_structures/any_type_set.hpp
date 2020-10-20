@@ -1,6 +1,7 @@
 #pragma once
 
 #include <any>
+#include <flow/logging.hpp>
 #include <functional>
 
 namespace flow {
@@ -20,20 +21,27 @@ public:
   template<typename T>
   bool contains() const
   {
-    const auto info = typeinfo_ref(typeid(T));
+    if (m_items.empty()) {
+      return false;
+    }
+
+    auto info = typeinfo_ref(typeid(T));
+    flow::logging::info("hash {}", hasher{}(info));
     return m_items.find(info) != m_items.end();
   }
 
   template<typename T>
   void put(T&& t)
   {
-    m_items[typeid(T)] = std::forward<T>(t);
+    auto info = typeinfo_ref(typeid(T));
+    m_items[info] = std::forward<T>(t);
   }
 
   template<typename T>
   auto& at()
   {
-    return std::any_cast<T&>(m_items.at(typeid(T)));
+    auto info = typeinfo_ref(typeid(T));
+    return std::any_cast<T&>(m_items.at(info));
   }
 
 private:

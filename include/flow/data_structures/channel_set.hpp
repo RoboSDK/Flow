@@ -10,7 +10,7 @@ template <typename config_t>
 class channel_set {
 public:
   template<typename message_t>
-  bool contains(std::string const& channel_name) const
+  bool contains(std::string const& channel_name = "")const
   {
     return m_items.find(hash<message_t>(channel_name)) != m_items.end();
   }
