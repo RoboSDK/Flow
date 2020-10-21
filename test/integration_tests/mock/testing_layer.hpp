@@ -1,8 +1,8 @@
 #pragma once
 
 #include <flow/data_structures/mixed_array.hpp>
+#include <flow/deprecated/layer.hpp>
 #include <flow/metaprogramming.hpp>
-#include <flow/layer.hpp>
 #include <flow/task.hpp>
 
 #include <ranges>

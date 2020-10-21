@@ -1,13 +1,13 @@
 #ifndef FLOW_SYSTEM_HPP
 #define FLOW_SYSTEM_HPP
 
-#include "flow/channel.hpp"
-#include "flow/channel_registry.hpp"
 #include "flow/configuration.hpp"
 #include "flow/data_structures/mixed_array.hpp"
-#include "flow/layer.hpp"
-#include "flow/message_registry.hpp"
+#include "flow/deprecated/channel.hpp"
+#include "flow/deprecated/channel_registry.hpp"
+#include "flow/deprecated/layer.hpp"
 #include "flow/metaprogramming.hpp"
+#include "message_registry.hpp"
 
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>

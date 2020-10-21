@@ -3,8 +3,8 @@
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-#include "flow/message_registry.hpp"
-#include "flow/system.hpp"
+#include "flow/deprecated/message_registry.hpp"
+#include "flow/deprecated/system.hpp"
 
 namespace flow {
 void begin()

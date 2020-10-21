@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
-#include <flow/channel.hpp>
-#include <flow/data_structures/channel_set.hpp>
 #include <flow/configuration.hpp>
+#include <flow/data_structures/channel_set.hpp>
+#include <flow/deprecated/channel.hpp>
 
 namespace {
 struct Point {

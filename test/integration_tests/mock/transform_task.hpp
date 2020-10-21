@@ -1,6 +1,6 @@
 #pragma once
 
-#include <flow/channel_registry.hpp>
+#include <flow/deprecated/channel_registry.hpp>
 #include <flow/message.hpp>
 #include <flow/task.hpp>
 #include <mutex>

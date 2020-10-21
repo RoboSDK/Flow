@@ -2,7 +2,7 @@
 
 #include <any>
 
-#include "flow/channel.hpp"
+#include "flow/deprecated/channel.hpp"
 
 namespace flow {
 

@@ -4,11 +4,11 @@
 #include <cppitertools/range.hpp>
 
 #include <flow/cancellation.hpp>
-#include <flow/channel.hpp>
+#include <flow/configuration.hpp>
 #include <flow/data_structures/tick_function.hpp>
 #include <flow/data_structures/timeout_function.hpp>
+#include <flow/deprecated/channel.hpp>
 #include <flow/logging.hpp>
-#include <flow/configuration.hpp>
 
 /**
  * This test will create a single publisher and subscriber, send 10 message_registry and then quit.

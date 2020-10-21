@@ -1,7 +1,7 @@
-#include <flow/callback_handle.hpp>
-#include <flow/channel.hpp>
-#include <flow/channel_registry.hpp>
 #include <flow/data_structures/timeout_function.hpp>
+#include <flow/deprecated/callback_handle.hpp>
+#include <flow/deprecated/channel.hpp>
+#include <flow/deprecated/channel_registry.hpp>
 #include <flow/logging.hpp>
 
 #include <cppcoro/schedule_on.hpp>

@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "flow/callback_handle.hpp"
-#include "flow/channel.hpp"
+#include "callback_handle.hpp"
+#include "channel.hpp"
 #include "flow/data_structures/channel_set.hpp"
 #include "flow/hash.hpp"
 
