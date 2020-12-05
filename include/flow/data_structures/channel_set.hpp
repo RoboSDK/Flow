@@ -2,8 +2,6 @@
 
 #include <any>
 
-#include "flow/deprecated/channel.hpp"
-
 namespace flow {
 
 template <typename config_t>

@@ -39,7 +39,7 @@ struct type_container {
  * @tparam The list of items
  * @return the size of the list
  */
- // TODO: separate out all functions here like this
+// TODO: separate out all functions here like this
 template<typename... items_t>
 constexpr std::size_t size()
 {
@@ -53,7 +53,7 @@ constexpr std::size_t size([[maybe_unused]] std::tuple<items_t...> list)
 }
 
 /**
- * Returns whether the list passed in is empty
+ * return_turns whether the list passed in is empty
  * @tparam A list of types
  * @return Whether the list is empty
  */
@@ -107,7 +107,7 @@ constexpr auto pop_front([[maybe_unused]] size_tc<N>)
 }
 
 /**
- * Return the next item in the list
+ * return_turn the next item in the list
  * @tparam next_t The next type
  * @tparam the_rest_t The rest...
  * @return A tuple with the next item
@@ -187,7 +187,7 @@ void for_each(auto&& callback)
     auto the_rest = pop_front<items_t...>();
     const auto continue_loop_on = [&]<typename... the_rest_t>([[maybe_unused]] std::tuple<the_rest_t...>)
     {
-        for_each<the_rest_t...>(callback);
+      for_each<the_rest_t...>(callback);
     };
 
     continue_loop_on(the_rest);
@@ -206,7 +206,7 @@ constexpr bool contains()
 }
 
 /**
- * Returns whether the list passed in contains the first template argument
+ * return_turns whether the list passed in contains the first template argument
  *
  * complexity: O(n)
  *
@@ -284,33 +284,74 @@ constexpr auto make_type_set(std::tuple<set_t...> /*unused*/ = std::tuple<set_t.
 template<class... Types>
 [[maybe_unused]] constexpr auto make_variant(std::tuple<Types...> /*unused*/) { return std::variant<Types...>{}; }
 
-/**
- * Gives type information on types that overload the operator()
- * @tparam T the input argument
- */
 template<typename T>
-struct function_traits
-  : public function_traits<decltype(&T::operator())> {
-};
-// For generic types, directly use the result of the signature of its 'operator()'
+struct function_traits;
 
-template<typename ClassType, typename ReturnType, typename... Args>
-struct function_traits<ReturnType (ClassType::*)(Args...) const>
-// we specialize for pointers to member function
-{
-  enum { arity = sizeof...(Args) };
-  // arity is the number of arguments.
+template<typename return_t, typename... args_t>
+struct function_traits<return_t(args_t...)> {
+public:
+  static constexpr std::size_t arity = sizeof...(args_t);
 
-  [[maybe_unused]] typedef ReturnType result_type;
+  typedef return_t function_type(args_t...);
+  typedef return_t return_type;
+  using stl_function_type = std::function<function_type>;
+  typedef return_t (*pointer)(args_t...);
 
-  template<size_t i>
-  struct argument {
-    static_assert(i < arity, "flow::metaprogramming::function_traits: attempted to access index out of bounds");
-    typedef typename std::tuple_element<i, std::tuple<Args...>>::type type;
-    // the i-th argument is equivalent to the i-th tuple element of a tuple
-    // composed of those arguments.
+  template<size_t I>
+  struct args {
+    static_assert(I < arity, "flow::metaprogramming::function_traits: index is out of range, index must less than sizeof args_t");
+    using type = typename std::tuple_element<I, std::tuple<args_t...>>::type;
   };
+
+  typedef std::tuple<std::remove_cv_t<std::remove_reference_t<args_t>>...> tuple_type;
+  typedef std::tuple<std::remove_const_t<std::remove_reference_t<args_t>>...> bare_tuple_type;
 };
+
+template<typename return_t, typename... args_t>
+struct function_traits<return_t (&)(args_t...)> : function_traits<return_t(args_t...)> {
+};
+
+template<typename return_t, typename... args_t>
+struct function_traits<return_t (*)(args_t...)> : function_traits<return_t(args_t...)> {
+};
+
+//std::function.
+template<typename return_t, typename... args_t>
+struct function_traits<std::function<return_t(args_t...)>> : function_traits<return_t(args_t...)> {
+};
+
+//member function.
+#define FUNCTION_TRAITS(...)                                                                                      \
+  template<typename return_turnType, typename ClassType, typename... args_t>                                             \
+  struct function_traits<return_turnType (ClassType::*)(args_t...) __VA_ARGS__> : function_traits<return_turnType(args_t...)> { \
+  };
+
+FUNCTION_TRAITS()
+FUNCTION_TRAITS(const)
+FUNCTION_TRAITS(volatile)
+FUNCTION_TRAITS(const volatile)
+
+template<typename Callable>
+struct function_traits : function_traits<decltype(&std::decay_t<Callable>::operator())> {
+};
+
+template<typename Function>
+typename function_traits<Function>::stl_function_type to_function(const Function& lambda)
+{
+  return static_cast<typename function_traits<Function>::stl_function_type>(lambda);
+}
+
+template<typename Function>
+typename function_traits<Function>::stl_function_type to_function(Function&& lambda)
+{
+  return static_cast<typename function_traits<Function>::stl_function_type>(std::forward<Function>(lambda));
+}
+
+template<typename Function>
+typename function_traits<Function>::pointer to_function_pointer(const Function& lambda)
+{
+  return static_cast<typename function_traits<Function>::pointer>(lambda);
+}
 
 }// namespace flow::metaprogramming
-#endif//FLOW_METAPROGRAMMING_HPP
+#endif//FLOW_METAPreturn_tOGreturn_tAMMING_HPP

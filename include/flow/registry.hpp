@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "callback_handle.hpp"
-#include "channel.hpp"
+#include "flow/callback_handle.hpp"
+#include "flow/channel.hpp"
 #include "flow/data_structures/channel_set.hpp"
 #include "flow/hash.hpp"
 
@@ -11,20 +11,17 @@
 
 namespace flow {
 
-template<typename config_t>
-class channel_registry {
+template<typename configuration_t>
+class registry {
 public:
   template<typename message_t>
-  flow::callback_handle<config_t> register_subscription(std::string&& channel_name, std::function<void(message_t const&)>&& on_message)
+  flow::callback_handle<configuration_t> register_subscription(std::string channel_name, std::function<void(message_t const&)>&& on_message)
   {
-    if (m_current_callback_id >= config_t::global::max_callbacks) {
-      flow::logging::critical_throw("Current callback id is {}. Max callbacks is {}. Increase the value in configuration::global::max_callbacks.", m_current_callback_id, config_t::global::max_callbacks);
+    if (m_current_callback_id >= configuration_t::global::max_callbacks) {
+      flow::logging::critical_throw("Current callback id is {}. Max callbacks is {}. Increase the value in configuration::global::max_callbacks.", m_current_callback_id, configuration_t::global::max_callbacks);
     }
 
-    if (not m_channels.template contains<message_t>(channel_name)) {
-      m_channels.put(channel<message_t, config_t>(channel_name));
-      m_channel_names[hash<message_t>()].push_back(channel_name);
-    }
+    make_channel_if_not_exists<message_t>(channel_name)
 
     auto cancellation_handle = flow::cancellation_handle{};
     auto subscription = flow::cancellable_function<void(message_t const&)>(cancellation_handle.token(), std::move(on_message));
@@ -35,23 +32,23 @@ public:
     auto info = callback_info{
       .id = m_current_callback_id,
       .type = callback_type::subscription,
-      .channel_name = channel_name,
+      .channel_name = std::move(channel_name),
       .message_type = typeid(message_t)
     };
 
     ++m_current_callback_id;
-    return callback_handle<config_t>(std::move(info), std::move(cancellation_handle));
+    return callback_handle<configuration_t>(std::move(info), std::move(cancellation_handle));
   }
 
   template<typename message_t>
-  flow::callback_handle<config_t> register_publisher(std::string&& channel_name, std::function<void(message_t&)>&& on_request)
+  flow::callback_handle<configuration_t> register_publisher(std::string&& channel_name, std::function<void(message_t&)>&& on_request)
   {
-    if (m_current_callback_id >= config_t::global::max_callbacks) {
-      flow::logging::critical_throw("Current callback id is {}. Max callbacks is {}. Increase the value in configuration::global::max_callbacks.", m_current_callback_id, config_t::global::max_callbacks);
+    if (m_current_callback_id >= configuration_t::global::max_callbacks) {
+      flow::logging::critical_throw("Current callback id is {}. Max callbacks is {}. Increase the value in configuration::global::max_callbacks.", m_current_callback_id, configuration_t::global::max_callbacks);
     }
 
     if (not m_channels.template contains<message_t>(channel_name)) {
-      m_channels.put(channel<message_t, config_t>(channel_name));
+      m_channels.put(channel<message_t, configuration_t>(channel_name));
       m_channel_names[hash<message_t>()].push_back(channel_name);
     }
 
@@ -69,7 +66,7 @@ public:
     };
 
     ++m_current_callback_id;
-    return callback_handle<config_t>(std::move(info), std::move(cancellation_handle));
+    return callback_handle<configuration_t>(std::move(info), std::move(cancellation_handle));
   }
 
   template<typename message_t>
@@ -79,7 +76,7 @@ public:
   }
 
   template<typename message_t>
-  channel<message_t, config_t>& get_channel(std::string const& channel_name)
+  channel<message_t, configuration_t>& get_channel(std::string const& channel_name)
   {
     return m_channels.template at<message_t>(channel_name);
   }
@@ -89,7 +86,7 @@ public:
   {
     auto& channel_names = m_channel_names[hash<message_t>()];
 
-    std::vector<std::reference_wrapper<channel<message_t, config_t>>> channels;
+    std::vector<std::reference_wrapper<channel<message_t, configuration_t>>> channels;
     for (const auto& name : channel_names) {
       channels.push_back(m_channels.template at<message_t>(name));
     }
@@ -97,9 +94,29 @@ public:
     return channels;
   }
 
+  template<typename message_t>
+  void make_channel_if_not_exists(std::string_view channel_name)
+  {
+    if (m_channels.template contains<message_t>(channel_name)) {
+      return;
+    }
+
+    using channel_t = channel<message_t, configuration_t>;
+
+    auto channel = channel_t{
+      channel_name,
+      get_channel_resource(resource_generator)
+    };
+
+    m_channels.put(std::move(channel));
+  }
+
 private:
+  // resources used by channels to communicate
+  channel_resource_generator<configuration_t> resource_generator{};
+
   /// the message type will be used to map into the channel
-  channel_set<config_t> m_channels;
+  channel_set<configuration_t> m_channels;
   std::size_t m_current_callback_id{};
 
   /// Maps a type hash to all channel names associated with it

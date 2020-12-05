@@ -77,7 +77,7 @@ std::string to_string(callback_handle<config_t> const& handle)
   std::stringstream ss;
   ss << "callback_handle: { ";
   const auto add_pair = [&ss](std::string_view item_name, auto&& item, std::string_view delim = ",") {
-    ss << delim << " " << item_name << ": " << std::forward<decltype(item)>(item);
+         ss << delim << " " << item_name << ": " << std::forward<decltype(item)>(item);
   };
   add_pair("id", handle.id(), "");
   add_pair("type", to_string(handle.type()));

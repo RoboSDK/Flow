@@ -9,46 +9,58 @@
 namespace flow {
 template<typename return_t, typename configuration_t>
 cppcoro::task<void> spin_producer(
-  std::string_view channel_name,
+  std::string channel_name,
   cancellable_function<return_t()>&& producer,
-  auto& context)
+  auto& channels)
 {
+  flow::logging::error("spinning producer");
   using channel_t = channel<return_t, configuration_t>;
-
-  channel_t& channel = context.channels.template at<return_t>(channel_name);
-  auto next_request = channel.request_generator();
-  auto current_request = next_request.begin();
+  flow::logging::error("getting channel");
+  channel_t& channel = channels.template at<return_t>(channel_name);
+  flow::logging::error("got channel");
+  auto data = producer();
+  flow::logging::error("invoke producer {}", data);
 
   while (not producer.is_cancellation_requested()) {
-    auto& message = *co_await ++current_request;
-    message = std::invoke(producer);
-    channel.fulfill_request();
+    flow::logging::error("making request");
+    co_await channel.request();
+    flow::logging::error("making message");
+    auto message = std::invoke(producer);
+    flow::logging::error("publishing");
+    channel.publish_message(std::move(message));
   }
+  flow::logging::error("done producer");
 }
 
 template<typename argument_t, typename configuration_t>
 cppcoro::task<void> spin_consumer(
-  std::string_view channel_name,
-  cancellable_function<void(argument_t)> consumer,
-  auto& context)
+  std::string channel_name,
+  cancellable_function<void(argument_t)>&& consumer,
+  auto& channels)
 {
+  flow::logging::error("spinning consumer");
   using channel_t = channel<argument_t, configuration_t>;
 
-  channel_t& channel = context.channels.template at<argument_t>(channel_name);
+  channel_t& channel = channels.template at<argument_t>(channel_name);
+  flow::logging::error("creating message generator");
   auto next_message = channel.message_generator();
-  auto current_message = next_message.begin();
+  flow::logging::error("waiting for message ");
+  auto current_message = co_await next_message.begin();
 
   while (not consumer.is_cancellation_requested()) {
-    auto& message = *co_await ++current_message;
-    std::invoke(consumer, message);
+    auto message = *current_message;
+    flow::logging::error("invoke consumer");
+    std::invoke(consumer, std::move(message));
     channel.make_request();
+    co_await ++current_message;
   }
+  flow::logging::error("done consumer");
 }
 
 template<typename return_t, typename argument_t, typename configuration_t>
 cppcoro::task<void> spin_transformer(
-  std::string_view argument_channel_name,
-  std::string_view return_channel_name,
+  std::string return_channel_name,
+  std::string argument_channel_name,
   cancellable_function<void(argument_t)> transformer,
   auto& context)
 {
@@ -70,7 +82,7 @@ cppcoro::task<void> spin_transformer(
 
     return_t& request = *co_await ++current_request;
     request = std::move(returned);
-    return_channel.fulfill_request();
+    return_channel.publish_message();
   }
 }
 }// namespace flow

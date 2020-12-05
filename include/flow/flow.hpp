@@ -2,9 +2,7 @@
 
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
-
-#include "flow/deprecated/message_registry.hpp"
-#include "flow/deprecated/system.hpp"
+#include <spdlog/spdlog.h>
 
 namespace flow {
 void begin()

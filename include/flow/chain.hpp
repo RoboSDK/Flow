@@ -1,11 +1,15 @@
 #pragma once
 
 #include <cppcoro/task.hpp>
+#include <cppcoro/when_all_ready.hpp>
 
+#include "flow/callback_handle.hpp"
 #include "flow/cancellation.hpp"
 #include "flow/channel.hpp"
 #include "flow/data_structures/channel_set.hpp"
+#include "flow/function_concepts.hpp"
 #include "flow/spin.hpp"
+#include "flow/context.hpp"
 
 namespace flow {
 
@@ -13,10 +17,13 @@ template<typename configuration_t>
 struct chain {
   using task_t = cppcoro::task<void>;
 
+  chain(auto& context) :  m_context(&context) {}
+
+  /************************************************************************************************/
   template<typename message_t>
-  void make_channel_if_not_exists(std::string_view channel_name)
+  void make_channel_if_not_exists(std::string channel_name)
   {
-    if (channels.contains<message_t>(channel_name)) {
+    if (m_context->channels.template contains<message_t>(channel_name)) {
       return;
     }
 
@@ -24,50 +31,67 @@ struct chain {
 
     auto channel = channel_t{
       channel_name,
-      make_channel_resources(resource_generator)
+      get_channel_resource(m_context->resource_generator),
+      &m_context->thread_pool
     };
 
-    channels.put(std::move(channel));
+    m_context->channels.put(std::move(channel));
   }
 
-  template<typename return_t>
-  void push_producer(
-    std::string_view channel_name,
-    cancellable_function<return_t()>&& producer)
+  /************************************************************************************************/
+  auto push_producer(flow::producer auto&& producer, std::string channel_name = "")
   {
+    using return_t = typename flow::metaprogramming::function_traits<decltype(producer)>::return_type;
+    using producer_t = decltype(producer);
+
     make_channel_if_not_exists<return_t>(channel_name);
-    tasks.push_back(spin_producer(std::move(producer), channels));
+    auto [cancellation_handle, cancellable] = flow::make_cancellable_function(std::forward<producer_t>(producer));
+    flow::logging::info("cancellable is requested {}", cancellable.is_cancellation_requested());
+
+    m_context->tasks.push_back(spin_producer<return_t, configuration_t>(channel_name, std::move(cancellable), m_context->channels));
+    return cancellation_handle;
   }
+
+  /************************************************************************************************/
 
   template<typename return_t, typename argument_t>
   void push_transformer(
-    std::string_view return_channel_name,
-    std::string_view argument_channel_name,
-    cancellable_function<return_t(argument_t)>&& transformer)
+    cancellable_function<return_t(argument_t)>&& transformer,
+    std::string return_channel_name = "",
+    std::string argument_channel_name = "")
   {
     make_channel_if_not_exists<return_t>(return_channel_name);
     make_channel_if_not_exists<argument_t>(argument_channel_name);
 
-    tasks.push_back(spin_transformer(std::move(transformer), channels));
+    m_context->tasks.push_back(
+      spin_transformer(return_channel_name, argument_channel_name, std::move(transformer), m_context->channels));
   }
 
-  template<typename argument_t>
-  void push_consumer(
-    std::string_view channel_name,
-    cancellable_function<void(argument_t)>&& end)
+  /************************************************************************************************/
+
+  cancellation_handle push_consumer(flow::consumer auto&& consumer, std::string channel_name = "")
   {
-    make_channel_resources<argument_t>()
-    tasks.push_back(spin_subscriber(std::move(end), channels));
+    using consumer_t = decltype(consumer);
+    using argument_t = typename flow::metaprogramming::function_traits<consumer_t>::template args<0>::type;
+
+    make_channel_if_not_exists<argument_t>(channel_name);
+    auto [cancellation_handle, cancellable] = flow::make_cancellable_function(std::forward<consumer_t>(consumer));
+
+    m_context->tasks.push_back(spin_consumer<argument_t, configuration_t>(channel_name, std::move(cancellable), m_context->channels));
+    return cancellation_handle;
   }
 
-  cppcoro::task<> spin()
+  /************************************************************************************************/
+
+  task_t spin()
   {
-    std::ranges::reverse(tasks);
-    co_await cppcoro::when_all_ready(std::move(tasks));
+    std::ranges::reverse(m_context->tasks);// We want consumer to begin first so they make requests
+    flow::logging::info("m_context->tasks.size(): {}", m_context->tasks.size());
+    co_await cppcoro::when_all_ready(std::move(m_context->tasks));
   }
 
-  channel_set channels{};
-  channel_resource_generator resource_generator{};
-  std::vector<task_t> tasks{};
+  /************************************************************************************************/
+
+  context<configuration_t>* m_context;
 };
 }// namespace flow

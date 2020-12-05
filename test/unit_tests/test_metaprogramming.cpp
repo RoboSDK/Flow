@@ -290,15 +290,76 @@ TEST_CASE("Make an set from a list of types", "[make_type_set]")
   [[maybe_unused]] constexpr std::tuple<Foo> foos = make_type_set<Foo, Foo, Foo, Foo, Foo, Foo, Foo>();
 }
 
+void raw_spinner() {}
+int raw_producer() { return 42; }
+void raw_consumer(int /*unused*/) {}
+int raw_transformer(int /*unused*/) { return 42; }
+
+
 TEST_CASE("Test function traits", "[function_traits]")
 {
   using namespace flow::metaprogramming;
-  SECTION("Test two int argument and return double")
+  SECTION("Test spinner")
   {
-    [[maybe_unused]] constexpr auto f = [](int, int) -> double { return 1.0; };
-    STATIC_REQUIRE(same<function_traits<decltype(f)>::argument<0>::type, int>());
-    STATIC_REQUIRE(same<function_traits<decltype(f)>::argument<1>::type, int>());
-    STATIC_REQUIRE(same<function_traits<decltype(f)>::result_type, double>());
-    STATIC_REQUIRE(function_traits<decltype(f)>::arity == 2);
+    auto test_spinner = [](auto&& spinner) {
+      STATIC_REQUIRE(function_traits<decltype(spinner)>::arity == 0);
+      STATIC_REQUIRE(std::is_void_v<typename function_traits<decltype(spinner)>::return_type>);
+    };
+
+    [[maybe_unused]] constexpr auto f = [] {};
+    test_spinner(f);
+
+    [[maybe_unused]] const auto stdf = std::function<void()>{};
+    test_spinner(stdf);
+
+    test_spinner(raw_spinner);
+  }
+
+  SECTION("Test producer")
+  {
+    auto test_producer = [](auto&& producer) {
+           STATIC_REQUIRE(function_traits<decltype(producer)>::arity == 0);
+           STATIC_REQUIRE(not std::is_void_v<typename function_traits<decltype(producer)>::return_type>);
+    };
+
+    [[maybe_unused]] constexpr auto f = [] { return 42; };
+    test_producer(f);
+
+    [[maybe_unused]] const auto stdf = std::function<int()>{f};
+    test_producer(stdf);
+
+    test_producer(raw_producer);
+  }
+
+  SECTION("Test consumer")
+  {
+    auto test_consumer = [](auto&& consumer) {
+           STATIC_REQUIRE(function_traits<decltype(consumer)>::arity > 0);
+           STATIC_REQUIRE(std::is_void_v<typename function_traits<decltype(consumer)>::return_type>);
+    };
+
+    [[maybe_unused]] constexpr auto f = [](int /*unused*/) {};
+    test_consumer(f);
+
+    [[maybe_unused]] const auto stdf = std::function<void(int)>{f};
+    test_consumer(stdf);
+
+    test_consumer(raw_consumer);
+  }
+
+  SECTION("Test transformer")
+  {
+    auto test_transformer = [](auto&& transformer) {
+           STATIC_REQUIRE(function_traits<decltype(transformer)>::arity > 0);
+           STATIC_REQUIRE(not std::is_void_v<typename function_traits<decltype(transformer)>::return_type>);
+    };
+
+    [[maybe_unused]] constexpr auto f = [](int /*unused*/) { return 42; };
+    test_transformer(f);
+
+    [[maybe_unused]] const auto stdf = std::function<int(int)>{f};
+    test_transformer(stdf);
+
+    test_transformer(raw_transformer);
   }
 }
