@@ -40,47 +40,51 @@ struct chain {
   }
 
   /************************************************************************************************/
-  auto push_producer(flow::producer auto&& producer, std::string channel_name = "___")
+  cancellation_handle push_producer(flow::producer auto&& producer, std::string channel_name = "")
   {
-    using return_t = std::decay_t<typename flow::metaprogramming::function_traits<decltype(producer)>::return_type>;
     using producer_t = decltype(producer);
+    using return_t = std::decay_t<typename flow::metaprogramming::function_traits<producer_t>::return_type>;
 
     auto& channel = make_channel_if_not_exists<return_t>(channel_name);
     auto cancellable = flow::make_cancellable_function(std::forward<producer_t>(producer));
-    auto handle = cancellable->handle();
+
     m_context->tasks.push_back(spin_producer<return_t>(channel, *cancellable));
     m_callbacks.push_back(cancellable);
-    return handle;
+    return cancellable->handle();
   }
 
   /************************************************************************************************/
 
-  template<typename return_t, typename argument_t>
-  void push_transformer(
-    cancellable_function<return_t(argument_t)>&& transformer,
-    std::string return_channel_name = "",
-    std::string argument_channel_name = "")
+  cancellation_handle push_transformer(
+    flow::transformer auto&& transformer,
+    std::string producer_channel_name = "",
+    std::string consumer_channel_name = "")
   {
-    make_channel_if_not_exists<return_t>(return_channel_name);
-    make_channel_if_not_exists<argument_t>(argument_channel_name);
+    using transformer_t = decltype(transformer);
+    using argument_t = std::decay_t<typename flow::metaprogramming::function_traits<transformer_t>::template args<0>::type>;
+    using return_t = std::decay_t<typename flow::metaprogramming::function_traits<transformer_t >::return_type>;
 
-    m_context->tasks.push_back(
-      spin_transformer(return_channel_name, argument_channel_name, std::move(transformer), m_context->channels));
+    auto& producer_channel = make_channel_if_not_exists<argument_t>(producer_channel_name);
+    auto& consumer_channel = make_channel_if_not_exists<argument_t>(consumer_channel_name);
+
+    auto cancellable = flow::make_cancellable_function(std::forward<transformer_t>(transformer));
+    m_context->tasks.push_back(spin_transformer<return_t, argument_t>(producer_channel, consumer_channel, *cancellable));
+    m_callbacks.push_back(cancellable);
+    return cancellable->handle();
   }
 
   /************************************************************************************************/
 
-  auto push_consumer(flow::consumer auto&& consumer, std::string channel_name = "___")
+  cancellation_handle push_consumer(flow::consumer auto&& consumer, std::string channel_name = "")
   {
     using consumer_t = decltype(consumer);
     using argument_t = std::decay_t<typename flow::metaprogramming::function_traits<consumer_t>::template args<0>::type>;
 
     auto& channel = make_channel_if_not_exists<argument_t>(channel_name);
     auto cancellable = flow::make_cancellable_function(std::forward<consumer_t>(consumer));
-    auto handle = cancellable->handle();
     m_context->tasks.push_back(spin_consumer<argument_t>(channel, *cancellable));
     m_callbacks.push_back(cancellable);
-    return handle;
+    return cancellable->handle();
   }
 
   /************************************************************************************************/

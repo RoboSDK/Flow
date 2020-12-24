@@ -51,32 +51,36 @@ cppcoro::task<void> spin_consumer(
   flow::logging::error("done consumer");
 }
 
-template<typename return_t, typename argument_t, typename configuration_t>
+template<typename return_t, typename argument_t>
 cppcoro::task<void> spin_transformer(
-  std::string return_channel_name,
-  std::string argument_channel_name,
-  cancellable_function<void(argument_t)> transformer,
-  auto& context)
+  auto& producer_channel,
+  auto& consumer_channel,
+  cancellable_function<return_t(argument_t&&)> transformer)
 {
-  using argument_channel_t = channel<argument_t, configuration_t>;
-  using return_channel_t = channel<return_t, configuration_t>;
-
-  argument_channel_t& argument_channel = context.channels.template at<argument_t>(argument_channel_name);
-  auto next_message = argument_channel.message_generator();
-  auto current_message = next_message.begin();
-
-  return_channel_t & return_channel = context.channels.template at<return_t>(return_channel_name);
-  auto next_request = return_channel.request_generator();
-  auto current_request = next_request.begin();
+  flow::logging::error("transformer: spin");
 
   while (not transformer.is_cancellation_requested()) {
-    argument_t& argument = *co_await ++current_message;
-    return_t returned = std::invoke(transformer, argument);
-    argument_channel.make_request();
+    flow::logging::error("transformer: creating message generator");
+    auto next_message = producer_channel.message_generator();
+    flow::logging::error("transformer: waiting for message ");
+    auto current_message = co_await next_message.begin();
 
-    return_t& request = *co_await ++current_request;
-    request = std::move(returned);
-    return_channel.publish_message();
+    while(not transformer.is_cancellation_requested() and current_message != next_message.end()) {
+      auto& message = *current_message;
+      flow::logging::error("transformer: invoke value: {}", message);
+      auto result = std::invoke(transformer, std::move(message));
+
+      co_await consumer_channel.request();
+      flow::logging::error("transformer: making message");
+      flow::logging::error("transformer: publishing");
+      consumer_channel.publish_message(std::move(result));
+
+      flow::logging::error("transformer: making request");
+      producer_channel.make_request();
+      flow::logging::error("transformer: req");
+      co_await ++current_message;
+    }
   }
+  flow::logging::error("transformer:d done");
 }
 }// namespace flow
