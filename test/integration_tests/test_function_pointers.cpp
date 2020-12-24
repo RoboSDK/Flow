@@ -14,13 +14,13 @@ int main()
   auto context = std::make_unique<context_t>();
   chain_t chain{context.get()};
 
-  auto producer = chain.push_producer([]{
+  chain.push_producer([]{
          static int val = 0;
          flow::logging::error("producing");
          return val++;
   });
 
-  auto consumer = chain.push_consumer([](int&& number){
+  chain.push_consumer([](int&& number){
          flow::logging::error("consuming: {}", number);
   });
 

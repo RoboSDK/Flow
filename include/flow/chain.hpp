@@ -47,8 +47,10 @@ struct chain {
 
     auto& channel = make_channel_if_not_exists<return_t>(channel_name);
     auto cancellable = flow::make_cancellable_function(std::forward<producer_t>(producer));
+    auto handle = cancellable->handle();
     m_context->tasks.push_back(spin_producer<return_t>(channel, *cancellable));
-    return cancellable;
+    m_callbacks.push_back(cancellable);
+    return handle;
   }
 
   /************************************************************************************************/
@@ -75,15 +77,16 @@ struct chain {
 
     auto& channel = make_channel_if_not_exists<argument_t>(channel_name);
     auto cancellable = flow::make_cancellable_function(std::forward<consumer_t>(consumer));
+    auto handle = cancellable->handle();
     m_context->tasks.push_back(spin_consumer<argument_t>(channel, *cancellable));
-    return cancellable;
+    m_callbacks.push_back(cancellable);
+    return handle;
   }
 
   /************************************************************************************************/
 
   task_t spin()
   {
-//    std::ranges::reverse(m_context->tasks);// We want consumer to begin first so they make requests
     flow::logging::info("m_context->tasks.size(): {}", m_context->tasks.size());
     co_await cppcoro::when_all_ready(std::move(m_context->tasks));
   }
@@ -91,5 +94,6 @@ struct chain {
   /************************************************************************************************/
 
   context<configuration_t>* m_context;
+  std::vector<std::any> m_callbacks;
 };
 }// namespace flow
