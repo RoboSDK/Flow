@@ -31,8 +31,9 @@ auto* get_channel_resource(auto& generator)
   return &generator.channel_resources[std::atomic_ref(generator.current_resource)++];
 }
 
-template<typename message_t, typename configuration_t>
+template<typename raw_message_t, typename configuration_t>
 class channel {
+  using message_t = std::decay_t<raw_message_t>;
   using resource_t = resource<configuration_t>;
   using scheduler_t = cppcoro::static_thread_pool;
   using task_t = cppcoro::task<void>;

@@ -1,4 +1,4 @@
-list(APPEND libraries CONAN_PKG::catch2 project_options project_warnings header_only_libs flow::flow cppcoro liburing::liburing)
+list(APPEND libraries CONAN_PKG::catch2 project_options project_warnings header_only_libs flow::flow flow::logging cppcoro liburing::liburing)
 
 macro(add_coroutine_test test_name)
     add_executable(${test_name} ${test_name}.cpp)

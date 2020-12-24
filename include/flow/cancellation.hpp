@@ -29,18 +29,20 @@ namespace flow {
  */
 class cancellation_handle {
 public:
+  cancellation_handle(cppcoro::cancellation_source* cancel_source) : m_cancel_source(cancel_source) {}
+
   void request_cancellation()
   {
-    m_cancel_source.request_cancellation();
+    m_cancel_source->request_cancellation();
   }
 
   cppcoro::cancellation_token token()
   {
-    return m_cancel_source.token();
+    return m_cancel_source->token();
   }
 
 private:
-  cppcoro::cancellation_source m_cancel_source;
+  cppcoro::cancellation_source* m_cancel_source{ nullptr };
 };
 
 /**
@@ -59,11 +61,8 @@ public:
   using function_ptr_t = return_t (*)(args_t...);
   using is_cancellable = std::true_type;
 
-  cancellable_function(cppcoro::cancellation_token token, callback_t&& callback)
-    : m_cancel_token(token), m_callback(std::move(callback)) {}
-
-  cancellable_function(cppcoro::cancellation_token token, function_ptr_t callback)
-    : m_cancel_token(token), m_callback(callback) {}
+  cancellable_function(callback_t&& callback): m_callback(std::move(callback)) {}
+  cancellable_function(function_ptr_t callback) : m_callback(callback) {}
 
   return_t operator()(args_t&&... args)
   {
@@ -77,13 +76,19 @@ public:
 
   bool is_cancellation_requested()
   {
-    flow::logging::info("cancellation is requested: {}", m_cancel_token.is_cancellation_requested());
     return m_cancel_token.is_cancellation_requested();
+  }
+
+  cancellation_handle handle()
+  {
+    return cancellation_handle{&m_cancellation_source};
   }
 
 
 private:
-  cppcoro::cancellation_token m_cancel_token;
+  cppcoro::cancellation_source m_cancellation_source{};
+  cppcoro::cancellation_token m_cancel_token{m_cancellation_source.token()};
+
   callback_t m_callback;
 };
 
@@ -99,17 +104,15 @@ private:
 template<typename return_t, typename... args_t>
 auto make_cancellable_function(std::function<return_t(args_t...)>&& callback)
 {
-  auto cancellation_handle = flow::cancellation_handle{};
-  auto function = flow::cancellable_function<return_t(args_t...)>(cancellation_handle.token(), std::forward<decltype(callback)>(callback));
-  return std::make_pair(cancellation_handle, function);
+  using cancellable_function_t = cancellable_function<return_t(args_t...)>;
+  return std::make_unique<cancellable_function_t>(std::forward<decltype(callback)>(callback));
 }
 
 template<typename return_t, typename... args_t>
 auto make_cancellable_function(return_t (*callback)(args_t...))
 {
-  auto cancellation_handle = flow::cancellation_handle{};
-  auto function = flow::cancellable_function<return_t(args_t...)>(cancellation_handle.token(), callback);
-  return std::make_pair(cancellation_handle, function);
+  using cancellable_function_t = cancellable_function<return_t(args_t...)>;
+  return std::make_unique<cancellable_function_t>(std::forward<decltype(callback)>(callback));
 }
 
 auto make_cancellable_function(auto&& lambda)

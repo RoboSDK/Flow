@@ -7,13 +7,13 @@
 #include <cppcoro/sync_wait.hpp>
 
 
-int producer()
+int producer_function()
 {
   flow::logging::debug("producing");
   return 42;
 }
 
-void consumer(int /*unused*/)
+void consumer_function(int&& /*unused*/)
 {
   flow::logging::debug("consuming");
 }
@@ -26,17 +26,14 @@ int main()
   using context_t = flow::context<flow::configuration>;
   using chain_t = flow::chain<flow::configuration>;
 
-  context_t context{};
-  chain_t chain{context};
+  auto context = std::make_unique<context_t>();
+  chain_t chain{context.get()};
 
-  chain.push_producer([] {
-    flow::logging::debug("producing");
-    return 42;
-  });
-
-  chain.push_consumer([](int /*unused*/) {
-    flow::logging::info("consuming");
-  });
+  [[maybe_unused]] auto producer = chain.push_producer(producer_function);
+  [[maybe_unused]] auto consumer = chain.push_consumer(consumer_function);
 
   cppcoro::sync_wait(chain.spin());
+
+  delete producer;
+  delete consumer;
 }

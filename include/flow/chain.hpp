@@ -17,7 +17,7 @@ template<typename configuration_t>
 struct chain {
   using task_t = cppcoro::task<void>;
 
-  chain(auto& context) :  m_context(&context) {}
+  chain(auto* context) :  m_context(context) {}
 
   /************************************************************************************************/
   template<typename message_t>
@@ -45,11 +45,9 @@ struct chain {
     using producer_t = decltype(producer);
 
     make_channel_if_not_exists<return_t>(channel_name);
-    auto [cancellation_handle, cancellable] = flow::make_cancellable_function(std::forward<producer_t>(producer));
-    flow::logging::info("cancellable is requested {}", cancellable.is_cancellation_requested());
-
-    m_context->tasks.push_back(spin_producer<return_t, configuration_t>(channel_name, std::move(cancellable), m_context->channels));
-    return cancellation_handle;
+    auto cancellable = flow::make_cancellable_function(std::forward<producer_t>(producer));
+    m_context->tasks.push_back(spin_producer<return_t, configuration_t>(channel_name, *cancellable, m_context->channels));
+    return cancellable.release();
   }
 
   /************************************************************************************************/
@@ -69,16 +67,15 @@ struct chain {
 
   /************************************************************************************************/
 
-  cancellation_handle push_consumer(flow::consumer auto&& consumer, std::string channel_name = "")
+  auto push_consumer(flow::consumer auto&& consumer, std::string channel_name = "")
   {
     using consumer_t = decltype(consumer);
     using argument_t = typename flow::metaprogramming::function_traits<consumer_t>::template args<0>::type;
 
     make_channel_if_not_exists<argument_t>(channel_name);
-    auto [cancellation_handle, cancellable] = flow::make_cancellable_function(std::forward<consumer_t>(consumer));
-
-    m_context->tasks.push_back(spin_consumer<argument_t, configuration_t>(channel_name, std::move(cancellable), m_context->channels));
-    return cancellation_handle;
+    auto cancellable = flow::make_cancellable_function(std::forward<consumer_t>(consumer));
+    m_context->tasks.push_back(spin_consumer<argument_t, configuration_t>(channel_name, *cancellable, m_context->channels));
+    return cancellable.release();
   }
 
   /************************************************************************************************/
