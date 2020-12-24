@@ -91,7 +91,6 @@ struct chain {
 
   task_t spin()
   {
-    flow::logging::info("m_context->tasks.size(): {}", m_context->tasks.size());
     co_await cppcoro::when_all_ready(std::move(m_context->tasks));
   }
 

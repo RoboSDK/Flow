@@ -1,7 +1,6 @@
 #pragma once
 
 #include <any>
-#include <flow/logging.hpp>
 #include <functional>
 
 namespace flow {
@@ -26,7 +25,6 @@ public:
     }
 
     auto info = typeinfo_ref(typeid(T));
-    flow::logging::info("hash {}", hasher{}(info));
     return m_items.find(info) != m_items.end();
   }
 
