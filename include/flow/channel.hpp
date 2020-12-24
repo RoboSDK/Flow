@@ -82,8 +82,10 @@ public:
   {
     m_available = co_await m_resource->sequencer.wait_until_published(
       m_consumer_sequence, *m_scheduler);
+    flow::logging::info("message generator available: {}", m_available);
 
     do {
+      flow::logging::info("msg gen: yielding message");
       co_yield m_buffer[m_consumer_sequence & index_mask];
     } while (m_consumer_sequence < m_available);
   }

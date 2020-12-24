@@ -10,7 +10,7 @@ namespace flow {
 using task_t = cppcoro::task<void>;
 template <typename configuration_t>
 struct context {
-  cppcoro::static_thread_pool thread_pool{ 1 };
+  cppcoro::static_thread_pool thread_pool{ 0 };
   channel_set<configuration_t> channels{};
   channel_resource_generator<configuration_t> resource_generator{};
   std::vector<task_t> tasks{};
