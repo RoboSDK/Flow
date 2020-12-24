@@ -6,18 +6,19 @@
 #include "flow/callback_handle.hpp"
 #include "flow/cancellation.hpp"
 #include "flow/channel.hpp"
+#include "flow/context.hpp"
 #include "flow/data_structures/channel_set.hpp"
 #include "flow/function_concepts.hpp"
 #include "flow/spin.hpp"
-#include "flow/context.hpp"
 
 namespace flow {
 
 template<typename configuration_t>
-struct chain {
+class chain {
+public:
   using task_t = cppcoro::task<void>;
 
-  chain(auto* context) :  m_context(context) {}
+  chain(auto* context) : m_context(context) {}
 
   /************************************************************************************************/
   template<typename message_t>
@@ -40,7 +41,7 @@ struct chain {
   }
 
   /************************************************************************************************/
-  cancellation_handle push_producer(flow::producer auto&& producer, std::string channel_name = "")
+  cancellation_handle push(flow::producer auto&& producer, std::string channel_name = "")
   {
     using producer_t = decltype(producer);
     using return_t = std::decay_t<typename flow::metaprogramming::function_traits<producer_t>::return_type>;
@@ -55,14 +56,11 @@ struct chain {
 
   /************************************************************************************************/
 
-  cancellation_handle push_transformer(
-    flow::transformer auto&& transformer,
-    std::string producer_channel_name = "",
-    std::string consumer_channel_name = "")
+  cancellation_handle push(flow::transformer auto&& transformer, std::string producer_channel_name = "", std::string consumer_channel_name = "")
   {
     using transformer_t = decltype(transformer);
     using argument_t = std::decay_t<typename flow::metaprogramming::function_traits<transformer_t>::template args<0>::type>;
-    using return_t = std::decay_t<typename flow::metaprogramming::function_traits<transformer_t >::return_type>;
+    using return_t = std::decay_t<typename flow::metaprogramming::function_traits<transformer_t>::return_type>;
 
     auto& producer_channel = make_channel_if_not_exists<argument_t>(producer_channel_name);
     auto& consumer_channel = make_channel_if_not_exists<argument_t>(consumer_channel_name);
@@ -75,7 +73,7 @@ struct chain {
 
   /************************************************************************************************/
 
-  cancellation_handle push_consumer(flow::consumer auto&& consumer, std::string channel_name = "")
+  cancellation_handle push(flow::consumer auto&& consumer, std::string channel_name = "")
   {
     using consumer_t = decltype(consumer);
     using argument_t = std::decay_t<typename flow::metaprogramming::function_traits<consumer_t>::template args<0>::type>;
@@ -96,6 +94,7 @@ struct chain {
 
   /************************************************************************************************/
 
+private:
   context<configuration_t>* m_context;
   std::vector<std::any> m_callbacks;
 };

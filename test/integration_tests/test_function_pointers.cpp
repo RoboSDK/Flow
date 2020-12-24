@@ -11,7 +11,7 @@ int producer()
   return val++;
 }
 
-int transformer(int&& val)
+int doubler(int&& val)
 {
   return val * 2;
 }
@@ -29,9 +29,10 @@ int main()
   auto context = std::make_unique<context_t>();
   chain_t chain{ context.get() };
 
-  chain.push_producer(producer, "producer");
-  chain.push_transformer(transformer, "producer", "consumer");
-  chain.push_consumer(consumer, "consumer");
+  chain.push(producer, "producer");
+  chain.push(doubler, "producer", "doubler");
+  chain.push(doubler, "doubler", "consumer");
+  chain.push(consumer, "consumer");
 
   cppcoro::sync_wait(chain.spin());
 }

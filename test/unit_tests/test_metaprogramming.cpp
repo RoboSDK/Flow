@@ -347,7 +347,7 @@ TEST_CASE("Test function traits", "[function_traits]")
     test_consumer(raw_consumer);
   }
 
-  SECTION("Test transformer")
+  SECTION("Test doubler")
   {
     auto test_transformer = [](auto&& transformer) {
            STATIC_REQUIRE(function_traits<decltype(transformer)>::arity > 0);
