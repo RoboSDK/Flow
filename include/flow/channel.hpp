@@ -87,7 +87,7 @@ public:
     do {
       flow::logging::info("msg gen: yielding message");
       co_yield m_buffer[m_consumer_sequence & index_mask];
-    } while (m_consumer_sequence < m_available);
+    } while (m_consumer_sequence <= m_available);
   }
 
 

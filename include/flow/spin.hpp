@@ -32,21 +32,21 @@ cppcoro::task<void> spin_consumer(
 {
   flow::logging::error("consumer: spin");
 
-  flow::logging::error("consumer: creating message generator");
-  auto next_message = channel.message_generator();
-  flow::logging::error("consumer: waiting for message ");
-  auto current_message = co_await next_message.begin();
-
   while (not consumer.is_cancellation_requested()) {
-    flow::logging::error("consumer: get message ref");
-    auto& message = *current_message;
-    flow::logging::error("consumer: invoke value: {}", message);
-    std::invoke(consumer, std::move(message));
-    flow::logging::error("consumer: making request");
-    channel.make_request();
-    flow::logging::error("consumer: request submitted");
-    co_await ++current_message;
-    flow::logging::error("consumer: increment next msg");
+    flow::logging::error("consumer: creating message generator");
+    auto next_message = channel.message_generator();
+    flow::logging::error("consumer: waiting for message ");
+    auto current_message = co_await next_message.begin();
+
+    while(not consumer.is_cancellation_requested() and current_message != next_message.end()) {
+      auto& message = *current_message;
+      flow::logging::error("consumer: invoke value: {}", message);
+      std::invoke(consumer, std::move(message));
+      flow::logging::error("consumer: making request");
+      channel.make_request();
+      flow::logging::error("consumer: req");
+      co_await ++current_message;
+    }
   }
   flow::logging::error("done consumer");
 }
