@@ -25,9 +25,9 @@ template<typename config_t>
 class callback_handle {
 public:
   callback_handle() = default;
-  callback_handle(callback_handle&&) = default;
+  callback_handle(callback_handle&&) noexcept = default;
   callback_handle(callback_handle const&) = default;
-  callback_handle& operator=(callback_handle&&) = default;
+  callback_handle& operator=(callback_handle&&) noexcept = default;
   callback_handle& operator=(callback_handle const&) = default;
 
   callback_handle(callback_info&& info, cancellation_handle&& ch)

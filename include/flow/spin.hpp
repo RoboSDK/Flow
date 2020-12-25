@@ -7,10 +7,21 @@
 #include "flow/channel.hpp"
 
 namespace flow {
+
+cppcoro::task<void> spin_spinner(
+  auto& scheduler,
+  cancellable_function<void()>& spinner)
+{
+  while (not spinner.is_cancellation_requested()) {
+    co_await scheduler.schedule();
+    std::invoke(spinner);
+  }
+}
+
 template<typename return_t>
 cppcoro::task<void> spin_producer(
   auto& channel,
-  cancellable_function<return_t()> & producer)
+  cancellable_function<return_t()>& producer)
 {
   while (not producer.is_cancellation_requested()) {
     co_await channel.request();
@@ -22,13 +33,13 @@ cppcoro::task<void> spin_producer(
 template<typename argument_t>
 cppcoro::task<void> spin_consumer(
   auto& channel,
-  cancellable_function<void(argument_t&&)> & consumer)
+  cancellable_function<void(argument_t&&)>& consumer)
 {
   while (not consumer.is_cancellation_requested()) {
     auto next_message = channel.message_generator();
     auto current_message = co_await next_message.begin();
 
-    while(not consumer.is_cancellation_requested() and current_message != next_message.end()) {
+    while (not consumer.is_cancellation_requested() and current_message != next_message.end()) {
       auto& message = *current_message;
       std::invoke(consumer, std::move(message));
       channel.make_request();
@@ -48,7 +59,7 @@ cppcoro::task<void> spin_transformer(
     auto next_message = producer_channel.message_generator();
     auto current_message = co_await next_message.begin();
 
-    while(not transformer.is_cancellation_requested() and current_message != next_message.end()) {
+    while (not transformer.is_cancellation_requested() and current_message != next_message.end()) {
       auto& message = *current_message;
       auto result = std::invoke(transformer, std::move(message));
 
