@@ -29,6 +29,12 @@ namespace flow {
  */
 class cancellation_handle {
 public:
+  cancellation_handle() = default;
+  cancellation_handle(cancellation_handle&&) noexcept = default;
+  cancellation_handle(cancellation_handle const&) = default;
+  cancellation_handle& operator=(cancellation_handle&&) noexcept = default;
+  cancellation_handle& operator=(cancellation_handle const&) = default;
+
   cancellation_handle(cppcoro::cancellation_source* cancel_source, bool* is_cancelled) : m_is_cancelled(is_cancelled),
                                                                                          m_cancel_source(cancel_source)
   {

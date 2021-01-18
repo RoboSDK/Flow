@@ -37,11 +37,9 @@ int main()
 
   chain.push(producer, "producer");
   chain.push(doubler, "producer", "doubler");
-//  chain.push(doubler, "doubler", "t2");
-//  chain.push(doubler, "t2", "consumer");
   chain.push(consumer, "doubler");
 
-  chain.cancel_after(10ms);
+  chain.cancel_after(0ms);
 
   cppcoro::sync_wait(chain.spin());
 }

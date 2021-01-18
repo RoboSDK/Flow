@@ -15,31 +15,6 @@
 #include "flow/spin_wait.hpp"
 
 namespace flow {
-
-class chain_handle {
-public:
-  void request_cancellation()
-  {
-//    std::ranges::reverse(m_handles);
-
-//    for (auto& handle : m_handles) {
-      m_handles.back().request_cancellation();
-//      while (not handle.is_cancelled()) {
-//        std::this_thread::yield();
-//        flow::logging::error("yielding");
-//      }
-//    }
-  }
-
-  void push(cancellation_handle&& handle)
-  {
-    m_handles.push_back(handle);
-  }
-
-private:
-  std::vector<cancellation_handle> m_handles{};
-};
-
 template<typename configuration_t>
 class chain {
 public:
@@ -88,7 +63,7 @@ public:
     using spinner_t = decltype(spinner);
     auto cancellable = flow::make_cancellable_function(std::forward<spinner_t>(spinner));
 
-    m_handle.push(cancellable->handle());
+    m_handle = cancellable->handle();
     m_context->tasks.push_back(spin_spinner(m_context->thread_pool, *cancellable));
     m_callbacks.push_back(cancellable);
   }
@@ -111,7 +86,6 @@ public:
     auto& channel = make_channel_if_not_exists<return_t>(channel_name);
     auto cancellable = flow::make_cancellable_function(std::forward<producer_t>(producer));
 
-    m_handle.push(cancellable->handle());
     m_context->tasks.push_back(spin_producer<return_t>(channel, *cancellable));
     m_callbacks.push_back(cancellable);
   }
@@ -135,7 +109,6 @@ public:
     auto& consumer_channel = make_channel_if_not_exists<argument_t>(consumer_channel_name);
     auto cancellable = flow::make_cancellable_function(std::forward<transformer_t>(transformer));
 
-    m_handle.push(cancellable->handle());
     m_context->tasks.push_back(spin_transformer<return_t, argument_t>(producer_channel, consumer_channel, *cancellable));
     m_callbacks.push_back(cancellable);
   }
@@ -159,7 +132,7 @@ public:
     auto& channel = make_channel_if_not_exists<argument_t>(channel_name);
     auto cancellable = flow::make_cancellable_function(std::forward<consumer_t>(consumer));
 
-    m_handle.push(cancellable->handle());
+    m_handle = cancellable->handle();
     m_context->tasks.push_back(spin_consumer<argument_t>(channel, *cancellable));
     m_callbacks.push_back(cancellable);
   }
@@ -173,8 +146,15 @@ public:
 
   /************************************************************************************************/
 
-  chain_handle handle()
+  cancellation_handle handle()
   {
+    if (m_state not_eq state::closed) {
+      flow::logging::critical_throw(
+        "Attempted to acquire a chain handle without completing the chain first.\n"
+        "The current state of the chain is: {}",
+        m_state);
+    }
+
     return m_handle;
   }
 
@@ -205,7 +185,7 @@ public:
         co_return;
       }
 
-      chain_handle handle{};
+      cancellation_handle handle;
       std::chrono::milliseconds threshold{};
       milliseconds time_elapsed{ 0 };
       decltype(steady_clock::now()) last_timestamp{ steady_clock::now() };
@@ -222,6 +202,6 @@ private:
 
   context<configuration_t>* m_context;
   std::vector<std::any> m_callbacks;
-  chain_handle m_handle{};
+  cancellation_handle m_handle;
 };
 }// namespace flow
