@@ -4,7 +4,6 @@
 #include <string_view>
 #include <type_traits>
 #include <variant>
-#include <wyhash/wyhash.h>
 
 namespace flow::metaprogramming {
 
