@@ -8,6 +8,8 @@
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
 
+#include "flow/atomic.hpp"
+
 namespace flow {
 template<typename configuration_t>
 struct resource {
@@ -75,11 +77,13 @@ public:
 
   task_t request()
   {
+    std::atomic_ref(m_is_waiting).store(true);
     m_producer_sequence = co_await m_resource->sequencer.claim_one(*m_scheduler);
   }
 
   cppcoro::async_generator<message_t> message_generator()
   {
+    std::atomic_ref(m_is_waiting).store(false);
     m_available = co_await m_resource->sequencer.wait_until_published(
       m_consumer_sequence, *m_scheduler);
 
@@ -104,12 +108,23 @@ public:
     }
   }
 
-  bool more_to_publish()
+  void terminate()
   {
-    return m_resource->barrier.last_published() > m_resource->sequencer.last_published();
+    std::atomic_ref(m_is_terminated).store(true);
+  }
+
+  bool is_terminated() {
+    return std::atomic_ref(m_is_terminated).load();
+  }
+
+  bool is_waiting() {
+    return std::atomic_ref(m_is_waiting).load();
   }
 
 private:
+  bool m_is_terminated{};
+  bool m_is_waiting{};
+
   std::array<message_t, configuration_t::message_buffer_size> m_buffer{};
   std::size_t m_index_mask = configuration_t::message_buffer_size - 1;
 

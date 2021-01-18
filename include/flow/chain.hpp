@@ -20,14 +20,15 @@ class chain_handle {
 public:
   void request_cancellation()
   {
-    std::ranges::reverse(m_handles);
+//    std::ranges::reverse(m_handles);
 
-    for (auto& handle : m_handles) {
-      handle.request_cancellation();
-      while (not handle.is_cancelled()) {
-        std::this_thread::yield();
-      }
-    }
+//    for (auto& handle : m_handles) {
+      m_handles.back().request_cancellation();
+//      while (not handle.is_cancelled()) {
+//        std::this_thread::yield();
+//        flow::logging::error("yielding");
+//      }
+//    }
   }
 
   void push(cancellation_handle&& handle)
@@ -199,8 +200,8 @@ public:
         while (time_elapsed < threshold) {
           auto time_delta = std::chrono::steady_clock::now() - last_timestamp;
           time_elapsed += duration_cast<milliseconds>(time_delta);
-          std::this_thread::yield();
         }
+        flow::logging::error("canceled after 10ms");
         co_return;
       }
 
