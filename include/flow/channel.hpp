@@ -84,14 +84,14 @@ public:
       m_consumer_sequence, *m_scheduler);
 
     do {
-      co_yield m_buffer[m_consumer_sequence & index_mask];
+      co_yield m_buffer[m_consumer_sequence & m_index_mask];
     } while (m_consumer_sequence <= m_available);
   }
 
 
   void publish_message(message_t&& message)
   {
-    m_buffer[m_producer_sequence & index_mask] = std::move(message);
+    m_buffer[m_producer_sequence & m_index_mask] = std::move(message);
     m_resource->sequencer.publish(m_producer_sequence);
   }
 
@@ -104,9 +104,14 @@ public:
     }
   }
 
+  bool more_to_publish()
+  {
+    return m_resource->barrier.last_published() > m_resource->sequencer.last_published();
+  }
+
 private:
   std::array<message_t, configuration_t::message_buffer_size> m_buffer{};
-  std::size_t index_mask = configuration_t::message_buffer_size - 1;
+  std::size_t m_index_mask = configuration_t::message_buffer_size - 1;
 
   std::string m_name;
 

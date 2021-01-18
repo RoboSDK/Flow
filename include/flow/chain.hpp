@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cppcoro/on_scope_exit.hpp>
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all_ready.hpp>
+#include <future>
 
 #include "flow/callback_handle.hpp"
 #include "flow/cancellation.hpp"
@@ -10,6 +12,7 @@
 #include "flow/data_structures/channel_set.hpp"
 #include "flow/function_concepts.hpp"
 #include "flow/spin.hpp"
+#include "flow/spin_wait.hpp"
 
 namespace flow {
 
@@ -17,12 +20,19 @@ class chain_handle {
 public:
   void request_cancellation()
   {
-    for (auto& handle : m_handles) handle.request_cancellation();
+    std::ranges::reverse(m_handles);
+
+    for (auto& handle : m_handles) {
+      handle.request_cancellation();
+      while (not handle.is_cancelled()) {
+        std::this_thread::yield();
+      }
+    }
   }
 
   void push(cancellation_handle&& handle)
   {
-    m_handles.push_back(std::move(handle));
+    m_handles.push_back(handle);
   }
 
 private:
@@ -174,9 +184,40 @@ public:
     return m_state;
   }
 
+  void cancel_after(std::chrono::milliseconds time)
+  {
+    using namespace std::chrono;
+
+    struct allocated_task {
+      cppcoro::task<void> spin()
+      {
+        auto cancelOnExit = cppcoro::on_scope_exit([&] {
+          auto ret = std::async(std::launch::async, [&]() {
+                 handle.request_cancellation();
+          });
+        });
+        while (time_elapsed < threshold) {
+          auto time_delta = std::chrono::steady_clock::now() - last_timestamp;
+          time_elapsed += duration_cast<milliseconds>(time_delta);
+          std::this_thread::yield();
+        }
+        co_return;
+      }
+
+      chain_handle handle{};
+      std::chrono::milliseconds threshold{};
+      milliseconds time_elapsed{ 0 };
+      decltype(steady_clock::now()) last_timestamp{ steady_clock::now() };
+    };
+
+    auto waiting_ask = std::make_shared<allocated_task>(m_handle, time);
+    m_context->tasks.push_back(waiting_ask->spin());
+    m_callbacks.push_back(std::move(waiting_ask));
+  }
+
 private:
   //TODO:: why doesn't chain::state work?
-  decltype(chain::state::empty) m_state{chain::state::empty};
+  decltype(chain::state::empty) m_state{ chain::state::empty };
 
   context<configuration_t>* m_context;
   std::vector<std::any> m_callbacks;

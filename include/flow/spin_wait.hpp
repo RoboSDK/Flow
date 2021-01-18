@@ -8,7 +8,7 @@ class spin_wait {
 public:
   spin_wait() noexcept;
 
-  bool next_spin_will_yield() const noexcept;
+  [[nodiscard]] bool next_spin_will_yield() const noexcept;
 
   void spin_one() noexcept;
 

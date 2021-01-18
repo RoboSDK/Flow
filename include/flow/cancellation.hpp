@@ -29,7 +29,10 @@ namespace flow {
  */
 class cancellation_handle {
 public:
-  cancellation_handle(cppcoro::cancellation_source* cancel_source) : m_cancel_source(cancel_source) {}
+  cancellation_handle(cppcoro::cancellation_source* cancel_source, bool* is_cancelled) : m_is_cancelled(is_cancelled),
+                                                                                         m_cancel_source(cancel_source)
+  {
+  }
 
   void request_cancellation()
   {
@@ -41,7 +44,10 @@ public:
     return m_cancel_source->token();
   }
 
+  bool is_cancelled() { return *m_is_cancelled; }
+
 private:
+  bool* m_is_cancelled{ nullptr };
   cppcoro::cancellation_source* m_cancel_source{ nullptr };
 };
 
@@ -61,8 +67,8 @@ public:
   using function_ptr_t = return_t (*)(args_t...);
   using is_cancellable = std::true_type;
 
-  cancellable_function(callback_t&& callback): m_callback(std::move(callback)) {}
-  cancellable_function(function_ptr_t callback) : m_callback(callback) {}
+  explicit cancellable_function(callback_t&& callback) : m_callback(std::move(callback)) {}
+  explicit cancellable_function(function_ptr_t callback) : m_callback(callback) {}
 
   return_t operator()(args_t&&... args)
   {
@@ -81,13 +87,20 @@ public:
 
   cancellation_handle handle()
   {
-    return cancellation_handle{&m_cancellation_source};
+    return cancellation_handle{ &m_cancellation_source, &m_is_cancelled };
+  }
+
+  void confirm_cancellation()
+  {
+    m_is_cancelled = true;
   }
 
 
 private:
+  bool m_is_cancelled{ false };
+
   cppcoro::cancellation_source m_cancellation_source{};
-  cppcoro::cancellation_token m_cancel_token{m_cancellation_source.token()};
+  cppcoro::cancellation_token m_cancel_token{ m_cancellation_source.token() };
 
   callback_t m_callback;
 };

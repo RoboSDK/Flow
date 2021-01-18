@@ -2,6 +2,7 @@
 
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
+#include <cppcoro/io_service.hpp>
 
 #include <flow/data_structures/channel_set.hpp>
 #include <flow/channel.hpp>

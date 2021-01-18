@@ -16,6 +16,8 @@ cppcoro::task<void> spin_spinner(
     co_await scheduler.schedule();
     std::invoke(spinner);
   }
+  flow::logging::error("spinner confirming cancellation");
+  spinner.confirm_cancellation();
 }
 
 template<typename return_t>
@@ -28,6 +30,8 @@ cppcoro::task<void> spin_producer(
     auto message = std::invoke(producer);
     channel.publish_message(std::move(message));
   }
+  flow::logging::error("producer confirming cancellation");
+  producer.confirm_cancellation();
 }
 
 template<typename argument_t>
@@ -39,13 +43,15 @@ cppcoro::task<void> spin_consumer(
     auto next_message = channel.message_generator();
     auto current_message = co_await next_message.begin();
 
-    while (not consumer.is_cancellation_requested() and current_message != next_message.end()) {
+    while (current_message != next_message.end()) {
       auto& message = *current_message;
       std::invoke(consumer, std::move(message));
       channel.make_request();
       co_await ++current_message;
     }
   }
+  flow::logging::error("consumer confirming cancellation");
+  consumer.confirm_cancellation();
 }
 
 template<typename return_t, typename argument_t>
@@ -59,16 +65,21 @@ cppcoro::task<void> spin_transformer(
     auto next_message = producer_channel.message_generator();
     auto current_message = co_await next_message.begin();
 
-    while (not transformer.is_cancellation_requested() and current_message != next_message.end()) {
+    while (current_message != next_message.end()) {
       auto& message = *current_message;
       auto result = std::invoke(transformer, std::move(message));
 
+      flow::logging::error("transformer requesting to publish");
       co_await consumer_channel.request();
+      flow::logging::error("transformer publish message");
       consumer_channel.publish_message(std::move(result));
 
+      flow::logging::error("transformer requesting next message");
       producer_channel.make_request();
       co_await ++current_message;
     }
   }
+  flow::logging::error("transformer confirming cancellation");
+  transformer.confirm_cancellation();
 }
 }// namespace flow
