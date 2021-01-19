@@ -8,8 +8,11 @@
 #include "flow/channel.hpp"
 #include "flow/context.hpp"
 #include "flow/data_structures/channel_set.hpp"
-#include "flow/function_concepts.hpp"
+#include "flow/routine.hpp"
 #include "flow/spin.hpp"
+
+/**
+ */
 
 namespace flow {
 template<typename configuration_t>
@@ -170,10 +173,9 @@ public:
       cppcoro::task<void> spin()
       {
         auto cancelOnExit = cppcoro::on_scope_exit([&] {
-//          auto ret = std::async(std::launch::async, [&]() {
-//          });
                handle.request_cancellation();
         });
+
         while (time_elapsed < threshold) {
           auto time_delta = std::chrono::steady_clock::now() - last_timestamp;
           time_elapsed += duration_cast<milliseconds>(time_delta);
