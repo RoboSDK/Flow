@@ -35,11 +35,15 @@ jobs:
        sudo apt install -qq -y build-essential g++-10 gcc-10
        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
 
-    - name: Install libaries
+    - name: Install liburing
       shell: bash
-      run: |
-        ${{runner.workspace}}/scripts/install_liburing.sh
-        ${{runner.workspace}}/scripts/install_cppcoro.sh
+      working-directory: scripts
+      run: install_liburing.sh
+
+    - name: Install cppcoro
+      shell: bash
+      working-directory: scripts
+      run: install_cppcoro.sh
 
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable
