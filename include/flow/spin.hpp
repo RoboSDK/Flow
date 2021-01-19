@@ -3,7 +3,7 @@
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>
 
-#include "flow/cancellation.hpp"
+#include "flow/cancellable_function.hpp"
 #include "flow/channel.hpp"
 
 /**

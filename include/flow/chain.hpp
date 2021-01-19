@@ -4,7 +4,7 @@
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all_ready.hpp>
 
-#include "flow/cancellation.hpp"
+#include "flow/cancellable_function.hpp"
 #include "flow/channel.hpp"
 #include "flow/context.hpp"
 #include "flow/data_structures/channel_set.hpp"

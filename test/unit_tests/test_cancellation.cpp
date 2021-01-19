@@ -1,5 +1,5 @@
 #include <catch2/catch.hpp>
-#include <flow/cancellation.hpp>
+#include <flow/cancellable_function.hpp>
 
 
 namespace {
