@@ -2,6 +2,7 @@
 Checks: >
   *,
   -fuchsia-*,
+  -altera-*,
   -google-*,
   -zircon-*,
   -abseil-*,

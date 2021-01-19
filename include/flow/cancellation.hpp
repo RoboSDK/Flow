@@ -118,7 +118,7 @@ auto make_cancellable_function(std::function<return_t(args_t...)>&& callback)
 }
 
 template<typename return_t, typename... args_t>
-auto make_cancellable_function(return_t (*callback)(args_t...))
+[[maybe_unused]] auto make_cancellable_function(return_t (*callback)(args_t...))
 {
   using cancellable_function_t = cancellable_function<return_t(args_t...)>;
   return std::make_shared<cancellable_function_t>(std::forward<decltype(callback)>(callback));

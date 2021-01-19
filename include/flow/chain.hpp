@@ -3,9 +3,7 @@
 #include <cppcoro/on_scope_exit.hpp>
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all_ready.hpp>
-#include <future>
 
-#include "flow/callback_handle.hpp"
 #include "flow/cancellation.hpp"
 #include "flow/channel.hpp"
 #include "flow/context.hpp"
@@ -172,9 +170,9 @@ public:
       cppcoro::task<void> spin()
       {
         auto cancelOnExit = cppcoro::on_scope_exit([&] {
-          auto ret = std::async(std::launch::async, [&]() {
-                 handle.request_cancellation();
-          });
+//          auto ret = std::async(std::launch::async, [&]() {
+//          });
+               handle.request_cancellation();
         });
         while (time_elapsed < threshold) {
           auto time_delta = std::chrono::steady_clock::now() - last_timestamp;
