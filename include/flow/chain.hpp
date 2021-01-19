@@ -12,7 +12,6 @@
 #include "flow/data_structures/channel_set.hpp"
 #include "flow/function_concepts.hpp"
 #include "flow/spin.hpp"
-#include "flow/spin_wait.hpp"
 
 namespace flow {
 template<typename configuration_t>

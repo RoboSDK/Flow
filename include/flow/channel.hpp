@@ -8,8 +8,6 @@
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
 
-#include "flow/atomic.hpp"
-
 namespace flow {
 template<typename configuration_t>
 struct resource {
