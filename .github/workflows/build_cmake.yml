@@ -44,7 +44,7 @@ jobs:
         cd liburing || exit 1
         ./configure
         make -j4
-        make install
+        sudo make install
 
     - name: Install cppcoro
       shell: bash
@@ -58,8 +58,8 @@ jobs:
         cmake -DCMAKE_BUILD_TYPE=Debug ..
         make -j4
 
-        cp ./lib/libcppcoro.a /usr/local/lib
-        cp -r ../include/* /usr/local/include
+        sudo cp ./lib/libcppcoro.a /usr/local/lib
+        sudo cp -r ../include/* /usr/local/include
 
         cd ~ || exit 1
 
