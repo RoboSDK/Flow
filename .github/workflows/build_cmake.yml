@@ -37,10 +37,10 @@ jobs:
 
     - name: Install libaries
       shell: bash
-      working-directory: ${{runner.workspace}}
+      working-directory:
       run: |
-        ./scripts/install_liburing.sh
-        ./scripts/install_cppcoro.sh
+        ${{runner.workspace}}/scripts/install_liburing.sh
+        ${{runner.workspace}}/scripts/install_cppcoro.sh
 
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable
