@@ -38,12 +38,30 @@ jobs:
     - name: Install liburing
       shell: bash
       working-directory: scripts
-      run: install_liburing.sh
+      run: |
+        cd /tmp || exit 1
+        git clone https://github.com/axboe/liburing.git
+        cd liburing || exit 1
+        ./configure
+        make -j4
+        make install
 
     - name: Install cppcoro
       shell: bash
       working-directory: scripts
-      run: install_cppcoro.sh
+      run: |
+        cd /tmp || exit 1
+        git clone https://github.com/Garcia6l20/cppcoro.git
+        cd cppcoro || exit 1
+        mkdir build
+        cd build || exit 1
+        cmake -DCMAKE_BUILD_TYPE=Debug ..
+        make -j4
+
+        cp ./lib/libcppcoro.a /usr/local/lib
+        cp -r ../include/* /usr/local/include
+
+        cd ~ || exit 1
 
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable
