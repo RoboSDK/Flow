@@ -12,23 +12,50 @@
 #include "flow/spin.hpp"
 
 /**
+ * A chain is a sequence of routines connected by single producer single consumer channels.
+ * The end of the chain depends on the data flow from the beginning of the chain. The beginning
+ * of the chain has no dependencies.
+ *
+ * An empty chain is a chain which has no routines and can take a spinner or a producer.
+ *
+ * The minimal chain s a chain with a spinner, because it depends on nothing and nothing depends on it.
+ *
+ * When a chain is begun with a producer, transformers may be inserted into the chain until it is capped
+ * with a consumer.
+ *
+ * Each chain is considered independent from another chain and may not communicate with each other.
+ *
+ * producer -> transfomer -> ... -> consumer
+ *
+ * Each channel in the chain uses contiguous memory to pass data to the channel waiting on the other way. All
+ * data must flow from producer to consumer; no cyclical dependencies.
  */
 
 namespace flow {
 template<typename configuration_t>
 class chain {
 public:
+
   enum class state {
-    empty,
-    open,
-    closed
+    empty, /// Initial state
+    open, /// Has producers and transformers with no consumer
+    closed /// The chain is complete and is capped by a consumer
   };
 
+  /// A task coroutine
   using task_t = cppcoro::task<void>;
 
+  /*
+   * @param context The context contains all raw resources used to create the chain
+   */
   explicit chain(auto* context) : m_context(context) {}
 
-  /************************************************************************************************/
+  /**
+   * Makes a channel if it doesn't exist and returns a reference to it
+   * @tparam message_t The message type the channel will communicate
+   * @param channel_name The name of the channel (optional)
+   * @return A reference to the channel
+   */
   template<typename message_t>
   auto& make_channel_if_not_exists(std::string channel_name)
   {
@@ -38,7 +65,7 @@ public:
 
     using channel_t = channel<message_t, configuration_t>;
 
-    auto channel = channel_t{
+    channel_t channel{
       channel_name,
       get_channel_resource(m_context->resource_generator),
       &m_context->thread_pool
@@ -48,7 +75,10 @@ public:
     return m_context->channels.template at<message_t>(channel_name);
   }
 
-  /************************************************************************************************/
+  /**
+   * Pushes a routine into the chain
+   * @param spinner A routine with no dependencies and nothing depends on it
+   */
   void push(flow::spinner auto&& spinner)
   {
     if (m_state not_eq state::empty) {
@@ -68,7 +98,11 @@ public:
     m_callbacks.push_back(cancellable);
   }
 
-  /************************************************************************************************/
+  /**
+   * Pushes a producer into the chain
+   * @param producer The producer routine
+   * @param channel_name The channel name the producer will publish to
+   */
   void push(flow::producer auto&& producer, std::string channel_name = "")
   {
     if (m_state not_eq state::empty) {
@@ -90,8 +124,12 @@ public:
     m_callbacks.push_back(cancellable);
   }
 
-  /************************************************************************************************/
-
+  /**
+   *  Pushes a transformer into the chain and creates any necessary channels it requires
+   * @param transformer A routine that depends on another routine and is depended on by a consumer or transformer
+   * @param producer_channel_name The channel it depends on
+   * @param consumer_channel_name The channel that it will publish to
+   */
   void push(flow::transformer auto&& transformer, std::string producer_channel_name = "", std::string consumer_channel_name = "")
   {
     if (m_state not_eq state::open) {
@@ -113,8 +151,11 @@ public:
     m_callbacks.push_back(cancellable);
   }
 
-  /************************************************************************************************/
-
+  /**
+   * Pushes a consumer into the chain
+   * @param consumer A routine no other routine depends on and depends on at least a single routine
+   * @param channel_name The channel it will consume from
+   */
   void push(flow::consumer auto&& consumer, std::string channel_name = "")
   {
     if (m_state not_eq state::open) {
@@ -137,15 +178,22 @@ public:
     m_callbacks.push_back(cancellable);
   }
 
-  /************************************************************************************************/
-
+  /**
+   * Joins all the routines into a single coroutine
+   * @return a coroutine
+   */
   task_t spin()
   {
     co_await cppcoro::when_all_ready(std::move(m_context->tasks));
   }
 
-  /************************************************************************************************/
-
+  /**
+   * Makes a handle to this chain that will allow whoever holds the handle to cancel
+   * the chain
+   *
+   * The cancellation handle will trigger the consumer to cancel and trickel down all the way to the producer
+   * @return A cancellation handle
+   */
   cancellation_handle handle()
   {
     if (m_state not_eq state::closed) {
@@ -158,13 +206,23 @@ public:
     return m_handle;
   }
 
-  /************************************************************************************************/
 
+  /**
+   * The current state of the chain
+   * @return chain state
+   */
   chain::state state()
   {
     return m_state;
   }
 
+  /**
+   * Cancel the chain after the specified time
+   *
+   * This does not mean the chain will be stopped after this amount of time! It takes a non-deterministic
+   * amount of time to fully shut the chain down.
+   * @param time in milliseconds
+   */
   void cancel_after(std::chrono::milliseconds time)
   {
     using namespace std::chrono;
@@ -179,6 +237,7 @@ public:
         while (time_elapsed < threshold) {
           auto time_delta = std::chrono::steady_clock::now() - last_timestamp;
           time_elapsed += duration_cast<milliseconds>(time_delta);
+          std::this_thread::yield();
         }
         co_return;
       }
