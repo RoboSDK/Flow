@@ -5,8 +5,11 @@
 #include <type_traits>
 #include <variant>
 
-namespace flow::metaprogramming {
+/**
+ * Metaprogramming utilities
+ */
 
+namespace flow::metaprogramming {
 /*
  * A metaprogramming size_tc to pass in integral arguments as arguments at compile time
  */
@@ -24,9 +27,10 @@ struct size_tc {
 template<typename t>
 struct type_container {
   using type = t;
-  constexpr type_container(std::tuple<t> /*unused*/) {}
+  constexpr explicit type_container(std::tuple<t> /*unused*/) {}
 
   constexpr type_container() = default;
+  constexpr ~type_container() = default;
   constexpr type_container(type_container<t>&&) noexcept = default;
   constexpr type_container(type_container<t> const&) = default;
   constexpr type_container<t>& operator=(type_container<t>&&) noexcept = default;
@@ -63,7 +67,7 @@ constexpr bool empty()
 }
 
 template<class... items_t>
-constexpr bool empty([[maybe_unused]] std::tuple<items_t...> const&)
+constexpr bool empty([[maybe_unused]] std::tuple<items_t...> const& /*unused*/)
 {
   return sizeof...(items_t) == 0;
 }
@@ -89,7 +93,7 @@ constexpr auto pop_front([[maybe_unused]] std::tuple<removed_t, the_rest_t...> l
  * @return A tuple with N less items in the front
  */
 template<typename removed_t, typename... the_rest_t, std::size_t N>
-constexpr auto pop_front([[maybe_unused]] size_tc<N>)
+constexpr auto pop_front([[maybe_unused]] size_tc<N> /*unused*/)
 {
   if constexpr (empty<removed_t, the_rest_t...>()) {
     return std::tuple<>{};
@@ -184,7 +188,7 @@ void for_each(auto&& callback)
     callback(type_container<typename decltype(next_t)::type>{});
 
     auto the_rest = pop_front<items_t...>();
-    const auto continue_loop_on = [&]<typename... the_rest_t>([[maybe_unused]] std::tuple<the_rest_t...>)
+    const auto continue_loop_on = [&]<typename... the_rest_t>([[maybe_unused]] std::tuple<the_rest_t...> /*unused*/)
     {
       for_each<the_rest_t...>(callback);
     };
@@ -291,10 +295,10 @@ struct function_traits<return_t(args_t...)> {
 public:
   static constexpr std::size_t arity = sizeof...(args_t);
 
-  typedef return_t function_type(args_t...);
-  typedef return_t return_type;
+  using function_type = return_t (args_t...);
+  using return_type = return_t;
   using stl_function_type = std::function<function_type>;
-  typedef return_t (*pointer)(args_t...);
+  using pointer = return_t (*)(args_t...);
 
   template<size_t I>
   struct args {
@@ -302,8 +306,8 @@ public:
     using type = typename std::tuple_element<I, std::tuple<args_t...>>::type;
   };
 
-  typedef std::tuple<std::remove_cv_t<std::remove_reference_t<args_t>>...> tuple_type;
-  typedef std::tuple<std::remove_const_t<std::remove_reference_t<args_t>>...> bare_tuple_type;
+  using tuple_type = std::tuple<std::remove_cv_t<std::remove_reference_t<args_t>>...>;
+  using bare_tuple_type = std::tuple<std::remove_const_t<std::remove_reference_t<args_t>>...>;
 };
 
 template<typename return_t, typename... args_t>
@@ -320,8 +324,8 @@ struct function_traits<std::function<return_t(args_t...)>> : function_traits<ret
 };
 
 //member function.
-#define FUNCTION_TRAITS(...)                                                                                      \
-  template<typename return_turnType, typename ClassType, typename... args_t>                                             \
+#define FUNCTION_TRAITS(...)                                                                                                    \
+  template<typename return_turnType, typename ClassType, typename... args_t>                                                    \
   struct function_traits<return_turnType (ClassType::*)(args_t...) __VA_ARGS__> : function_traits<return_turnType(args_t...)> { \
   };
 
