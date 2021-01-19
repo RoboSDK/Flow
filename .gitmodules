@@ -34,3 +34,9 @@
 [submodule "external/cppitertools/include/cppitertools"]
 	path = external/cppitertools/include/cppitertools
 	url = https://github.com/ryanhaining/cppitertools.git
+[submodule "external/NamedType"]
+	path = external/NamedType
+	url = https://github.com/joboccara/NamedType.git
+[submodule "external/sole"]
+	path = external/sole
+	url = https://github.com/r-lyeh-archived/sole.git
