@@ -26,7 +26,7 @@ public:
 
   using task_t = cppcoro::task<void>;
 
-  chain(auto* context) : m_context(context) {}
+  explicit chain(auto* context) : m_context(context) {}
 
   /************************************************************************************************/
   template<typename message_t>
@@ -181,7 +181,6 @@ public:
           auto time_delta = std::chrono::steady_clock::now() - last_timestamp;
           time_elapsed += duration_cast<milliseconds>(time_delta);
         }
-        flow::logging::error("canceled after 10ms");
         co_return;
       }
 

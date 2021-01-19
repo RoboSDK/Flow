@@ -22,9 +22,6 @@
 [submodule "external/sole/sole"]
 	path = external/sole/sole
 	url = https://github.com/r-lyeh-archived/sole.git
-[submodule "external/cppitertools/include/cppitertools"]
-	path = external/cppitertools/include/cppitertools
-	url = https://github.com/ryanhaining/cppitertools.git
 [submodule "external/NamedType"]
 	path = external/NamedType
 	url = https://github.com/joboccara/NamedType.git
@@ -40,3 +37,6 @@
 [submodule "external/farbot"]
 	path = external/tmp/farbot
 	url = https://github.com/hogliux/farbot.git
+[submodule "external/cppitertools/include/cppitertools"]
+	path = external/cppitertools/include/cppitertools
+	url = https://github.com/ryanhaining/cppitertools.git

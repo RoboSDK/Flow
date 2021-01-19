@@ -9,24 +9,6 @@
 
 using namespace std::literals;
 
-int producer()
-{
-  static int val = 0;
-  flow::logging::error("CALLBACK producer");
-  return val++;
-}
-
-int doubler(int&& val)
-{
-  flow::logging::error("CALLBACK transformer");
-  return val * 2;
-}
-
-void consumer(int&& val)
-{
-  flow::logging::error("CALLBACK consumer: {}", val);
-}
-
 int main()
 {
   using context_t = flow::context<flow::configuration>;
@@ -35,11 +17,20 @@ int main()
   auto context = std::make_unique<context_t>();
   chain_t chain{ context.get() };
 
-  chain.push(producer, "producer");
-  chain.push(doubler, "producer", "doubler");
-  chain.push(consumer, "doubler");
+  chain.push([] {
+    static int val = 0;
+    return val++;
+  },
+    "producer");
+
+  chain.push([](int&& val) {
+    return 2 * val;
+  },
+    "producer",
+    "doubler");
+
+  chain.push([](int&& /*unused*/) {}, "doubler");
 
   chain.cancel_after(0ms);
-
   cppcoro::sync_wait(chain.spin());
 }

@@ -3,11 +3,7 @@
 #include <iomanip>
 #include <sstream>
 
-#include <frozen/string.h>
-
 namespace flow {
-using string = frozen::string;
-
 /**
  * Takes a begin and end iterator for some container and turns it into a string
  * @param begin_t The begin iterator

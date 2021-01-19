@@ -5,7 +5,15 @@ else()
   include(${CONAN_CATCH2_ROOT}/lib/cmake/Catch2/Catch.cmake)
 endif()
 
-list(APPEND libraries CONAN_PKG::catch2 project_options project_warnings header_only_libs flow::flow cppcoro liburing::liburing)
+list(APPEND libraries
+        CONAN_PKG::catch2
+        project_options
+        project_warnings
+        header_only_libs
+        flow::flow
+        flow::logging cppcoro
+        liburing::liburing
+        CONAN_PKG::spdlog)
 
 add_library(catch_main STATIC catch_main.cpp)
 target_link_libraries(catch_main PUBLIC ${libraries})
@@ -63,12 +71,11 @@ add_catch_test(test_array)
 add_catch_test(test_any_type_set)
 add_catch_test(test_string)
 add_catch_test(test_double_buffer)
-add_catch_test(test_cancellation)
-add_catch_test(test_channel_set)
+#add_catch_test(test_cancellation)
 add_catch_test(test_tick_function)
-add_catch_test(test_timeout_function)
+#add_catch_test(test_timeout_function)
 add_catch_test(test_atomics)
-add_catch_test(test_id_generator)
+#add_catch_test(test_id_generator)
 
 add_constexpr_catch_test(constexpr_tests)
 add_constexpr_catch_test(test_metaprogramming)

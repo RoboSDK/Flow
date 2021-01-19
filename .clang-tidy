@@ -1,12 +1,14 @@
 ---
-Checks: >-
-  *,-fuchsia-*,
+Checks: >
+  *,
+  -fuchsia-*,
   -google-*,
   -zircon-*,
   -abseil-*,
   -modernize-use-trailing-return-type,
   -llvm-*,
-  -llvmlibc-callee-namespace
+  -llvmlibc-callee-namespace,
+  -bugprone-reserved-identifier
 
 WarningsAsErrors: '*'
 HeaderFilterRegex: ''
