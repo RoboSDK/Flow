@@ -1,3 +1,12 @@
+
+[![codecov](https://codecov.io/gh/manuelmeraz/flow/branch/master/graph/badge.svg)](https://codecov.io/gh/manuelmeraz/flow)
+
+[![Build Status](https://travis-ci.org/manuelmeraz/flow.svg?branch=master)](https://travis-ci.org/manuelmeraz/flow)
+
+[![Build status](https://ci.appveyor.com/api/projects/status/ro4lbfoa7n0sy74c/branch/master?svg=true)](https://ci.appveyor.com/project/manuelmeraz/flow/branch/master)
+
+![CMake](https://github.com/manuelmeraz/flow/workflows/CMake/badge.svg)
+
 # Flow
 
 The ideal autonomous system is able to react and adapt to its environment without delay. 
