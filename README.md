@@ -20,13 +20,14 @@ See [cppreference.com](https://en.cppreference.com/w/cpp/compiler_support)
 to see which features are supported by each compiler.
 The following compilers should work:
 
-  * [gcc 7+](https://gcc.gnu.org/)
+  * [gcc 10+](https://gcc.gnu.org/)
 	<details>
 	<summary>Install command</summary>
 
-	- Debian/Ubuntu:
-		
-			sudo apt install build-essential
+	- Debian/Ubuntu 20.04:
+
+	  	sudo apt install build-essential gcc-10 g++-10
+		sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
 
 	- Windows:
 		
@@ -127,6 +128,17 @@ The following compilers should work:
 	
 	</details>
 
+### Linux Build Dependencies
+1. [liburing](https://github.com/axboe/liburing)
+   <details>
+   <summary>Install Command</summary>
+   		sudo ./scripts/install_liburing.sh
+   </details>
+2. [cppcoro](https://github.com/axboe/liburing)
+   <details>
+   <summary>Install Command</summary>
+   		sudo ./scripts/install_libcppcoro.sh
+   </details>
 ### Optional Dependencies
 #### C++ Tools
   * [Doxygen](http://doxygen.nl/)
