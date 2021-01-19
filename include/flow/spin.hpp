@@ -16,7 +16,6 @@ cppcoro::task<void> spin_spinner(
     co_await scheduler.schedule();
     std::invoke(spinner);
   }
-  spinner.confirm_cancellation();
 }
 
 template<typename return_t>
@@ -29,7 +28,6 @@ cppcoro::task<void> spin_producer(
     auto message = std::invoke(producer);
     channel.publish_message(std::move(message));
   }
-  producer.confirm_cancellation();
 }
 
 template<typename argument_t>
@@ -49,7 +47,6 @@ cppcoro::task<void> spin_consumer(
     }
   }
 
-  consumer.confirm_cancellation();
   channel.terminate();
 
   while (channel.is_waiting()) {
@@ -88,7 +85,6 @@ cppcoro::task<void> spin_transformer(
     }
   }
 
-  transformer.confirm_cancellation();
   producer_channel.terminate();
 
   while (producer_channel.is_waiting()) {

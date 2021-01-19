@@ -27,10 +27,11 @@ struct size_tc {
 template<typename t>
 struct type_container {
   using type = t;
-  constexpr explicit type_container(std::tuple<t> /*unused*/) {}
+  constexpr type_container(std::tuple<t> /*unused*/) {}
 
   constexpr type_container() = default;
   constexpr ~type_container() = default;
+
   constexpr type_container(type_container<t>&&) noexcept = default;
   constexpr type_container(type_container<t> const&) = default;
   constexpr type_container<t>& operator=(type_container<t>&&) noexcept = default;

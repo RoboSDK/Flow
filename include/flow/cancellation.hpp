@@ -1,9 +1,7 @@
 #pragma once
 
-#include <cassert>
 #include <iostream>
 
-#include <cppcoro/cancellation_registration.hpp>
 #include <cppcoro/cancellation_source.hpp>
 #include <cppcoro/cancellation_token.hpp>
 #include <cppcoro/operation_cancelled.hpp>
@@ -12,14 +10,23 @@
 #include "logging.hpp"
 
 /**
- * This module is dedicated to the cancellation_handle and cancellation_callback.
+ * This module is dedicated to the cancellation_handle and cancellable_function.
  *
- * For every publisher or subscriber there exists a cancellation handle and callback pair.
+ * Any std::function, function pointer, or lambda may be used to make a cancellable_function
  *
- * The callback handle (which owns a cancellable handle) is given to the task that subscriber
- * or publishers to the channel, which gives control of the callback to the task owner.
+ * A cancellable function can generate a cancellation_handle via the handle() method. The handle is
+ * the object whereby cancellation is transmitted to the cancellable_function.
  *
- * The cancellable callback is linked to this callback handle, which may be disabled by the callback handle.
+ * The nominal use case is as follows:
+ *   void do_foo() {  // do foo here }
+ *
+ *   auto cancellable = flow::make_cancellable_function(do_foo);
+ *   auto handle = cancellable.handle(); // may be copied
+ *
+ *   while (not cancellable.is_cancellation_requested()) { // do work }
+ *
+ * These cancellable functions are used by the chain data structure to cancel the consumer
+ * at the end of the chain. This triggers the full cancellation of the chain itself.
  */
 
 namespace flow {
@@ -30,13 +37,14 @@ namespace flow {
 class cancellation_handle {
 public:
   cancellation_handle() = default;
+  ~cancellation_handle() = default;
+
   cancellation_handle(cancellation_handle&&) noexcept = default;
   cancellation_handle(cancellation_handle const&) = default;
   cancellation_handle& operator=(cancellation_handle&&) noexcept = default;
   cancellation_handle& operator=(cancellation_handle const&) = default;
 
-  cancellation_handle(cppcoro::cancellation_source* cancel_source, bool* is_cancelled) : m_is_cancelled(is_cancelled),
-                                                                                         m_cancel_source(cancel_source)
+  explicit cancellation_handle(cppcoro::cancellation_source* cancel_source) : m_cancel_source(cancel_source)
   {
   }
 
@@ -45,21 +53,12 @@ public:
     m_cancel_source->request_cancellation();
   }
 
-  cppcoro::cancellation_token token()
-  {
-    return m_cancel_source->token();
-  }
-
-  bool is_cancelled() { return *m_is_cancelled; }
-
 private:
-  bool* m_is_cancelled{ nullptr };
   cppcoro::cancellation_source* m_cancel_source{ nullptr };
 };
 
 /**
- * Takes in a function and manually passed parameters, along with a cancellation token that allows the callback
- * to be cancelled by the owner of the cancellation handle.
+ * Created from another function function and may be cancelled
  * @tparam R The return type of the function
  * @tparam Args The arguments of the function
  */
@@ -71,10 +70,9 @@ class cancellable_function<return_t(args_t...)> {
 public:
   using callback_t = std::function<return_t(args_t...)>;
   using function_ptr_t = return_t (*)(args_t...);
-  using is_cancellable = std::true_type;
 
-  explicit cancellable_function(callback_t&& callback) : m_callback(std::move(callback)) {}
-  explicit cancellable_function(function_ptr_t callback) : m_callback(callback) {}
+  [[maybe_unused]] explicit cancellable_function(callback_t&& callback) : m_callback(std::move(callback)) {}
+  [[maybe_unused]] explicit cancellable_function(function_ptr_t callback) : m_callback(callback) {}
 
   return_t operator()(args_t&&... args)
   {
@@ -93,18 +91,10 @@ public:
 
   cancellation_handle handle()
   {
-    return cancellation_handle{ &m_cancellation_source, &m_is_cancelled };
+    return cancellation_handle{ &m_cancellation_source};
   }
-
-  void confirm_cancellation()
-  {
-    m_is_cancelled = true;
-  }
-
 
 private:
-  bool m_is_cancelled{ false };
-
   cppcoro::cancellation_source m_cancellation_source{};
   cppcoro::cancellation_token m_cancel_token{ m_cancellation_source.token() };
 
@@ -138,12 +128,5 @@ auto make_cancellable_function(auto&& lambda)
 {
   return make_cancellable_function(flow::metaprogramming::to_function(lambda));
 }
-
-template<typename T>
-concept cancellable_callback = requires
-{
-  typename T::is_cancellable;
-};
-
 
 }// namespace flow
