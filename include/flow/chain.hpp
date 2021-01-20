@@ -10,6 +10,7 @@
 #include "flow/data_structures/channel_set.hpp"
 #include "flow/routine.hpp"
 #include "flow/spin.hpp"
+#include "flow/timeout_function.hpp"
 
 /**
  * A chain is a sequence of routines connected by single producer single consumer channels.
@@ -225,32 +226,14 @@ public:
    */
   void cancel_after(std::chrono::milliseconds time)
   {
-    using namespace std::chrono;
+    auto timeout_function_ptr = make_timeout_function(time, [&]{
+      handle().request_cancellation();
+    });
 
-    struct allocated_task {
-      cppcoro::task<void> spin()
-      {
-        auto cancelOnExit = cppcoro::on_scope_exit([&] {
-               handle.request_cancellation();
-        });
+    auto& timeout_function = *timeout_function_ptr;
 
-        while (time_elapsed < threshold) {
-          auto time_delta = std::chrono::steady_clock::now() - last_timestamp;
-          time_elapsed += duration_cast<milliseconds>(time_delta);
-          std::this_thread::yield();
-        }
-        co_return;
-      }
-
-      cancellation_handle handle;
-      std::chrono::milliseconds threshold{};
-      milliseconds time_elapsed{ 0 };
-      decltype(steady_clock::now()) last_timestamp{ steady_clock::now() };
-    };
-
-    auto waiting_ask = std::make_shared<allocated_task>(m_handle, time);
-    m_context->tasks.push_back(waiting_ask->spin());
-    m_callbacks.push_back(std::move(waiting_ask));
+    m_context->tasks.push_back(timeout_function());
+    m_callbacks.push_back(std::move(timeout_function_ptr));
   }
 
 private:
