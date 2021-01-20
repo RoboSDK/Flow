@@ -2,6 +2,8 @@
 #include <flow/configuration.hpp>
 #include <flow/forest.hpp>
 
+using namespace std::literals;
+
 int producer()
 {
   static int val = 0;
@@ -24,5 +26,7 @@ TEST_CASE("Test forest behavior", "[forest behavior]")
 
   forest.push(producer);
   forest.push(consumer);
+  forest.cancel_after(10ms);
+  cppcoro::sync_wait(forest.spin());
 }
 

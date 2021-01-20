@@ -64,9 +64,6 @@ public:
     closed /// The chain is complete and is capped by a consumer
   };
 
-  /// A task coroutine
-  using task_t = cppcoro::task<void>;
-
   /*
    * @param context The context contains all raw resources used to create the chain
    */
@@ -204,7 +201,7 @@ public:
    * Joins all the routines into a single coroutine
    * @return a coroutine
    */
-  task_t spin()
+  cppcoro::task<void> spin()
   {
     co_await cppcoro::when_all_ready(std::move(m_context->tasks));
   }
@@ -233,7 +230,7 @@ public:
    * The current state of the chain
    * @return chain state
    */
-  chain::state state()
+  chain::state state() const
   {
     return m_state;
   }
