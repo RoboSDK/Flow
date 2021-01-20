@@ -49,10 +49,10 @@ public:
     m_chains.emplace_back(m_context.get());
     auto& chain = m_chains.back();
 
-    chain.push(std::move(routine), std::move(channel_name));
+    chain.push(std::move(routine), channel_name);
 
     using message_t = typename traits<decltype(routine)>::return_type;
-    std::size_t hashed_consumer = flow::hash<message_t>(channel_name);
+    std::size_t hashed_consumer = flow::hash<message_t>(std::move(channel_name));
 
     // Used to find the chain that needs this consumer or transformer
     m_incomplete_chains.emplace(std::make_pair(hashed_consumer, std::ref(chain)));
@@ -93,22 +93,19 @@ public:
 
     const std::size_t hashed_producer_channel = flow::hash<producer_message_t>(producer_channel_name);
 
-    std::reference_wrapper<chain_t> chain_reference{};
-
     try {
-      auto chain = m_incomplete_chains.at(hashed_producer_channel);
-      chain.get().push(std::move(routine), std::move(producer_channel_name));
-      chain_reference = chain;
+      auto chain_reference = m_incomplete_chains.at(hashed_producer_channel);
+      chain_reference.get().push(std::move(routine), std::move(producer_channel_name), consumer_channel_name);
+
+      m_incomplete_chains.erase(hashed_producer_channel);
+
+      using consumer_message_t = typename traits<decltype(routine)>::return_type;
+      const std::size_t hashed_consumer_channel = flow::hash<consumer_message_t>(std::move(consumer_channel_name));
+      m_incomplete_chains.emplace(std::make_pair(hashed_consumer_channel, chain_reference));
     }
     catch (...) {
-      flow::logging::critical_throw("Attempted to push a transformer into a forest with no producer to match it.");
+      flow::logging::error("Attempted to push a transformer into a forest with no producer to match it.");
     }
-
-    m_incomplete_chains.erase(hashed_producer_channel);// The chain is now complete
-
-    using consumer_message_t = typename traits<decltype(routine)>::return_type;
-    const std::size_t hashed_consumer_channel = flow::hash<consumer_message_t>(consumer_channel_name);
-    m_incomplete_chains.emplace(std::make_pair(hashed_consumer_channel, chain_reference));
   }
 
   /**

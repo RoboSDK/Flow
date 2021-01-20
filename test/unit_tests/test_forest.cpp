@@ -7,16 +7,19 @@ using namespace std::literals;
 int producer()
 {
   static int val = 0;
+//  flow::logging::info("producer: {}", val);
   return val++;
 }
 
 int doubler(int&& val)
 {
+//  flow::logging::info("transformer: {}", val * 2);
   return val * 2;
 }
 
 void consumer(int&& /*unused*/)
 {
+//  flow::logging::info("consumer: {}", val);
 }
 
 TEST_CASE("Test forest behavior", "[forest behavior]")
@@ -24,9 +27,9 @@ TEST_CASE("Test forest behavior", "[forest behavior]")
   using forest_t = flow::forest<flow::configuration>;
   forest_t forest{};
 
-  forest.push(producer);
-  forest.push(consumer);
-  forest.cancel_after(10ms);
+  forest.push(producer, "1");
+  forest.push(doubler, "1", "2");
+  forest.push(consumer, "2");
+  forest.cancel_after(0ms);
   cppcoro::sync_wait(forest.spin());
 }
-
