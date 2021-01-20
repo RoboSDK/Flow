@@ -4,7 +4,7 @@
 
 #include <cppcoro/async_generator.hpp>
 #include <cppcoro/sequence_barrier.hpp>
-#include <cppcoro/single_producer_sequencer.hpp>
+#include <cppcoro/multi_producer_sequencer.hpp>
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
 
@@ -24,7 +24,7 @@ namespace flow {
 template<typename configuration_t>
 struct resource {
   using sequence_barrier = cppcoro::sequence_barrier<std::size_t>;
-  using single_producer_sequencer = cppcoro::single_producer_sequencer<std::size_t>;
+  using multi_producer_sequencer = cppcoro::multi_producer_sequencer<std::size_t>;
 
   /*
    * The sequence barrier is used to communicate from the consumer end that it has
@@ -36,7 +36,7 @@ struct resource {
    * The producer sequencer generated sequence numbers that the producer end of the channel
    * uses to publish to the consumer end
    */
-  single_producer_sequencer sequencer{ barrier, configuration_t::message_buffer_size };
+  multi_producer_sequencer sequencer{ barrier, configuration_t::message_buffer_size };
 };
 
 /**
@@ -159,7 +159,7 @@ public:
   {
     std::atomic_ref(m_is_waiting).store(false);
     m_end_consumer_sequence = co_await m_resource->sequencer.wait_until_published(
-      m_consumer_sequence, *m_scheduler);
+      m_consumer_sequence, m_last_consumer_sequence_published, *m_scheduler);
 
     do {
       co_yield m_buffer[m_consumer_sequence & m_index_mask];
@@ -172,10 +172,11 @@ public:
    */
   void notify_message_consumed()
   {
-    ++m_consumer_sequence;
+    ++std::atomic_ref(m_consumer_sequence);
 
     if (m_consumer_sequence == m_end_consumer_sequence) {
       m_resource->barrier.publish(m_end_consumer_sequence);
+      std::atomic_ref(m_last_consumer_sequence_published).store(m_end_consumer_sequence);
     }
   }
 
@@ -223,6 +224,7 @@ private:
 
   std::size_t m_producer_sequence{};
   std::size_t m_consumer_sequence{};
+  std::size_t m_last_consumer_sequence_published{};
 
   /// The last sequence number before waiting to consume more messages
   std::size_t m_end_consumer_sequence{};
