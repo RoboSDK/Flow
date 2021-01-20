@@ -10,7 +10,7 @@
 #include "flow/data_structures/channel_set.hpp"
 #include "flow/routine.hpp"
 #include "flow/spin.hpp"
-#include "flow/timeout_function.hpp"
+#include "flow/timeout_routine.hpp"
 
 /**
  * A chain is a sequence of routines connected by single producer single consumer channels.

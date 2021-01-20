@@ -9,22 +9,19 @@
 #include "flow/metaprogramming.hpp"
 
 
-template<typename T>
-class timeout_function;
-
 namespace flow {
-class timeout_function {
+class timeout_routine {
 public:
   using callback_t = std::function<void()>;
   using function_ptr_t = void (*)();
 
-  [[maybe_unused]] timeout_function(std::chrono::nanoseconds time_limit, callback_t&& callback)
+  [[maybe_unused]] timeout_routine(std::chrono::nanoseconds time_limit, callback_t&& callback)
     : m_callback(std::move(callback)),
       m_time_limit(time_limit)
   {
   }
 
-  [[maybe_unused]] timeout_function(std::chrono::nanoseconds time_limit, function_ptr_t callback)
+  [[maybe_unused]] timeout_routine(std::chrono::nanoseconds time_limit, function_ptr_t callback)
     : m_callback(std::move(callback)),
       m_time_limit(time_limit)
   {
@@ -66,12 +63,12 @@ private:
  */
 auto make_timeout_function(std::chrono::nanoseconds threshold, std::function<void()>&& callback)
 {
-  return std::make_shared<timeout_function>(threshold, std::forward<decltype(callback)>(callback));
+  return std::make_shared<timeout_routine>(threshold, std::forward<decltype(callback)>(callback));
 }
 
 [[maybe_unused]] auto make_timeout_function(std::chrono::nanoseconds threshold, void (*callback)())
 {
-  return std::make_shared<timeout_function>(threshold, std::forward<decltype(callback)>(callback));
+  return std::make_shared<timeout_routine>(threshold, std::forward<decltype(callback)>(callback));
 }
 
 auto make_timeout_function(std::chrono::nanoseconds threshold, auto&& lambda)

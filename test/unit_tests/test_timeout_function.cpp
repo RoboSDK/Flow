@@ -1,9 +1,9 @@
 #include <catch2/catch.hpp>
 #include <cppcoro/sync_wait.hpp>
 #include <flow/logging.hpp>
-#include <flow/timeout_function.hpp>
+#include <flow/timeout_routine.hpp>
 
-TEST_CASE("Test timeout_function behavior", "[timeout_function]")
+TEST_CASE("Test timeout_routine behavior", "[timeout_routine]")
 {
   using namespace std::chrono;
   using namespace std::chrono_literals;
