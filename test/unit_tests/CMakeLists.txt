@@ -71,6 +71,7 @@ add_catch_test(test_array)
 add_catch_test(test_double_buffer)
 add_catch_test(test_cancellation)
 add_catch_test(test_timeout_function)
+add_catch_test(test_chain)
 
 add_constexpr_catch_test(test_metaprogramming)
 

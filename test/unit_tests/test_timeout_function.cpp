@@ -1,6 +1,5 @@
 #include <catch2/catch.hpp>
 #include <cppcoro/sync_wait.hpp>
-#include <flow/logging.hpp>
 #include <flow/timeout_routine.hpp>
 
 TEST_CASE("Test timeout_routine behavior", "[timeout_routine]")
