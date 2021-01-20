@@ -13,30 +13,30 @@
 #include "flow/timeout_routine.hpp"
 
 /**
- * A chain is a sequence of routines connected by single producer single consumer channels.
- * The end of the chain depends on the data flow from the beginning of the chain. The beginning
- * of the chain has no dependencies.
+ * A network is a sequence of routines connected by single producer single consumer channels.
+ * The end of the network depends on the data flow from the beginning of the network. The beginning
+ * of the network has no dependencies.
  *
- * An empty chain is a chain which has no routines and can take a spinner or a producer.
+ * An empty network is a network which has no routines and can take a spinner or a producer.
  *
- * The minimal chain s a chain with a spinner, because it depends on nothing and nothing depends on it.
+ * The minimal network s a network with a spinner, because it depends on nothing and nothing depends on it.
  *
- * When a chain is begun with a producer, transformers may be inserted into the chain until it is capped
+ * When a network is begun with a producer, transformers may be inserted into the network until it is capped
  * with a consumer.
  *
- * Each chain is considered independent from another chain and may not communicate with each other.
+ * Each network is considered independent from another network and may not communicate with each other.
  *
  * producer -> transfomer -> ... -> consumer
  *
- * Each channel in the chain uses contiguous memory to pass data to the channel waiting on the other way. All
+ * Each channel in the network uses contiguous memory to pass data to the channel waiting on the other way. All
  * data must flow from producer to consumer; no cyclical dependencies.
  *
  * Cancellation
- * Cancelling the chain of coroutines is a bit tricky because if you stop them all at once, some of them will hang
+ * Cancelling the network of coroutines is a bit tricky because if you stop them all at once, some of them will hang
  * with no way to have them leave the awaiting state.
  *
- * When starting the chain reaction all routines will begin to wait and the first routine that is given priority is the
- * producer at the beginning of the chain, and the last will be the end of the chain, or consumer.
+ * When starting the network reaction all routines will begin to wait and the first routine that is given priority is the
+ * producer at the beginning of the network, and the last will be the end of the network, or consumer.
  *
  * The consumer then has to be the one that initializes the cancellation. The algorithm is as follows:
  *
@@ -45,29 +45,29 @@
  * consumer flushes out any awaiting producers/transformers on the producing end of the channel
  * end routine
  *
- * The transformer or producer that is next in the chain will then receiving channel termination notification
- * from the consumer at the end of the chain and break out of its loop
+ * The transformer or producer that is next in the network will then receiving channel termination notification
+ * from the consumer at the end of the network and break out of its loop
  * It well then notify terminate the producer channel it receives data from and flush it out
  *
- * rinse repeat until the beginning of the chain, which is a producer
+ * rinse repeat until the beginning of the network, which is a producer
  * The producer simply breaks out of its loop and exits the scope
  */
 
 namespace flow {
 template<typename configuration_t>
-class chain {
+class network {
 public:
 
   enum class state {
     empty, /// Initial state
     open, /// Has producers and transformers with no consumer
-    closed /// The chain is complete and is capped by a consumer
+    closed /// The network is complete and is capped by a consumer
   };
 
   /*
-   * @param context The context contains all raw resources used to create the chain
+   * @param context The context contains all raw resources used to create the network
    */
-  explicit chain(auto* context) : m_context(context) {}
+  explicit network(auto* context) : m_context(context) {}
 
   /**
    * Makes a channel if it doesn't exist and returns a reference to it
@@ -95,15 +95,15 @@ public:
   }
 
   /**
-   * Pushes a routine into the chain
+   * Pushes a routine into the network
    * @param spinner A routine with no dependencies and nothing depends on it
    */
   void push(flow::spinner auto&& spinner)
   {
     if (m_state not_eq state::empty) {
       flow::logging::critical_throw(
-        "Attempted to push a spinner into chain while the chain is not empty.\n"
-        "The current state of the chain is: {}",
+        "Attempted to push a spinner into network while the network is not empty.\n"
+        "The current state of the network is: {}",
         m_state);
     }
 
@@ -118,7 +118,7 @@ public:
   }
 
   /**
-   * Pushes a producer into the chain
+   * Pushes a producer into the network
    * @param producer The producer routine
    * @param channel_name The channel name the producer will publish to
    */
@@ -126,8 +126,8 @@ public:
   {
     if (m_state not_eq state::empty) {
       flow::logging::critical_throw(
-        "Attempted to push a producer into chain while the chain is not empty.\n"
-        "The current state of the chain is: {}",
+        "Attempted to push a producer into network while the network is not empty.\n"
+        "The current state of the network is: {}",
         m_state);
     }
 
@@ -144,7 +144,7 @@ public:
   }
 
   /**
-   *  Pushes a transformer into the chain and creates any necessary channels it requires
+   *  Pushes a transformer into the network and creates any necessary channels it requires
    * @param transformer A routine that depends on another routine and is depended on by a consumer or transformer
    * @param producer_channel_name The channel it depends on
    * @param consumer_channel_name The channel that it will publish to
@@ -153,8 +153,8 @@ public:
   {
     if (m_state not_eq state::open) {
       flow::logging::critical_throw(
-        "Attempted to push a transformer into chain while the chain is not open.\n"
-        "The current state of the chain is: {}",
+        "Attempted to push a transformer into network while the network is not open.\n"
+        "The current state of the network is: {}",
         m_state);
     }
 
@@ -171,7 +171,7 @@ public:
   }
 
   /**
-   * Pushes a consumer into the chain
+   * Pushes a consumer into the network
    * @param consumer A routine no other routine depends on and depends on at least a single routine
    * @param channel_name The channel it will consume from
    */
@@ -179,8 +179,8 @@ public:
   {
     if (m_state not_eq state::open) {
       flow::logging::critical_throw(
-        "Attempted to push a consumer into chain while the chain is not open.\n"
-        "The current state of the chain is: {}",
+        "Attempted to push a consumer into network while the network is not open.\n"
+        "The current state of the network is: {}",
         m_state);
     }
 
@@ -207,8 +207,8 @@ public:
   }
 
   /**
-   * Makes a handle to this chain that will allow whoever holds the handle to cancel
-   * the chain
+   * Makes a handle to this network that will allow whoever holds the handle to cancel
+   * the network
    *
    * The cancellation handle will trigger the consumer to cancel and trickel down all the way to the producer
    * @return A cancellation handle
@@ -217,8 +217,8 @@ public:
   {
     if (m_state not_eq state::closed) {
       flow::logging::critical_throw(
-        "Attempted to acquire a chain handle without completing the chain first.\n"
-        "The current state of the chain is: {}",
+        "Attempted to acquire a network handle without completing the network first.\n"
+        "The current state of the network is: {}",
         m_state);
     }
 
@@ -227,19 +227,19 @@ public:
 
 
   /**
-   * The current state of the chain
-   * @return chain state
+   * The current state of the network
+   * @return network state
    */
-  chain::state state() const
+  network::state state() const
   {
     return m_state;
   }
 
   /**
-   * Cancel the chain after the specified time
+   * Cancel the network after the specified time
    *
-   * This does not mean the chain will be stopped after this amount of time! It takes a non-deterministic
-   * amount of time to fully shut the chain down.
+   * This does not mean the network will be stopped after this amount of time! It takes a non-deterministic
+   * amount of time to fully shut the network down.
    * @param time in milliseconds
    */
   void cancel_after(std::chrono::milliseconds time)
@@ -259,8 +259,8 @@ public:
   }
 
 private:
-  //TODO:: why doesn't chain::state work?
-  decltype(chain::state::empty) m_state{ chain::state::empty };
+  //TODO:: why doesn't network::state work?
+  decltype(network::state::empty) m_state{ network::state::empty };
 
   context<configuration_t>* m_context;
   std::vector<std::any> m_callbacks;

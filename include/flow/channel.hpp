@@ -11,10 +11,10 @@
 #include <cppcoro/task.hpp>
 
 /**
- * The link between routines in a chain are channels.
+ * The link between routines in a network are channels.
  *
  * A channel in this framework is a single producer single consumer channel that are linked
- * to two corresponding neighbors in a chain.
+ * to two corresponding neighbors in a network.
  */
 
 namespace flow {
@@ -188,9 +188,9 @@ public:
   /**
    * Disable the channel
    *
-   * When cancelling a chain the beginning of the cancellation happens
-   * with the consumer end of the chain. This trickles down all the way to the
-   * beginning end of the chain with the first producer.
+   * When cancelling a network the beginning of the cancellation happens
+   * with the consumer end of the network. This trickles down all the way to the
+   * beginning end of the network with the first producer.
    *
    * The consumer cancels itself, terminates the channel, and then flushes out any
    * producers waiting for permission to publish.

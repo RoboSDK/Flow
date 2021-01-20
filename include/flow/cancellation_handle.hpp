@@ -25,8 +25,8 @@
  *
  *   while (not cancellable.is_cancellation_requested()) { // do work }
  *
- * These cancellable functions are used by the chain data structure to cancel the consumer
- * at the end of the chain. This triggers the full cancellation of the chain itself.
+ * These cancellable functions are used by the network data structure to cancel the consumer
+ * at the end of the network. This triggers the full cancellation of the network itself.
  */
 
 namespace flow {

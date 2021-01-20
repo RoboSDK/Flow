@@ -1,15 +1,15 @@
 #include <catch2/catch.hpp>
 #include <cppcoro/sync_wait.hpp>
 
-#include <flow/chain.hpp>
 #include <flow/configuration.hpp>
+#include <flow/network.hpp>
 
 using namespace std::literals;
 
-TEST_CASE("Test chain behavior using lambdas", "[chain behavior lambdas]")
+TEST_CASE("Test network behavior using lambdas", "[network behavior lambdas]")
 {
   using context_t = flow::context<flow::configuration>;
-  using chain_t = flow::chain<flow::configuration>;
+  using chain_t = flow::network<flow::configuration>;
 
   auto context = std::make_unique<context_t>();
   chain_t chain{ context.get() };
@@ -66,10 +66,10 @@ void consumer(int&& /*unused*/)
 {
 }
 
-TEST_CASE("Test chain behavior using raw functions", "[chain behavior function pointers]")
+TEST_CASE("Test network behavior using raw functions", "[network behavior function pointers]")
 {
   using context_t = flow::context<flow::configuration>;
-  using chain_t = flow::chain<flow::configuration>;
+  using chain_t = flow::network<flow::configuration>;
 
   auto context = std::make_unique<context_t>();
   chain_t chain{ context.get() };
@@ -82,10 +82,10 @@ TEST_CASE("Test chain behavior using raw functions", "[chain behavior function p
   cppcoro::sync_wait(chain.spin());
 }
 
-TEST_CASE("Test chain behavior using function pointers and lambdas ", "[chain behavior function pointers]")
+TEST_CASE("Test network behavior using function pointers and lambdas ", "[network behavior function pointers]")
 {
   using context_t = flow::context<flow::configuration>;
-  using chain_t = flow::chain<flow::configuration>;
+  using chain_t = flow::network<flow::configuration>;
 
   auto context = std::make_unique<context_t>();
   chain_t chain{ context.get() };
@@ -98,10 +98,10 @@ TEST_CASE("Test chain behavior using function pointers and lambdas ", "[chain be
   cppcoro::sync_wait(chain.spin());
 }
 
-TEST_CASE("Test chain state machine", "[chain state machine]")
+TEST_CASE("Test network state machine", "[network state machine]")
 {
   using context_t = flow::context<flow::configuration>;
-  using chain_t = flow::chain<flow::configuration>;
+  using chain_t = flow::network<flow::configuration>;
 
   SECTION("happy path producer-transformer-consumer")
   {

@@ -2,10 +2,10 @@
 
 #include <execution>
 
-#include "flow/chain.hpp"
 #include "flow/context.hpp"
 #include "flow/hash.hpp"
 #include "flow/metaprogramming.hpp"
+#include "flow/network.hpp"
 
 namespace flow {
 
@@ -20,7 +20,7 @@ namespace flow {
 template<typename configuration_t>
 class forest {
   using context_t = flow::context<configuration_t>;
-  using chain_t = flow::chain<configuration_t>;
+  using chain_t = flow::network<configuration_t>;
 
   template<typename callable_t>
   using traits = flow::metaprogramming::function_traits<std::decay_t<callable_t>>;
@@ -28,7 +28,7 @@ class forest {
 public:
   /**
    * Push a spinner into the forest
-   * Producers will always generate a new chain and be complete
+   * Producers will always generate a new network and be complete
    * @param routine the spinner
    */
   void push(flow::spinner auto&& routine)
@@ -40,7 +40,7 @@ public:
 
   /**
    * Push a producer into the forest
-   * Producers will always generate a new chain
+   * Producers will always generate a new network
    * @param routine the producer
    * @param channel_name the channel name the producer will publish on
    */
@@ -54,7 +54,7 @@ public:
     using message_t = typename traits<decltype(routine)>::return_type;
     std::size_t hashed_consumer = flow::hash<message_t>(std::move(channel_name));
 
-    // Used to find the chain that needs this consumer or transformer
+    // Used to find the network that needs this consumer or transformer
     m_incomplete_chains.emplace(std::make_pair(hashed_consumer, std::ref(chain)));
   }
 
@@ -78,7 +78,7 @@ public:
       flow::logging::critical_throw("Attempted to push a consumer into a forest with no producer to match it.");
     }
 
-    m_incomplete_chains.erase(hashed_channel);// The chain is now complete
+    m_incomplete_chains.erase(hashed_channel);// The network is now complete
   }
 
   /**
@@ -115,7 +115,7 @@ public:
   cppcoro::task<void> spin()
   {
     if (not is_ready()) {
-      flow::logging::critical_throw("There is at least chain that is not complete in the forest!");
+      flow::logging::critical_throw("There is at least network that is not complete in the forest!");
     }
 
     co_await cppcoro::when_all_ready(std::move(m_context->tasks));

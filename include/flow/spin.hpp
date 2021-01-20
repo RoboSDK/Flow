@@ -34,7 +34,7 @@ cppcoro::task<void> spin_spinner(
  * Generates a coroutine that keeps calling the producer until it is cancelled
  *
  * Notice that the producer is not flushing. The reason is that the producer belongs at
- * the beginning of the chain and has no one else in front of it, and therefore nothing
+ * the beginning of the network and has no one else in front of it, and therefore nothing
  * to flush
  *
  * @param channel a flow channel that represents a connection between the receiver
@@ -63,7 +63,7 @@ cppcoro::task<void> spin_producer(
  *
  * Generates a coroutine that keeps calling the consumer until it is cancelled.
  *
- * The consumer will be placed at the end of the routine chain and will be the one
+ * The consumer will be placed at the end of the routine network and will be the one
  * that triggers any cancellation events. It depends on a transformer or producer to
  * send messages through the channel.
  *
