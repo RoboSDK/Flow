@@ -14,3 +14,5 @@ macro(add_coroutine_test test_name)
     add_test(NAME ${test_name} COMMAND ${test_name})
 endmacro()
 
+add_coroutine_test(test_chain_function_pointers)
+add_coroutine_test(test_chain_lambdas)

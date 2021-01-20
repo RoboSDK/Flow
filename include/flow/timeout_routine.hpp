@@ -42,11 +42,13 @@ public:
     });
 
     while (m_time_elapsed < m_time_limit) {
-      auto time_delta = std::chrono::steady_clock::now() - m_last_timestamp;
+      auto new_timestamp = std::chrono::steady_clock::now();
+      auto time_delta = new_timestamp - m_last_timestamp;
+      m_last_timestamp = new_timestamp;
+
       m_time_elapsed += duration_cast<nanoseconds>(time_delta);
       std::this_thread::yield();
     }
-
     co_return;
   }
 

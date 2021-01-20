@@ -17,11 +17,13 @@ TEST_CASE("Test chain behavior using lambdas", "[chain behavior lambdas]")
   int test_value = 0;
 
   chain.push([&] {
+    flow::logging::info("producer lambda");
     return test_value++;
   },
     "producer");
 
   chain.push([](int&& val) {
+    flow::logging::info("transformer lambda");
     return 2 * val;
   },
     "producer",
@@ -30,17 +32,19 @@ TEST_CASE("Test chain behavior using lambdas", "[chain behavior lambdas]")
   std::vector<int> doubled_values{};
 
   chain.push([&](int&& doubled_value) {
+    flow::logging::info("transformer lambda");
     doubled_values.push_back(std::move(doubled_value));
   },
     "doubler");
+
+  chain.cancel_after(0ms);
+  flow::logging::error("foo");
+  cppcoro::sync_wait(chain.spin());
 
   for (int i = 0; i < test_value; ++i) {
     const int doubled_value = (i + 1) * 2;
     REQUIRE(doubled_values[static_cast<unsigned long>(i)] == doubled_value);
   }
-
-  chain.cancel_after(0ms);
-  cppcoro::sync_wait(chain.spin());
 }
 
 /*
@@ -88,7 +92,7 @@ TEST_CASE("Test chain behavior using function pointers and lambdas ", "[chain be
 
   chain.push(producer, "producer");
   chain.push(doubler, "producer", "doubler");
-  chain.push([](int&& /*unused*/){}, "doubler");
+  chain.push([](int&& /*unused*/) {}, "doubler");
 
   chain.cancel_after(0ms);
   cppcoro::sync_wait(chain.spin());
@@ -99,7 +103,8 @@ TEST_CASE("Test chain state machine", "[chain state machine]")
   using context_t = flow::context<flow::configuration>;
   using chain_t = flow::chain<flow::configuration>;
 
-  SECTION("happy path producer-transformer-consumer" ) {
+  SECTION("happy path producer-transformer-consumer")
+  {
     auto context = std::make_unique<context_t>();
     chain_t chain{ context.get() };
     REQUIRE(chain.state() == chain_t::state::empty);
@@ -117,15 +122,17 @@ TEST_CASE("Test chain state machine", "[chain state machine]")
     REQUIRE(chain.state() == chain_t::state::closed);
   }
 
-  SECTION("happy path spinner" ) {
+  SECTION("happy path spinner")
+  {
     auto context = std::make_unique<context_t>();
     chain_t chain{ context.get() };
-    chain.push([]{});
+    chain.push([] {});
 
     REQUIRE(chain.state() == chain_t::state::closed);
   }
 
-  SECTION("exception producer-producer" ) {
+  SECTION("exception producer-producer")
+  {
     auto context = std::make_unique<context_t>();
     chain_t chain{ context.get() };
     chain.push(producer, "1");
@@ -134,19 +141,22 @@ TEST_CASE("Test chain state machine", "[chain state machine]")
     REQUIRE_THROWS(chain.push(producer, "1"));
   }
 
-  SECTION("exception consumer" ) {
+  SECTION("exception consumer")
+  {
     auto context = std::make_unique<context_t>();
     chain_t chain{ context.get() };
     REQUIRE_THROWS(chain.push(consumer, "1"));
   }
 
-  SECTION("exception transformer" ) {
+  SECTION("exception transformer")
+  {
     auto context = std::make_unique<context_t>();
     chain_t chain{ context.get() };
     REQUIRE_THROWS(chain.push(doubler, "1", "2"));
   }
 
-  SECTION("exception producer-consumer-transformer" ) {
+  SECTION("exception producer-consumer-transformer")
+  {
     auto context = std::make_unique<context_t>();
     chain_t chain{ context.get() };
     chain.push(producer, "1");

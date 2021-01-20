@@ -2,9 +2,11 @@
 
 #include <array>
 
+#include "flow/metaprogramming.hpp"
+
 #include <cppcoro/async_generator.hpp>
-#include <cppcoro/sequence_barrier.hpp>
 #include <cppcoro/multi_producer_sequencer.hpp>
+#include <cppcoro/sequence_barrier.hpp>
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
 
@@ -74,7 +76,6 @@ class channel {
   using scheduler_t = cppcoro::static_thread_pool;/// The static thread pool is used to schedule threads
 
 public:
-
   /**
    * @param name Name of the channel
    * @param resource A generated channel resource
@@ -130,20 +131,25 @@ public:
    * Request permission to publish the next message
    * @return
    */
-  cppcoro::task<void> request_permission_to_publish()
+  cppcoro::task<cppcoro::sequence_range<std::size_t>> request_permission_to_publish()
   {
-    std::atomic_ref(m_is_waiting).store(true);
-    m_producer_sequence = co_await m_resource->sequencer.claim_one(*m_scheduler);
+    static constexpr std::size_t STRIDE_LENGTH = configuration_t::message_buffer_size;
+
+    ++std::atomic_ref(m_num_publishers_waiting);
+    cppcoro::sequence_range<std::size_t> sequences = co_await m_resource->sequencer.claim_up_to(STRIDE_LENGTH, *m_scheduler);
+    --std::atomic_ref(m_num_publishers_waiting);
+
+    co_return sequences;
   }
 
   /**
    * Publish the produced message
    * @param message The message type the channel communicates
    */
-  void publish_message(message_t&& message)
+  void publish_message(message_t&& message, std::size_t sequence_number)
   {
-    m_buffer[m_producer_sequence & m_index_mask] = std::move(message);
-    m_resource->sequencer.publish(m_producer_sequence);
+    m_buffer[sequence_number & m_index_mask] = std::move(message);
+    m_resource->sequencer.publish(sequence_number);
   }
 
   /*******************************************************
@@ -157,7 +163,6 @@ public:
    */
   cppcoro::async_generator<message_t> message_generator()
   {
-    std::atomic_ref(m_is_waiting).store(false);
     m_end_consumer_sequence = co_await m_resource->sequencer.wait_until_published(
       m_consumer_sequence, m_last_consumer_sequence_published, *m_scheduler);
 
@@ -209,12 +214,13 @@ public:
    */
   bool is_waiting()
   {
-    return std::atomic_ref(m_is_waiting).load();
+    return std::atomic_ref(m_num_publishers_waiting).load() > 0;
   }
 
 private:
   bool m_is_terminated{};
-  bool m_is_waiting{};
+
+  std::size_t m_num_publishers_waiting{};
 
   /// The message buffer size determines how many messages can communicated at once
   std::array<message_t, configuration_t::message_buffer_size> m_buffer{};
@@ -222,7 +228,6 @@ private:
 
   std::string m_name;
 
-  std::size_t m_producer_sequence{};
   std::size_t m_consumer_sequence{};
   std::size_t m_last_consumer_sequence_published{};
 

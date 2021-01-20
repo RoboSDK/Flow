@@ -49,9 +49,12 @@ cppcoro::task<void> spin_producer(
   cancellable_function<return_t()>& producer)
 {
   while (not channel.is_terminated()) {
-    co_await channel.request_permission_to_publish();
-    auto message = std::invoke(producer);
-    channel.publish_message(std::move(message));
+    const auto sequence_numbers = co_await channel.request_permission_to_publish();
+
+    for (auto sequence : sequence_numbers) {
+      auto message = std::invoke(producer);
+      channel.publish_message(std::move(message), sequence);
+    }
   }
 }
 
@@ -124,6 +127,8 @@ cppcoro::task<void> spin_transformer(
   auto& consumer_channel,
   cancellable_function<return_t(argument_t&&)> transformer)
 {
+  auto sequence_numbers = co_await consumer_channel.request_permission_to_publish();
+  std::size_t current_sequence_index{};
 
   while (not consumer_channel.is_terminated()) {
     auto next_message = producer_channel.message_generator();
@@ -134,9 +139,12 @@ cppcoro::task<void> spin_transformer(
       auto result = std::invoke(transformer, std::move(message));
       producer_channel.notify_message_consumed();
 
-      co_await consumer_channel.request_permission_to_publish();
-      consumer_channel.publish_message(std::move(result));
+      if (current_sequence_index == sequence_numbers.size() - 1) {
+        sequence_numbers = co_await consumer_channel.request_permission_to_publish();
+        current_sequence_index = 0;
+      }
 
+      consumer_channel.publish_message(std::move(result), sequence_numbers[current_sequence_index++]);
       co_await ++current_message;
     }
   }
@@ -153,9 +161,9 @@ cppcoro::task<void> spin_transformer(
  * @param routine A consumer or transformer routine
  * @return A coroutine
  */
-template <flow::routine routine_t>
-requires flow::consumer<routine_t> or flow::transformer<routine_t>
-cppcoro::task<void> flush(auto& channel, routine_t& routine) {
+template<flow::routine routine_t>
+  requires flow::consumer<routine_t> or flow::transformer<routine_t> cppcoro::task<void> flush(auto& channel, routine_t& routine)
+{
   while (channel.is_waiting()) {
     auto next_message = channel.message_generator();
     auto current_message = co_await next_message.begin();
