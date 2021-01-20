@@ -49,12 +49,14 @@ cppcoro::task<void> spin_producer(
   cancellable_function<return_t()>& producer)
 {
   while (not channel.is_terminated()) {
-    const auto sequence_numbers = co_await channel.request_permission_to_publish();
+    const std::size_t number_of_messages = co_await channel.request_permission_to_publish();
+    std::stack<return_t> messages{};
 
-    for (auto sequence : sequence_numbers) {
-      auto message = std::invoke(producer);
-      channel.publish_message(std::move(message), sequence);
+    for (std::size_t i = 0; i < number_of_messages; ++i) {
+      messages.push(std::invoke(producer));
     }
+
+    channel.publish_messages(messages);
   }
 }
 
@@ -127,8 +129,8 @@ cppcoro::task<void> spin_transformer(
   auto& consumer_channel,
   cancellable_function<return_t(argument_t&&)> transformer)
 {
-  auto sequence_numbers = co_await consumer_channel.request_permission_to_publish();
-  std::size_t current_sequence_index{};
+  std::size_t num_msgs_to_pub = co_await consumer_channel.request_permission_to_publish();
+  std::stack<return_t> messages_to_publish{};
 
   while (not consumer_channel.is_terminated()) {
     auto next_message = producer_channel.message_generator();
@@ -136,15 +138,14 @@ cppcoro::task<void> spin_transformer(
 
     while (current_message != next_message.end()) {
       auto& message = *current_message;
-      auto result = std::invoke(transformer, std::move(message));
+      messages_to_publish.push(std::invoke(transformer, std::move(message)));
       producer_channel.notify_message_consumed();
 
-      if (current_sequence_index == sequence_numbers.size() - 1) {
-        sequence_numbers = co_await consumer_channel.request_permission_to_publish();
-        current_sequence_index = 0;
+      if (messages_to_publish.size() == num_msgs_to_pub) {
+        consumer_channel.publish_messages(messages_to_publish);
+        num_msgs_to_pub = co_await consumer_channel.request_permission_to_publish();
       }
 
-      consumer_channel.publish_message(std::move(result), sequence_numbers[current_sequence_index++]);
       co_await ++current_message;
     }
   }

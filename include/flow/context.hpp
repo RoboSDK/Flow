@@ -1,8 +1,8 @@
 #pragma once
 
+#include <cppcoro/io_service.hpp>
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
-#include <cppcoro/io_service.hpp>
 
 #include <flow/channel.hpp>
 #include <flow/channel_set.hpp>
@@ -15,11 +15,11 @@
 
 namespace flow {
 using task_t = cppcoro::task<void>;
-template <typename configuration_t>
+template<typename configuration_t>
 struct context {
-  cppcoro::static_thread_pool thread_pool{ 0 };
+  cppcoro::static_thread_pool thread_pool{};
   channel_set<configuration_t> channels{};
   channel_resource_generator<configuration_t> resource_generator{};
   std::vector<task_t> tasks{};
 };
-}
+}// namespace flow
