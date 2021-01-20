@@ -49,7 +49,7 @@ cppcoro::task<void> spin_producer(
   cancellable_function<return_t()>& producer)
 {
   while (not channel.is_terminated()) {
-    co_await channel.request();
+    co_await channel.request_permission_to_publish();
     auto message = std::invoke(producer);
     channel.publish_message(std::move(message));
   }
@@ -88,7 +88,8 @@ cppcoro::task<void> spin_consumer(
     while (current_message != next_message.end()) {
       auto& message = *current_message;
       std::invoke(consumer, std::move(message));
-      channel.make_request();
+
+      channel.notify_message_consumed();
       co_await ++current_message;
     }
   }
@@ -131,11 +132,11 @@ cppcoro::task<void> spin_transformer(
     while (current_message != next_message.end()) {
       auto& message = *current_message;
       auto result = std::invoke(transformer, std::move(message));
+      producer_channel.notify_message_consumed();
 
-      co_await consumer_channel.request();
+      co_await consumer_channel.request_permission_to_publish();
       consumer_channel.publish_message(std::move(result));
 
-      producer_channel.make_request();
       co_await ++current_message;
     }
   }
@@ -162,7 +163,7 @@ cppcoro::task<void> flush(auto& channel, routine_t& routine) {
     while (current_message != next_message.end()) {
       auto& message = *current_message;
       std::invoke(routine, std::move(message));
-      channel.make_request();
+      channel.notify_message_consumed();
       co_await ++current_message;
     }
   }
