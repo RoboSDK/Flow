@@ -4,7 +4,7 @@
 
 #include <farbot/RealtimeMutatable.hpp>
 
-#include "array.hpp"
+#include "make_array.hpp"
 
 namespace flow {
 template<typename T>

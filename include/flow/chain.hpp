@@ -4,10 +4,10 @@
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all_ready.hpp>
 
+#include "channel_set.hpp"
 #include "flow/cancellable_function.hpp"
 #include "flow/channel.hpp"
 #include "flow/context.hpp"
-#include "flow/data_structures/channel_set.hpp"
 #include "flow/routine.hpp"
 #include "flow/spin.hpp"
 #include "flow/timeout_routine.hpp"

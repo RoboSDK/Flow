@@ -4,8 +4,8 @@
 #include <cppcoro/task.hpp>
 #include <cppcoro/io_service.hpp>
 
-#include <flow/data_structures/channel_set.hpp>
 #include <flow/channel.hpp>
+#include <flow/channel_set.hpp>
 
 namespace flow {
 using task_t = cppcoro::task<void>;

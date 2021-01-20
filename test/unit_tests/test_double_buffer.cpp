@@ -1,6 +1,6 @@
 #include <catch2/catch.hpp>
 #include <cppitertools/range.hpp>
-#include <flow/data_structures/double_buffer.hpp>
+#include <flow/double_buffer.hpp>
 #include <thread>
 
 TEST_CASE("Test basic reading and writing", "[read_and_write]")

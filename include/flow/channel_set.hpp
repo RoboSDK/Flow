@@ -2,6 +2,8 @@
 
 #include <any>
 
+#include "flow/channel.hpp"
+
 namespace flow {
 
 template <typename config_t>
