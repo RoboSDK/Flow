@@ -30,6 +30,27 @@
  *
  * Each channel in the chain uses contiguous memory to pass data to the channel waiting on the other way. All
  * data must flow from producer to consumer; no cyclical dependencies.
+ *
+ * Cancellation
+ * Cancelling the chain of coroutines is a bit tricky because if you stop them all at once, some of them will hang
+ * with no way to have them leave the awaiting state.
+ *
+ * When starting the chain reaction all routines will begin to wait and the first routine that is given priority is the
+ * producer at the beginning of the chain, and the last will be the end of the chain, or consumer.
+ *
+ * The consumer then has to be the one that initializes the cancellation. The algorithm is as follows:
+ *
+ * Consumer receives cancellation request from the cancellation handle
+ * consumer terminates the channel it is communicating with
+ * consumer flushes out any awaiting producers/transformers on the producing end of the channel
+ * end routine
+ *
+ * The transformer or producer that is next in the chain will then receiving channel termination notification
+ * from the consumer at the end of the chain and break out of its loop
+ * It well then notify terminate the producer channel it receives data from and flush it out
+ *
+ * rinse repeat until the beginning of the chain, which is a producer
+ * The producer simply breaks out of its loop and exits the scope
  */
 
 namespace flow {
