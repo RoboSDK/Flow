@@ -226,7 +226,7 @@ public:
    */
   void cancel_after(std::chrono::milliseconds time)
   {
-    auto timeout_function_ptr = make_timeout_function(time, [&]{
+    auto timeout_function_ptr = make_timeout_routine(time, [&] {
       handle().request_cancellation();
     });
 
