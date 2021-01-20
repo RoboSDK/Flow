@@ -100,15 +100,6 @@ public:
    */
   void push(flow::spinner auto&& spinner)
   {
-    if (m_state not_eq state::empty) {
-      flow::logging::critical_throw(
-        "Attempted to push a spinner into network while the network is not empty.\n"
-        "The current state of the network is: {}",
-        m_state);
-    }
-
-    m_state = state::closed;
-
     using spinner_t = decltype(spinner);
     auto cancellable = flow::make_cancellable_function(std::forward<spinner_t>(spinner));
 
@@ -124,15 +115,6 @@ public:
    */
   void push(flow::producer auto&& producer, std::string channel_name = "")
   {
-    if (m_state not_eq state::empty) {
-      flow::logging::critical_throw(
-        "Attempted to push a producer into network while the network is not empty.\n"
-        "The current state of the network is: {}",
-        m_state);
-    }
-
-    m_state = state::open;
-
     using producer_t = decltype(producer);
     using return_t = std::decay_t<typename flow::metaprogramming::function_traits<producer_t>::return_type>;
 
@@ -151,13 +133,6 @@ public:
    */
   void push(flow::transformer auto&& transformer, std::string producer_channel_name = "", std::string consumer_channel_name = "")
   {
-    if (m_state not_eq state::open) {
-      flow::logging::critical_throw(
-        "Attempted to push a transformer into network while the network is not open.\n"
-        "The current state of the network is: {}",
-        m_state);
-    }
-
     using transformer_t = decltype(transformer);
     using argument_t = std::decay_t<typename flow::metaprogramming::function_traits<transformer_t>::template args<0>::type>;
     using return_t = std::decay_t<typename flow::metaprogramming::function_traits<transformer_t>::return_type>;
@@ -177,15 +152,6 @@ public:
    */
   void push(flow::consumer auto&& consumer, std::string channel_name = "")
   {
-    if (m_state not_eq state::open) {
-      flow::logging::critical_throw(
-        "Attempted to push a consumer into network while the network is not open.\n"
-        "The current state of the network is: {}",
-        m_state);
-    }
-
-    m_state = state::closed;
-
     using consumer_t = decltype(consumer);
     using argument_t = std::decay_t<typename flow::metaprogramming::function_traits<consumer_t>::template args<0>::type>;
 
@@ -215,24 +181,7 @@ public:
    */
   cancellation_handle handle()
   {
-    if (m_state not_eq state::closed) {
-      flow::logging::critical_throw(
-        "Attempted to acquire a network handle without completing the network first.\n"
-        "The current state of the network is: {}",
-        m_state);
-    }
-
     return m_handle;
-  }
-
-
-  /**
-   * The current state of the network
-   * @return network state
-   */
-  network::state state() const
-  {
-    return m_state;
   }
 
   /**
@@ -259,9 +208,6 @@ public:
   }
 
 private:
-  //TODO:: why doesn't network::state work?
-  decltype(network::state::empty) m_state{ network::state::empty };
-
   context<configuration_t>* m_context;
   std::vector<std::any> m_callbacks;
   cancellation_handle m_handle;
