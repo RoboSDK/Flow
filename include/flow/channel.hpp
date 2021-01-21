@@ -113,7 +113,6 @@ public:
     m_resource = other.m_resource;
     m_scheduler = other.m_scheduler;
     std::move(std::begin(other.m_buffer), std::end(other.m_buffer), std::begin(m_buffer));
-    std::ranges::fill(other.m_buffer, 0);
     return *this;
   }
 

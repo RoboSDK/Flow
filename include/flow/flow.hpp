@@ -61,15 +61,16 @@ auto spin(flow::not_network_or_user_routines auto&&... callables)
   network_t network{};
 
   auto callables_array = flow::make_mixed_array(std::forward<decltype(callables)>(callables)...);
-  std::for_each(std::begin(callables_array), std::end(callables_array), flow::make_visitor([&]<typename return_t, typename... args_t>(return_t (*callable)(args_t...)) {
+  std::for_each(std::begin(callables_array), std::end(callables_array), flow::make_visitor([&](auto& callable) {
+          using callable_t = decltype(callable);
 
-          if constexpr (not std::is_void_v<return_t> and not (std::is_void_v<args_t> and ...)) {
+          if constexpr (flow::callable_transformer<callable_t>) {
             auto transformer = flow::make_transformer(callable);
             network.push(std::move(transformer));
-          } else if constexpr(std::is_void_v<return_t> and (not std::is_void_v<args_t> and ...)) {
+          } else if constexpr(flow::callable_consumer<callable_t>) {
             auto consumer = flow::make_consumer(callable);
             network.push(std::move(consumer));
-          } else if constexpr(not std::is_void_v<return_t> and (std::is_void_v<args_t> and ...)) {
+          } else if constexpr(flow::callable_producer<callable_t>) {
             auto producer = flow::make_producer(callable);
             network.push(std::move(producer));
           } else {
