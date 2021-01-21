@@ -15,6 +15,9 @@ private:
     return "Hello World!";
   }
 
-  flow::producer_handle<std::string> hello_world_producer{ message_handler, "hello_world" };
+  flow::producer_handle<std::string> hello_world_producer{
+    message_handler,
+    "hello_world"
+  };
 };
 }
