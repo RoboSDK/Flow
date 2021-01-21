@@ -48,15 +48,16 @@ cppcoro::task<void> spin_producer(
   auto& channel,
   cancellable_function<return_t()>& producer)
 {
-  while (not channel.is_terminated()) {
-    const std::size_t number_of_messages = co_await channel.request_permission_to_publish();
-    std::stack<return_t> messages{};
+  producer_token<return_t> producer_token{};
 
-    for (std::size_t i = 0; i < number_of_messages; ++i) {
-      messages.push(std::invoke(producer));
+  while (not channel.is_terminated()) {
+    co_await channel.request_permission_to_publish(producer_token);
+
+    for (std::size_t i = 0; i < producer_token.sequences().size(); ++i) {
+      producer_token.messages().push(std::invoke(producer));
     }
 
-    channel.publish_messages(messages);
+    channel.publish_messages(producer_token);
   }
 }
 
@@ -129,8 +130,9 @@ cppcoro::task<void> spin_transformer(
   auto& consumer_channel,
   cancellable_function<return_t(argument_t&&)> transformer)
 {
-  std::size_t num_msgs_to_pub = co_await consumer_channel.request_permission_to_publish();
-  std::stack<return_t> messages_to_publish{};
+  producer_token<return_t> producer_token{};
+
+  co_await consumer_channel.request_permission_to_publish(producer_token);
 
   while (not consumer_channel.is_terminated()) {
     auto next_message = producer_channel.message_generator();
@@ -138,12 +140,12 @@ cppcoro::task<void> spin_transformer(
 
     while (current_message != next_message.end()) {
       auto& message = *current_message;
-      messages_to_publish.push(std::invoke(transformer, std::move(message)));
+      producer_token.messages().push(std::invoke(transformer, std::move(message)));
       producer_channel.notify_message_consumed();
 
-      if (messages_to_publish.size() == num_msgs_to_pub) {
-        consumer_channel.publish_messages(messages_to_publish);
-        num_msgs_to_pub = co_await consumer_channel.request_permission_to_publish();
+      if (producer_token.messages().size() == producer_token.sequences().size()) {
+        consumer_channel.publish_messages(producer_token);
+        co_await consumer_channel.request_permission_to_publish(producer_token);
       }
 
       co_await ++current_message;

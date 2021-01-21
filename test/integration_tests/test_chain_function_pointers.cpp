@@ -16,6 +16,13 @@ int producer()
   return val++;
 }
 
+int producer2()
+{
+  flow::logging::error("producer2");
+  static int val = -100000;
+  return val++;
+}
+
 int doubler(int&& val)
 {
   flow::logging::error("transformer");
@@ -41,9 +48,9 @@ int main()
   chain_t chain{ context.get() };
 
   chain.push(producer, "producer");
+  chain.push(producer2, "producer");
   chain.push(doubler, "producer", "doubler");
   chain.push(consumer, "doubler");
-  chain.push(consumer2, "producer");
 
 //  chain.cancel_after(1ms);
   cppcoro::sync_wait(chain.spin());

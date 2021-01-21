@@ -2,9 +2,10 @@
 
 #include <array>
 
-#include "flow/metaprogramming.hpp"
-#include "flow/logging.hpp"
 #include "flow/atomic.hpp"
+#include "flow/logging.hpp"
+#include "flow/metaprogramming.hpp"
+#include "flow/producer_token.hpp"
 
 #include <cppcoro/async_generator.hpp>
 #include <cppcoro/multi_producer_sequencer.hpp>
@@ -134,30 +135,29 @@ public:
    * Request permission to publish the next message
    * @return
    */
-  cppcoro::task<std::size_t> request_permission_to_publish()
+  cppcoro::task<void> request_permission_to_publish(producer_token<message_t>& token)
   {
     static constexpr std::size_t STRIDE_LENGTH = 256;
 
     ++std::atomic_ref(m_num_publishers_waiting);
     cppcoro::sequence_range<std::size_t> sequences = co_await m_resource->sequencer.claim_up_to(STRIDE_LENGTH, *m_scheduler);
-    m_publisher_sequences = std::move(sequences);
     --std::atomic_ref(m_num_publishers_waiting);
 
-    co_return m_publisher_sequences.size();
+    token.sequences() = std::move(sequences);
   }
 
   /**
    * Publish the produced message
    * @param message The message type the channel communicates
    */
-  void publish_messages(std::stack<message_t>& messages)
+  void publish_messages(producer_token<message_t>& token)
   {
-    for (auto& sequence_number : m_publisher_sequences) {
-      m_buffer[sequence_number & m_index_mask] = messages.top();
-      messages.pop();
+    for (auto& sequence_number : token.sequences()) {
+      m_buffer[sequence_number & m_index_mask] = token.messages().top();
+      token.messages().pop();
     }
 
-    m_resource->sequencer.publish(std::move(m_publisher_sequences));
+    m_resource->sequencer.publish(std::move(token.sequences()));
   }
 
   /*******************************************************
@@ -225,8 +225,6 @@ public:
 
 private:
   bool m_is_terminated{};
-
-  cppcoro::sequence_range<std::size_t> m_publisher_sequences{};
 
   std::size_t m_num_publishers_waiting{};
 
