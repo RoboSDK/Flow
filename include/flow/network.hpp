@@ -6,6 +6,7 @@
 
 #include "channel_set.hpp"
 #include "flow/cancellable_function.hpp"
+#include "flow/network_handle.hpp"
 #include "flow/channel.hpp"
 #include "flow/context.hpp"
 #include "flow/routine.hpp"
@@ -103,7 +104,7 @@ public:
     using spinner_t = decltype(spinner);
     auto cancellable = flow::make_cancellable_function(std::forward<spinner_t>(spinner));
 
-    m_handle = cancellable->handle();
+    m_handle.push(cancellable->handle());
     m_context->tasks.push_back(spin_spinner(m_context->thread_pool, *cancellable));
     m_callbacks.push_back(cancellable);
   }
@@ -158,7 +159,7 @@ public:
     auto& channel = make_channel_if_not_exists<argument_t>(channel_name);
     auto cancellable = flow::make_cancellable_function(std::forward<consumer_t>(consumer));
 
-    m_handle = cancellable->handle();
+    m_handle.push(cancellable->handle());
     m_context->tasks.push_back(spin_consumer<argument_t>(channel, *cancellable));
     m_callbacks.push_back(cancellable);
   }
@@ -179,7 +180,7 @@ public:
    * The cancellation handle will trigger the consumer to cancel and trickel down all the way to the producer
    * @return A cancellation handle
    */
-  cancellation_handle handle()
+  network_handle handle()
   {
     return m_handle;
   }
@@ -200,16 +201,13 @@ public:
     auto& timeout_function = *timeout_function_ptr;
 
     m_context->tasks.push_back(timeout_function());
-
-    // Prioritize timeout task
-//    std::ranges::reverse(m_context->tasks);
-
     m_callbacks.push_back(std::move(timeout_function_ptr));
   }
 
 private:
   context<configuration_t>* m_context;
   std::vector<std::any> m_callbacks;
-  cancellation_handle m_handle;
+
+  network_handle m_handle{};
 };
 }// namespace flow

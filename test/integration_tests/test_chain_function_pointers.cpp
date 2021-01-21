@@ -64,6 +64,6 @@ int main()
     flow::logging::info("consumer lambda: {}", val);
   }, "doubler");
 
-//  chain.cancel_after(1ms);
+  chain.cancel_after(0s);
   cppcoro::sync_wait(chain.spin());
 }
