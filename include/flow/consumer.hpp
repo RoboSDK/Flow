@@ -31,7 +31,7 @@ private:
   std::string m_channel_name{};
 };
 
-auto make_consumer(flow::consumer_routine auto&& callback, std::string channel_name = "'")
+auto make_consumer(flow::consumer_routine auto&& callback, std::string channel_name = "")
 {
   using callback_t = decltype(callback);
 

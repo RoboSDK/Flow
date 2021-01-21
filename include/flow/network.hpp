@@ -222,11 +222,4 @@ auto make_network(auto&&... routines)
 {
   return make_network<flow::configuration>(std::forward<decltype(routines)>(routines)...);
 }
-
-
-template<typename configuration_t>
-auto spin(flow::network<configuration_t>&& main_network)
-{
-  return cppcoro::sync_wait(main_network.spin());
-}
 }// namespace flow

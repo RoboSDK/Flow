@@ -1,5 +1,5 @@
 #include <flow/logging.hpp>
-#include <flow/spin.hpp>
+#include <flow/flow.hpp>
 #include <flow/producer.hpp>
 #include <flow/consumer.hpp>
 

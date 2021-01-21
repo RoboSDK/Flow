@@ -6,6 +6,7 @@
 #include <flow/network.hpp>
 #include <flow/producer.hpp>
 #include <flow/transformer.hpp>
+#include <flow/flow.hpp>
 
 #include <cppcoro/sync_wait.hpp>
 

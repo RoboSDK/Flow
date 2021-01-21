@@ -42,4 +42,10 @@ auto spin(flow::user_routine_concept auto&&... routines)
 {
   return spin<flow::configuration>(std::forward<decltype(routines)>(routines)...);
 }
+
+template<typename configuration_t>
+auto spin(flow::network<configuration_t>&& main_network)
+{
+  return cppcoro::sync_wait(main_network.spin());
+}
 }// namespace flow
