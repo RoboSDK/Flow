@@ -138,13 +138,13 @@ public:
    */
   cppcoro::task<void> request_permission_to_publish(producer_token<message_t>& token)
   {
-    static constexpr std::size_t STRIDE_LENGTH = 256;
+    static constexpr std::size_t STRIDE_LENGTH = configuration_t::stride_length;
 
     ++std::atomic_ref(m_num_publishers_waiting);
     cppcoro::sequence_range<std::size_t> sequences = co_await m_resource->sequencer.claim_up_to(STRIDE_LENGTH, *m_scheduler);
     --std::atomic_ref(m_num_publishers_waiting);
 
-    token.sequences() = std::move(sequences);
+    token.sequences = std::move(sequences);
   }
 
   /**
@@ -153,12 +153,12 @@ public:
    */
   void publish_messages(producer_token<message_t>& token)
   {
-    for (auto& sequence_number : token.sequences()) {
-      m_buffer[sequence_number & m_index_mask] = token.messages().top();
-      token.messages().pop();
+    for (auto& sequence_number : token.sequences) {
+      m_buffer[sequence_number & m_index_mask] = token.messages.top();
+      token.messages.pop();
     }
 
-    m_resource->sequencer.publish(std::move(token.sequences()));
+    m_resource->sequencer.publish(std::move(token.sequences));
   }
 
   /*******************************************************

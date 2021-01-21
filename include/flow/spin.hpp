@@ -53,8 +53,8 @@ cppcoro::task<void> spin_producer(
   while (not channel.is_terminated()) {
     co_await channel.request_permission_to_publish(producer_token);
 
-    for (std::size_t i = 0; i < producer_token.sequences().size(); ++i) {
-      producer_token.messages().push(std::invoke(producer));
+    for (std::size_t i = 0; i < producer_token.sequences.size(); ++i) {
+      producer_token.messages.push(std::invoke(producer));
     }
 
     channel.publish_messages(producer_token);
@@ -143,10 +143,10 @@ cppcoro::task<void> spin_transformer(
 
     while (current_message != next_message.end()) {
       auto& message = *current_message;
-      producer_token.messages().push(std::invoke(transformer, std::move(message)));
+      producer_token.messages.push(std::invoke(transformer, std::move(message)));
       producer_channel.notify_message_consumed(consumer_token);
 
-      if (producer_token.messages().size() == producer_token.sequences().size()) {
+      if (producer_token.messages.size() == producer_token.sequences.size()) {
         consumer_channel.publish_messages(producer_token);
         co_await consumer_channel.request_permission_to_publish(producer_token);
       }

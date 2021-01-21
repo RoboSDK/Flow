@@ -48,10 +48,21 @@ int main()
   chain_t chain{ context.get() };
 
   chain.push(producer, "producer");
+  chain.push([]{
+    return 0;
+  }, "producer");
+
+  chain.push([]{
+         return 1;
+  }, "producer");
+
 //  chain.push(producer2, "producer");
   chain.push(doubler, "producer", "doubler");
   chain.push(consumer, "doubler");
   chain.push(consumer2, "doubler");
+  chain.push([](int&& val){
+    flow::logging::info("consumer lambda: {}", val);
+  }, "doubler");
 
 //  chain.cancel_after(1ms);
   cppcoro::sync_wait(chain.spin());
