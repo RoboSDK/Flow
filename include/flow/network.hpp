@@ -269,4 +269,25 @@ auto make_network(flow::not_network_or_user_routines auto&&... callables)
 {
   return make_network<flow::configuration>(std::forward<decltype(callables)>(callables)...);
 }
+
+template<typename configuration_t>
+auto make_network(flow::are_user_routines auto&&... routines)
+{
+  using network_t = flow::network<configuration_t>;
+
+  network_t network{};
+
+  auto routines_array = flow::make_mixed_array(std::forward<decltype(routines)>(routines)...);
+  std::for_each(std::begin(routines_array), std::end(routines_array), flow::make_visitor([&](auto& routine) {
+         routine.initialize(network);
+  }));
+
+  return network;
+}
+
+auto make_network(flow::are_user_routines auto&&... routines)
+{
+  return make_network<flow::configuration>(std::forward<decltype(routines)>(routines)...);
+}
+
 }// namespace flow
