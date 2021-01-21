@@ -13,6 +13,11 @@
 #include "flow/spin.hpp"
 #include "flow/timeout_routine.hpp"
 
+#include "flow/consumer.hpp"
+#include "flow/producer.hpp"
+#include "flow/spinner.hpp"
+#include "flow/transformer.hpp"
+
 /**
  * A network is a sequence of routines connected by single producer_routine single consumer_routine channels.
  * The end of the network depends on the data flow from the beginning of the network. The beginning
@@ -58,11 +63,10 @@ namespace flow {
 template<typename configuration_t>
 class network {
 public:
-
   enum class state {
-    empty, /// Initial state
-    open, /// Has producers and transformers with no consumer_routine
-    closed /// The network is complete and is capped by a consumer_routine
+    empty,/// Initial state
+    open,/// Has producers and transformers with no consumer_routine
+    closed/// The network is complete and is capped by a consumer_routine
   };
 
   /*
@@ -99,10 +103,12 @@ public:
    * Pushes a routine into the network
    * @param spinner A routine with no dependencies and nothing depends on it
    */
-  void push(flow::spinner_routine auto&& spinner)
+  template<typename routine_t>
+  requires std::is_same_v<flow::spinner, routine_t>
+  void push(routine_t&& routine)
   {
-    m_handle.push(spinner.handle());
-    m_context->tasks.push_back(spin_spinner(m_context->thread_pool, spinner));
+    m_handle.push(routine.callback().handle());
+    m_context->tasks.push_back(spin_spinner(m_context->thread_pool, routine.callback()));
   }
 
   /**
@@ -110,14 +116,12 @@ public:
    * @param producer The producer_routine routine
    * @param channel_name The channel name the producer_routine will publish to
    */
-  void push(flow::producer_routine auto&& producer, std::string channel_name = "")
+
+  template<typename message_t>
+  void push(flow::producer<message_t>&& routine)
   {
-    using producer_t = decltype(producer);
-    using return_t = std::decay_t<typename flow::metaprogramming::function_traits<producer_t>::return_type>;
-
-    auto& channel = make_channel_if_not_exists<return_t>(channel_name);
-
-    m_context->tasks.push_back(spin_producer<return_t>(channel, producer));
+    auto& channel = make_channel_if_not_exists<message_t>(routine.channel_name());
+    m_context->tasks.push_back(spin_producer<message_t>(channel, routine.callback()));
   }
 
   /**
@@ -126,16 +130,13 @@ public:
    * @param producer_channel_name The channel it depends on
    * @param consumer_channel_name The channel that it will publish to
    */
-  void push(flow::transformer_routine auto&& transformer, std::string producer_channel_name = "", std::string consumer_channel_name = "")
+  template<typename return_t, typename... args_t>
+  void push(flow::transformer<return_t(args_t...)>&& routine)
   {
-    using transformer_t = decltype(transformer);
-    using argument_t = std::decay_t<typename flow::metaprogramming::function_traits<transformer_t>::template args<0>::type>;
-    using return_t = std::decay_t<typename flow::metaprogramming::function_traits<transformer_t>::return_type>;
+    auto& producer_channel = make_channel_if_not_exists<args_t...>(routine.producer_channel_name());
+    auto& consumer_channel = make_channel_if_not_exists<args_t...>(routine.consumer_channel_name());
 
-    auto& producer_channel = make_channel_if_not_exists<argument_t>(producer_channel_name);
-    auto& consumer_channel = make_channel_if_not_exists<argument_t>(consumer_channel_name);
-
-    m_context->tasks.push_back(spin_transformer<return_t, argument_t>(producer_channel, consumer_channel, transformer));
+    m_context->tasks.push_back(spin_transformer<return_t, args_t...>(producer_channel, consumer_channel, routine.callback()));
   }
 
   /**
@@ -143,15 +144,13 @@ public:
    * @param callback A routine no other routine depends on and depends on at least a single routine
    * @param channel_name The channel it will consume from
    */
-  void push(flow::consumer_routine auto&& callback, std::string channel_name = "")
+  template<typename message_t>
+  void push(flow::consumer<message_t>&& routine)
   {
-    using consumer_t = decltype(callback);
-    using argument_t = std::decay_t<typename flow::metaprogramming::function_traits<consumer_t>::template args<0>::type>;
+    auto& channel = make_channel_if_not_exists<message_t>(routine.channel_name());
 
-    auto& channel = make_channel_if_not_exists<argument_t>(channel_name);
-
-    m_handle.push(callback.handle());
-    m_context->tasks.push_back(spin_consumer<argument_t>(channel, callback));
+    m_handle.push(routine.callback().handle());
+    m_context->tasks.push_back(spin_consumer<message_t>(channel, routine.callback()));
   }
 
   /**

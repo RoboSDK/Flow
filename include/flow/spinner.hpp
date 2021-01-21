@@ -9,7 +9,7 @@ public:
   auto& callback() { return *m_callback; }
 
 private:
-  flow::cancellable_function<return_t(args_t...)>::sPtr m_callback{ nullptr };
+  flow::cancellable_function<void()>::sPtr m_callback{ nullptr };
 };
 
 spinner make_spinner(flow::spinner_routine auto&& callback)
