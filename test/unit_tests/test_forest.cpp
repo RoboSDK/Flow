@@ -7,19 +7,19 @@ using namespace std::literals;
 int producer()
 {
   static int val = 0;
-//  flow::logging::info("producer: {}", val);
+//  flow::logging::info("producer_routine: {}", val);
   return val++;
 }
 
 int doubler(int&& val)
 {
-//  flow::logging::info("transformer: {}", val * 2);
+//  flow::logging::info("transformer_routine: {}", val * 2);
   return val * 2;
 }
 
 void consumer(int&& /*unused*/)
 {
-//  flow::logging::info("consumer: {}", val);
+//  flow::logging::info("consumer_routine: {}", val);
 }
 
 TEST_CASE("Test forest behavior", "[forest behavior]")

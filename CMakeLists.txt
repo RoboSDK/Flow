@@ -11,7 +11,7 @@ include(cmake/PreventInSourceBuilds.cmake)
 add_subdirectory(external)
 
 # Link this 'library' to set the c++ standard / compile-time options requested
-add_library(project_options INTERFACE example/simple_producer_consumer/producer_routine.hpp)
+add_library(project_options INTERFACE)
 target_compile_features(project_options INTERFACE cxx_std_20)
 target_compile_options(project_options INTERFACE ${CMAKE_REQUIRED_FLAGS})
 

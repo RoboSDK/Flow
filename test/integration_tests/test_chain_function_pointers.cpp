@@ -11,7 +11,7 @@ using namespace std::literals;
 
 int producer()
 {
-  //  flow::logging::error("producer");
+  //  flow::logging::error("producer_routine");
   static int val = 0;
   return val++;
 }
@@ -25,13 +25,13 @@ int producer2()
 
 int doubler(int&& val)
 {
-  //  flow::logging::error("transformer");
+  //  flow::logging::error("transformer_routine");
   return val * 2;
 }
 
 void consumer(int&& val)
 {
-  flow::logging::error("consumer: {}", val);
+  flow::logging::error("consumer_routine: {}", val);
 }
 
 void consumer2(int&& val)
@@ -47,23 +47,23 @@ int main()
   auto context = std::make_unique<context_t>();
   chain_t chain{ context.get() };
 
-  chain.push(producer, "producer");
+  chain.push(producer, "producer_routine");
   chain.push([] {
     return 0;
   },
-    "producer");
+    "producer_routine");
 
   chain.push([] {
     return 1;
   },
-    "producer");
+    "producer_routine");
 
-  //  chain.push(producer2, "producer");
-  chain.push(doubler, "producer", "doubler");
+  //  chain.push(producer2, "producer_routine");
+  chain.push(doubler, "producer_routine", "doubler");
   chain.push(consumer, "doubler");
   chain.push(consumer2, "doubler");
   chain.push([](int&& val) {
-    flow::logging::info("consumer lambda: {}", val);
+    flow::logging::info("consumer_routine lambda: {}", val);
   },
     "doubler");
 
@@ -76,7 +76,7 @@ int main()
   }, "secondary");
 
   chain.push([](int&& val){
-         flow::logging::info("secondary consumer: {}", val);
+         flow::logging::info("secondary consumer_routine: {}", val);
        }, "secondary");
 
   chain.cancel_after(0s);

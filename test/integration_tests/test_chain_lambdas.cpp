@@ -21,12 +21,12 @@ int main()
     static int val = 0;
     return val++;
   },
-    "producer");
+    "producer_routine");
 
   chain.push([](int&& val) {
     return 2 * val;
   },
-    "producer",
+    "producer_routine",
     "doubler");
 
   chain.push([](int&& /*unused*/) {}, "doubler");

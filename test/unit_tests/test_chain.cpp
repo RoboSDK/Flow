@@ -17,22 +17,22 @@ TEST_CASE("Test network behavior using lambdas", "[network behavior lambdas]")
   int test_value = 0;
 
   chain.push([&] {
-    flow::logging::info("producer lambda");
+    flow::logging::info("producer_routine lambda");
     return test_value++;
   },
-    "producer");
+    "producer_routine");
 
   chain.push([](int&& val) {
-    flow::logging::info("transformer lambda");
+    flow::logging::info("transformer_routine lambda");
     return 2 * val;
   },
-    "producer",
+    "producer_routine",
     "doubler");
 
   std::vector<int> doubled_values{};
 
   chain.push([&](int&& doubled_value) {
-    flow::logging::info("transformer lambda");
+    flow::logging::info("transformer_routine lambda");
     doubled_values.push_back(std::move(doubled_value));
   },
     "doubler");
@@ -74,8 +74,8 @@ TEST_CASE("Test network behavior using raw functions", "[network behavior functi
   auto context = std::make_unique<context_t>();
   chain_t chain{ context.get() };
 
-  chain.push(producer, "producer");
-  chain.push(doubler, "producer", "doubler");
+  chain.push(producer, "producer_routine");
+  chain.push(doubler, "producer_routine", "doubler");
   chain.push(consumer, "doubler");
 
   chain.cancel_after(0ms);
@@ -90,8 +90,8 @@ TEST_CASE("Test network behavior using function pointers and lambdas ", "[networ
   auto context = std::make_unique<context_t>();
   chain_t chain{ context.get() };
 
-  chain.push(producer, "producer");
-  chain.push(doubler, "producer", "doubler");
+  chain.push(producer, "producer_routine");
+  chain.push(doubler, "producer_routine", "doubler");
   chain.push([](int&& /*unused*/) {}, "doubler");
 
   chain.cancel_after(0ms);
@@ -103,7 +103,7 @@ TEST_CASE("Test network state machine", "[network state machine]")
   using context_t = flow::context<flow::configuration>;
   using chain_t = flow::network<flow::configuration>;
 
-  SECTION("happy path producer-transformer-consumer")
+  SECTION("happy path producer_routine-transformer_routine-consumer_routine")
   {
     auto context = std::make_unique<context_t>();
     chain_t chain{ context.get() };
@@ -122,7 +122,7 @@ TEST_CASE("Test network state machine", "[network state machine]")
     REQUIRE(chain.state() == chain_t::state::closed);
   }
 
-  SECTION("happy path spinner")
+  SECTION("happy path spinner_routine")
   {
     auto context = std::make_unique<context_t>();
     chain_t chain{ context.get() };
@@ -131,7 +131,7 @@ TEST_CASE("Test network state machine", "[network state machine]")
     REQUIRE(chain.state() == chain_t::state::closed);
   }
 
-  SECTION("exception producer-producer")
+  SECTION("exception producer_routine-producer_routine")
   {
     auto context = std::make_unique<context_t>();
     chain_t chain{ context.get() };
@@ -141,21 +141,21 @@ TEST_CASE("Test network state machine", "[network state machine]")
     REQUIRE_THROWS(chain.push(producer, "1"));
   }
 
-  SECTION("exception consumer")
+  SECTION("exception consumer_routine")
   {
     auto context = std::make_unique<context_t>();
     chain_t chain{ context.get() };
     REQUIRE_THROWS(chain.push(consumer, "1"));
   }
 
-  SECTION("exception transformer")
+  SECTION("exception transformer_routine")
   {
     auto context = std::make_unique<context_t>();
     chain_t chain{ context.get() };
     REQUIRE_THROWS(chain.push(doubler, "1", "2"));
   }
 
-  SECTION("exception producer-consumer-transformer")
+  SECTION("exception producer_routine-consumer_routine-transformer_routine")
   {
     auto context = std::make_unique<context_t>();
     chain_t chain{ context.get() };
