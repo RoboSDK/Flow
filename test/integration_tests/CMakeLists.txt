@@ -15,4 +15,3 @@ macro(add_coroutine_test test_name)
 endmacro()
 
 add_coroutine_test(test_chain_function_pointers)
-add_coroutine_test(test_chain_lambdas)

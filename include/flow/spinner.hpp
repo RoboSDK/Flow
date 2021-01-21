@@ -3,6 +3,14 @@
 namespace flow {
 class spinner {
 public:
+  spinner() = default;
+  ~spinner() = default;
+
+  spinner(spinner&&) noexcept = default;
+  spinner(spinner const&) = default;
+  spinner& operator=(spinner&&) noexcept = default;
+  spinner& operator=(spinner const&) = default;
+
   spinner(flow::spinner_routine auto&& callback)
     : m_callback(flow::make_cancellable_function(std::forward<decltype(callback)>(callback))) {}
 

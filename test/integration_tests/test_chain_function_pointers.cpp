@@ -1,12 +1,11 @@
 #include <chrono>
 
 #include <flow/configuration.hpp>
-#include <flow/context.hpp>
+#include <flow/consumer.hpp>
 #include <flow/logging.hpp>
 #include <flow/network.hpp>
 #include <flow/producer.hpp>
 #include <flow/transformer.hpp>
-#include <flow/consumer.hpp>
 
 #include <cppcoro/sync_wait.hpp>
 
@@ -32,19 +31,12 @@ void consumer(int&& val)
 
 int main()
 {
-  using context_t = flow::context<flow::configuration>;
-  using network_t = flow::network<flow::configuration>;
+  using network_t [[maybe_unused]] = flow::network<flow::configuration>;
 
-  auto context = std::make_unique<context_t>();
-  network_t network{ context.get() };
-
-  flow::producer<int> producer_handle = flow::make_producer(producer, "producer");
-  auto transformer_handle = flow::make_transformer(transformer, "producer", "consumer");
-  auto consumer_handle = flow::make_consumer(consumer, "consumer");
-
-  network.push(std::move(producer_handle));
-  network.push(std::move(transformer_handle));
-  network.push(std::move(consumer_handle));
+  network_t network = flow::make_network(
+    flow::make_producer(producer, "producer"),
+    flow::make_transformer(transformer, "producer", "consumer"),
+    flow::make_consumer(consumer, "consumer"));
 
   network.cancel_after(0s);
   cppcoro::sync_wait(network.spin());

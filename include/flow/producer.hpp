@@ -7,6 +7,14 @@ class producer {
 public:
   using message_t = T;
 
+  producer() = default;
+  ~producer() = default;
+
+  producer(producer&&) noexcept = default;
+  producer(producer const&) = default;
+  producer& operator=(producer&&) noexcept = default;
+  producer& operator=(producer const&) = default;
+
   producer(flow::producer_routine auto&& callback, std::string channel_name)
     : m_callback(flow::make_cancellable_function(std::forward<decltype(callback)>(callback))),
       m_channel_name(std::move(channel_name)) {}

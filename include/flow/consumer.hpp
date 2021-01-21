@@ -1,11 +1,23 @@
 #pragma once
 
+#include <string>
+#include "flow/metaprogramming.hpp"
+#include "flow/cancellable_function.hpp"
+#include "flow/routine_concepts.hpp"
+
 namespace flow {
 
-template<typename T>
+template<typename message_t>
 class consumer {
 public:
-  using message_t = T;
+
+  consumer() = default;
+  ~consumer() = default;
+
+  consumer(consumer&&) noexcept = default;
+  consumer(consumer const&) = default;
+  consumer& operator=(consumer&&) noexcept = default;
+  consumer& operator=(consumer const&) = default;
 
   consumer(flow::consumer_routine auto&& callback, std::string channel_name)
     : m_callback(flow::make_cancellable_function(std::forward<decltype(callback)>(callback))),
@@ -16,7 +28,6 @@ public:
 
 private:
   typename flow::cancellable_function<void(message_t&&)>::sPtr m_callback{ nullptr };
-
   std::string m_channel_name{};
 };
 

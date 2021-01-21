@@ -4,6 +4,8 @@
 #include <string_view>
 #include <type_traits>
 #include <variant>
+#include <tuple>
+#include <functional>
 
 /**
  * Metaprogramming utilities
@@ -97,13 +99,13 @@ template<typename removed_t, typename... the_rest_t, std::size_t N>
 constexpr auto pop_front([[maybe_unused]] size_tc<N> /*unused*/)
 {
   if constexpr (empty<removed_t, the_rest_t...>()) {
-    return std::tuple<>{};
+    return std::tuple<the_rest_t...>{};
   }
   else if constexpr (N == 0) {
     return std::tuple<removed_t, the_rest_t...>{};
   }
   else if constexpr (N == 1 and size<removed_t, the_rest_t...>() == 1) {
-    return std::tuple<>{};
+    return std::tuple<the_rest_t...>{};
   }
   else {
     return pop_front<the_rest_t...>(size_tc<N - 1>{});
@@ -159,7 +161,7 @@ constexpr auto pop_back([[maybe_unused]] std::tuple<current, the_rest_t...> l = 
 {
   constexpr std::size_t total_size = size<current, the_rest_t...>();
   if constexpr (total_size <= 1) {
-    return std::tuple<>{};
+    return std::tuple<the_rest_t...>{};
   }
   else {
     return std::tuple_cat(std::tuple<current>{}, pop_back<the_rest_t...>());

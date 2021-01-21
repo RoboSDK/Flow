@@ -8,6 +8,7 @@
 #include "flow/cancellable_function.hpp"
 #include "flow/channel.hpp"
 #include "flow/context.hpp"
+#include "flow/mixed_array.hpp"
 #include "flow/network_handle.hpp"
 #include "flow/routine_concepts.hpp"
 #include "flow/spin.hpp"
@@ -69,11 +70,6 @@ public:
     closed/// The network is complete and is capped by a consumer_routine
   };
 
-  /*
-   * @param context The context contains all raw resources used to create the network
-   */
-  explicit network(auto* context) : m_context(context) {}
-
   /**
    * Makes a channel if it doesn't exist and returns a reference to it
    * @tparam message_t The message type the channel will communicate
@@ -104,11 +100,11 @@ public:
    * @param spinner A routine with no dependencies and nothing depends on it
    */
   template<typename routine_t>
-  requires std::is_same_v<flow::spinner, routine_t>
-  void push(routine_t&& routine)
+  requires std::is_same_v<flow::spinner, routine_t> void push(routine_t&& routine)
   {
     m_handle.push(routine.callback().handle());
     m_context->tasks.push_back(spin_spinner(m_context->thread_pool, routine.callback()));
+    m_heap_storage.push_back(std::move(routine));
   }
 
   /**
@@ -122,6 +118,7 @@ public:
   {
     auto& channel = make_channel_if_not_exists<message_t>(routine.channel_name());
     m_context->tasks.push_back(spin_producer<message_t>(channel, routine.callback()));
+    m_heap_storage.push_back(std::move(routine));
   }
 
   /**
@@ -137,6 +134,7 @@ public:
     auto& consumer_channel = make_channel_if_not_exists<args_t...>(routine.consumer_channel_name());
 
     m_context->tasks.push_back(spin_transformer<return_t, args_t...>(producer_channel, consumer_channel, routine.callback()));
+    m_heap_storage.push_back(std::move(routine));
   }
 
   /**
@@ -151,6 +149,7 @@ public:
 
     m_handle.push(routine.callback().handle());
     m_context->tasks.push_back(spin_consumer<message_t>(channel, routine.callback()));
+    m_heap_storage.push_back(std::move(routine));
   }
 
   /**
@@ -194,9 +193,33 @@ public:
   }
 
 private:
-  context<configuration_t>* m_context;
-  std::vector<std::any> m_heap_storage;
+  using context_t = flow::context<flow::configuration>;
+  std::unique_ptr<context_t> m_context = std::make_unique<context_t>();
+
+  std::vector<std::any> m_heap_storage{};
 
   network_handle m_handle{};
 };
+
+
+template<typename configuration_t>
+auto make_network(auto&&... routines)
+{
+  using network_t = flow::network<configuration_t>;
+
+  network_t network{};
+
+  auto routines_array = flow::make_mixed_array(std::forward<decltype(routines)>(routines)...);
+  std::for_each(std::begin(routines_array), std::end(routines_array), flow::make_visitor([&](auto& routine) {
+    network.push(std::move(routine));
+  }));
+
+  return network;
+}
+
+auto make_network(auto&&... routines)
+{
+  return make_network<flow::configuration>(std::forward<decltype(routines)>(routines)...);
+}
+
 }// namespace flow

@@ -8,6 +8,15 @@ class transformer;
 template<typename return_t, typename... args_t>
 class transformer<return_t(args_t...)> {
 public:
+
+  transformer() = default;
+  ~transformer() = default;
+
+  transformer(transformer&&) noexcept = default;
+  transformer(transformer const&) = default;
+  transformer& operator=(transformer&&) noexcept = default;
+  transformer& operator=(transformer const&) = default;
+
   transformer(flow::transformer_routine auto&& callback, std::string producer_channel_name, std::string consumer_channel_name)
     : m_callback(flow::make_cancellable_function(std::forward<decltype(callback)>(callback))),
       m_producer_channel_name(std::move(producer_channel_name)),
