@@ -2,19 +2,25 @@
 
 #include <flow/consumer.hpp>
 #include <flow/logging.hpp>
+#include <flow/user_routine.hpp>
 
 namespace example {
-class consumer_routine {
+class consumer_routine : flow::user_routine {
 public:
-  void initialize(flow::network &network) {
-    flow::register(consumer, network);
+  void initialize(auto& network)
+  {
+    network.push(std::move(consumer));
   }
 
 private:
-  void receive_hashed_message(std::size_t&& message) {
+  void receive_hashed_message(std::size_t&& message)
+  {
     flow::logging::info("Received Hashed Message: {}", message);
   }
 
-  flow::consumer<std::string> consumer{ receive_hashed_message, "hashed" };
+  flow::consumer<std::size_t> consumer{
+    [this](std::size_t&& msg) { receive_hashed_message(std::move(msg)); },
+    "hashed"
+  };
 };
-}
+}// namespace example

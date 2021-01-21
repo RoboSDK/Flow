@@ -1,9 +1,10 @@
-#include <flow/spin.hpp>
+#include <flow/flow.hpp>
 
 #include "consumer_routine.hpp"
 #include "producer_routine.hpp"
 
 int main()
 {
-  flow::spin(consumer_routine{}, producer_rotine{});
+  using namespace example;
+  flow::spin(consumer_routine{}, producer_routine{});
 }

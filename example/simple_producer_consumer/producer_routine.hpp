@@ -2,13 +2,14 @@
 
 #include <flow/logging.hpp>
 #include <flow/producer.hpp>
+#include <flow/user_routine.hpp>
 
 namespace example {
-class producer_routine {
+class producer_routine : flow::user_routine {
 public:
-  void initialize(flow::network& network)
+  void initialize(auto& network)
   {
-    flow::register(hello_world_producer, network);
+    network.push(std::move(hello_world_producer));
   }
 
 private:
@@ -18,7 +19,7 @@ private:
   }
 
   flow::producer<std::string> hello_world_producer{
-    message_handler,
+    [this] { return message_handler(); },
     "hello_world"
   };
 };

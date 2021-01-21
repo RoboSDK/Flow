@@ -13,6 +13,7 @@
 #include "flow/routine_concepts.hpp"
 #include "flow/spin.hpp"
 #include "flow/timeout_routine.hpp"
+#include "flow/configuration.hpp"
 
 #include "flow/consumer.hpp"
 #include "flow/producer.hpp"
@@ -131,7 +132,7 @@ public:
   void push(flow::transformer<return_t(args_t...)>&& routine)
   {
     auto& producer_channel = make_channel_if_not_exists<args_t...>(routine.producer_channel_name());
-    auto& consumer_channel = make_channel_if_not_exists<args_t...>(routine.consumer_channel_name());
+    auto& consumer_channel = make_channel_if_not_exists<return_t>(routine.consumer_channel_name());
 
     m_context->tasks.push_back(spin_transformer<return_t, args_t...>(producer_channel, consumer_channel, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
@@ -193,7 +194,7 @@ public:
   }
 
 private:
-  using context_t = flow::context<flow::configuration>;
+  using context_t = flow::context<configuration_t>;
   std::unique_ptr<context_t> m_context = std::make_unique<context_t>();
 
   std::vector<std::any> m_heap_storage{};

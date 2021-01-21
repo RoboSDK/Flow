@@ -1,0 +1,3 @@
+add_subdirectory(minimal_producer_consumer)
+add_subdirectory(producer_transformer_consumer)
+add_subdirectory(simple_producer_consumer)

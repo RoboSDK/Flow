@@ -15,9 +15,9 @@ void receive_message(std::string&& message)
 
 int main()
 {
-  auto routine = flow::make_routine(
+  auto network = flow::make_network(
     flow::make_producer(hello_world),
     flow::make_consumer(receive_message));
 
-  flow::spin(std::move(routine));
+  flow::spin(std::move(network));
 }

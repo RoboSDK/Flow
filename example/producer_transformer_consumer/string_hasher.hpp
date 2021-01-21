@@ -2,23 +2,26 @@
 
 #include <flow/logging.hpp>
 #include <flow/transformer.hpp>
+#include <flow/user_routine.hpp>
 
 namespace example {
-class string_hasher {
+class string_hasher : flow::user_routine {
 public:
-  void initialize(flow::network& network)
+  void initialize(auto& network)
   {
-    flow::register(string_hasher, network);
+    network.push(std::move(string_hasher));
   }
 
 private:
   std::size_t hash_message(std::string&& message)
   {
-    return std::hash<std::string>{}(std::move(message));
+    const auto hashed =  std::hash<std::string>{}(std::move(message));
+    flow::logging::info("Received Reversed String: {} Hashed: {}", message, hashed);
+    return hashed;
   }
 
   flow::transformer<std::size_t(std::string)> string_hasher{
-    hash_message,
+    [this](std::string&& msg) { return hash_message(std::move(msg)); },
     "hello_world_reversed",
     "hashed"
   };

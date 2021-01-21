@@ -2,11 +2,9 @@
 
 namespace flow {
 
-template<typename T>
+template<typename message_t>
 class producer {
 public:
-  using message_t = T;
-
   producer() = default;
   ~producer() = default;
 

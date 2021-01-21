@@ -2,13 +2,14 @@
 
 #include <flow/consumer.hpp>
 #include <flow/logging.hpp>
+#include <flow/user_routine.hpp>
 
 namespace example {
-class consumer_routine {
+class consumer_routine : flow::user_routine {
 public:
-  void initialize(flow::network& network)
+  void initialize(auto& network)
   {
-    flow::register(hello_world_consumer, network);
+    network.push(std::move(hello_world_consumer));
   }
 
 private:
@@ -18,7 +19,7 @@ private:
   }
 
   flow::consumer<std::string> hello_world_consumer{
-    message_handler,
+    [this](std::string&& msg) { message_handler(std::move(msg)); },
     "hello_world"
   };
 };

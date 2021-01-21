@@ -1,7 +1,8 @@
 #pragma once
 
 #include <concepts>
-#include <flow/metaprogramming.hpp>
+#include "flow/metaprogramming.hpp"
+#include "flow/user_routine.hpp"
 
 /**
  * A routine is a core concept of this framework; a building block of a network.
@@ -13,6 +14,9 @@ namespace flow {
 
 template<typename callable_t>
 using traits = flow::metaprogramming::function_traits<std::decay_t<callable_t>>;
+
+template<typename routine_t>
+concept user_routine_concept = std::is_base_of_v<user_routine, routine_t>;
 
 /**
  * A spinner_routine is a callable which has a void return type and requires no arguments

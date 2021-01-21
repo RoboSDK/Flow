@@ -1,23 +1,27 @@
 #pragma once
 
-#include <flow/producer.hpp>
 #include <flow/logging.hpp>
+#include <flow/producer.hpp>
+#include <flow/user_routine.hpp>
 
 namespace example {
-class producer_routine {
+class producer_routine : flow::user_routine {
 public:
-  void initialize(flow::network &network) {
-    flow::register(hello_world_producer, network);
+  void initialize(auto& network)
+  {
+    network.push(std::move(hello_world_producer));
   }
 
 private:
-  std::string message_handler() {
+  std::string message_handler()
+  {
+    flow::logging::info("Producing Hello World string!");
     return "Hello World!";
   }
 
   flow::producer<std::string> hello_world_producer{
-    message_handler,
+    [this] { return message_handler(); },
     "hello_world"
   };
 };
-}
+}// namespace example

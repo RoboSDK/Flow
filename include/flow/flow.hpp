@@ -5,6 +5,7 @@
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/spdlog.h>
+#include "flow/network.hpp"
 
 namespace flow {
 void begin()
@@ -22,4 +23,23 @@ void begin()
   }
 }
 
+template<typename configuration_t>
+auto spin(flow::user_routine_concept auto&&... routines)
+{
+  using network_t = flow::network<configuration_t>;
+
+  network_t network{};
+
+  auto routines_array = flow::make_mixed_array(std::forward<decltype(routines)>(routines)...);
+  std::for_each(std::begin(routines_array), std::end(routines_array), flow::make_visitor([&](auto& routine) {
+         routine.initialize(network);
+  }));
+
+  return cppcoro::sync_wait(network.spin());
+}
+
+auto spin(flow::user_routine_concept auto&&... routines)
+{
+  return spin<flow::configuration>(std::forward<decltype(routines)>(routines)...);
+}
 }// namespace flow
