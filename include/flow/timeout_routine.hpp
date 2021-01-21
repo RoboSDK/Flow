@@ -76,7 +76,7 @@ auto make_timeout_routine(std::chrono::nanoseconds threshold, std::function<void
   return std::make_shared<timeout_routine>(threshold, std::forward<decltype(callback)>(callback));
 }
 
-auto make_timeout_routine(std::chrono::nanoseconds threshold, auto&& lambda)
+[[maybe_unused]] auto make_timeout_routine(std::chrono::nanoseconds threshold, auto&& lambda)
 {
   return make_timeout_routine(threshold, flow::metaprogramming::to_function(lambda));
 }
