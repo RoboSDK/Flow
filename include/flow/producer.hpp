@@ -6,6 +6,7 @@ template<typename message_t>
 class producer {
 public:
   using is_producer = std::true_type;
+  using is_routine = std::true_type;
 
   producer() = default;
   ~producer() = default;
@@ -27,11 +28,24 @@ private:
   std::string m_channel_name{};
 };
 
-auto make_producer(flow::callable_producer auto&& callback, std::string channel_name = "")
+template<typename return_t>
+auto make_producer(std::function<return_t()>&& callback, std::string channel_name = "")
 {
   using callback_t = decltype(callback);
-  using return_t = std::decay_t<typename flow::metaprogramming::function_traits<callback_t>::return_type>;
   return producer<return_t>(std::forward<callback_t>(callback), std::move(channel_name));
+}
+
+template<typename return_t>
+auto make_producer(return_t (*callback)(), std::string channel_name = "")
+{
+  using callback_t = decltype(callback);
+  return producer<return_t>(std::forward<callback_t>(callback), std::move(channel_name));
+}
+
+auto make_producer(auto&& lambda, std::string channel_name = "")
+{
+  using callback_t = decltype(lambda);
+  return make_producer(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(channel_name));
 }
 
 template<typename producer_t>

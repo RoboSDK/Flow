@@ -11,6 +11,7 @@ template<typename message_t>
 class consumer {
 public:
   using is_consumer = std::true_type;
+  using is_routine = std::true_type;
 
   consumer() = default;
   ~consumer() = default;
@@ -32,14 +33,24 @@ private:
   std::string m_channel_name{};
 };
 
-auto make_consumer(flow::callable_consumer auto&& callback, std::string channel_name = "")
+template<typename argument_t>
+auto make_consumer(std::function<void(argument_t&&)>&& callback, std::string channel_name = "")
 {
   using callback_t = decltype(callback);
-
-  // TODO: handle multiple arguments
-  using argument_t = std::decay_t<typename flow::metaprogramming::function_traits<callback_t>::template args<0>::type>;
-
   return consumer<argument_t>(std::forward<callback_t>(callback), std::move(channel_name));
+}
+
+template<typename argument_t>
+auto make_consumer(void (*callback)(argument_t&&), std::string channel_name = "")
+{
+  using callback_t = decltype(callback);
+  return consumer<argument_t>(std::forward<callback_t>(callback), std::move(channel_name));
+}
+
+auto make_consumer(auto&& lambda, std::string channel_name = "")
+{
+  using callback_t = decltype(lambda);
+  return make_consumer(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(channel_name));
 }
 
 template<typename consumer_t>
