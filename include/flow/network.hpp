@@ -205,8 +205,24 @@ private:
 };
 
 
+
+template <typename network_t>
+concept is_network = std::is_same_v<typename network_t::is_network, std::true_type>;
+
+template<typename routine_t>
+concept routine = spinner_concept<routine_t> or producer_concept<routine_t> or consumer_concept<routine_t> or transformer_concept<routine_t>;
+
+template<typename... routines_t>
+concept routines = (routine<routines_t> and ...);
+
+template <typename callable_t>
+concept not_network_or_routine = not flow::is_network<callable_t> and not flow::are_user_routines<callable_t> and not flow::routine<callable_t>;
+
+template<typename... callables_t>
+concept not_network_or_user_routines = (not_network_or_routine<callables_t> and ...);
+
 template<typename configuration_t>
-auto make_network(auto&&... routines)
+auto make_network(flow::routines auto&&... routines)
 {
   using network_t = flow::network<configuration_t>;
 
@@ -220,12 +236,37 @@ auto make_network(auto&&... routines)
   return network;
 }
 
-auto make_network(auto&&... routines)
+auto make_network(flow::routines auto&&... routines)
 {
   return make_network<flow::configuration>(std::forward<decltype(routines)>(routines)...);
 }
 
-template <typename network_t>
-concept is_network = std::is_same_v<typename network_t::is_network, std::true_type>;
+template<typename configuration_t>
+auto make_network(flow::not_network_or_user_routines auto&&... callables)
+{
+  using network_t = flow::network<configuration_t>;
+  network_t network{};
 
+  auto callables_array = flow::make_mixed_array(std::forward<decltype(callables)>(callables)...);
+  std::for_each(std::begin(callables_array), std::end(callables_array), flow::make_visitor([&](auto& callable) {
+         using callable_t = decltype(callable);
+
+         if constexpr (flow::callable_transformer<callable_t>) {
+           network.push(flow::make_transformer(callable));
+         } else if constexpr(flow::callable_consumer<callable_t>) {
+           network.push(flow::make_consumer(callable));
+         } else if constexpr(flow::callable_producer<callable_t>) {
+           network.push(flow::make_producer(callable));
+         } else {
+           network.push(flow::make_spinner(callable));
+         }
+  }));
+
+  return network;
+}
+
+auto make_network(flow::not_network_or_user_routines auto&&... callables)
+{
+  return make_network<flow::configuration>(std::forward<decltype(callables)>(callables)...);
+}
 }// namespace flow

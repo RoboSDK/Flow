@@ -8,20 +8,6 @@
 #include <spdlog/spdlog.h>
 
 namespace flow {
-
-template<typename routine_t>
-concept routine = spinner_concept<routine_t> or producer_concept<routine_t> or consumer_concept<routine_t> or transformer_concept<routine_t>;
-
-template<typename... routines_t>
-concept routines = (routine<routines_t> and ...);
-
-template <typename callable_t>
-concept not_network_or_user_routine = not flow::is_network<callable_t> and not flow::are_user_routines<callable_t>;
-
-template<typename... callables_t>
-concept not_network_or_user_routines = (not_network_or_user_routine<callables_t> and ...);
-
-
 void begin()
 {
   try {
@@ -65,17 +51,13 @@ auto spin(flow::not_network_or_user_routines auto&&... callables)
           using callable_t = decltype(callable);
 
           if constexpr (flow::callable_transformer<callable_t>) {
-            auto transformer = flow::make_transformer(callable);
-            network.push(std::move(transformer));
+            network.push(flow::make_transformer(callable));
           } else if constexpr(flow::callable_consumer<callable_t>) {
-            auto consumer = flow::make_consumer(callable);
-            network.push(std::move(consumer));
+            network.push(flow::make_consumer(callable));
           } else if constexpr(flow::callable_producer<callable_t>) {
-            auto producer = flow::make_producer(callable);
-            network.push(std::move(producer));
+            network.push(flow::make_producer(callable));
           } else {
-            auto spinner = flow::make_spinner(callable);
-            network.push(std::move(spinner));
+            network.push(flow::make_spinner(callable));
           }
   }));
 
