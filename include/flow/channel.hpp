@@ -3,6 +3,7 @@
 #include <array>
 
 #include "flow/atomic.hpp"
+#include "flow/consumer_token.hpp"
 #include "flow/logging.hpp"
 #include "flow/metaprogramming.hpp"
 #include "flow/producer_token.hpp"
@@ -169,25 +170,25 @@ public:
    * have already been published by a producer
    * @return a message generator
    */
-  cppcoro::async_generator<message_t> message_generator()
+  cppcoro::async_generator<message_t> message_generator(consumer_token<message_t>& token)
   {
-    m_end_consumer_sequence = co_await m_resource->sequencer.wait_until_published(
-      m_consumer_sequence, m_last_consumer_sequence_published, *m_scheduler);
+    token.end_sequence = co_await m_resource->sequencer.wait_until_published(
+      token.sequence, token.last_sequence_published, *m_scheduler);
 
     do {
-      co_yield m_buffer[m_consumer_sequence & m_index_mask];
-    } while (flow::atomic_post_increment(m_consumer_sequence) < m_end_consumer_sequence);
+      co_yield m_buffer[token.sequence & m_index_mask];
+    } while (flow::atomic_post_increment(token.sequence) < token.end_sequence);
   }
 
 
   /**
    * Notify the producer to produce the next messages
    */
-  void notify_message_consumed()
+  void notify_message_consumed(consumer_token<message_t>& token)
   {
-    if (m_consumer_sequence == m_end_consumer_sequence) {
-      m_resource->barrier.publish(m_end_consumer_sequence);
-      std::atomic_ref(m_last_consumer_sequence_published).store(m_end_consumer_sequence);
+    if (token.sequence == token.end_sequence) {
+      m_resource->barrier.publish(token.end_sequence);
+      token.last_sequence_published = token.end_sequence;
     }
   }
 
@@ -233,12 +234,6 @@ private:
   std::size_t m_index_mask = configuration_t::message_buffer_size - 1;
 
   std::string m_name;
-
-  std::size_t m_consumer_sequence{};
-  std::size_t m_last_consumer_sequence_published{};
-
-  /// The last sequence number before waiting to consume more messages
-  std::size_t m_end_consumer_sequence{};
 
   /// Non owning
   resource_t* m_resource{ nullptr };
