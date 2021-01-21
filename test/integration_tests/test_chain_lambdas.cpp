@@ -15,22 +15,22 @@ int main()
   using chain_t = flow::network<flow::configuration>;
 
   auto context = std::make_unique<context_t>();
-  chain_t chain{ context.get() };
-
-  chain.push([] {
-    static int val = 0;
-    return val++;
-  },
-    "producer_routine");
-
-  chain.push([](int&& val) {
-    return 2 * val;
-  },
-    "producer_routine",
-    "doubler");
-
-  chain.push([](int&& /*unused*/) {}, "doubler");
-
-  chain.cancel_after(0ms);
-  cppcoro::sync_wait(chain.spin());
+  [[maybe_unused]] chain_t chain{ context.get() };
+//
+//  chain.push([] {
+//    static int val = 0;
+//    return val++;
+//  },
+//    "producer_routine");
+//
+//  chain.push([](int&& val) {
+//    return 2 * val;
+//  },
+//    "producer_routine",
+//    "doubler");
+//
+//  chain.push([](int&& /*unused*/) {}, "doubler");
+//
+//  chain.cancel_after(0ms);
+//  cppcoro::sync_wait(chain.spin());
 }

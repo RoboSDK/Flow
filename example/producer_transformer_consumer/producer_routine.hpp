@@ -1,6 +1,6 @@
 #pragma once
 
-#include <flow/producer_handle.hpp>
+#include <flow/producer.hpp>
 #include <flow/logging.hpp>
 
 namespace example {
@@ -15,7 +15,7 @@ private:
     return "Hello World!";
   }
 
-  flow::producer_handle<std::string> hello_world_producer{
+  flow::producer<std::string> hello_world_producer{
     message_handler,
     "hello_world"
   };

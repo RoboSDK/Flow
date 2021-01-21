@@ -1,6 +1,6 @@
 #pragma once
 
-#include <flow/consumer_handle.hpp>
+#include <flow/consumer.hpp>
 #include <flow/logging.hpp>
 
 namespace example {
@@ -17,7 +17,7 @@ private:
     flow::logging::info("Received Message: {}", message);
   }
 
-  flow::consumer_handle<std::string> hello_world_consumer{
+  flow::consumer<std::string> hello_world_consumer{
     message_handler,
     "hello_world"
   };

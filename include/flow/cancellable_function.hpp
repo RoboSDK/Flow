@@ -43,6 +43,7 @@ class cancellable_function;
 template<typename return_t, typename... args_t>
 class cancellable_function<return_t(args_t...)> {
 public:
+  using sPtr = std::shared_ptr<cancellable_function<return_t(args_t...)>>;
   using callback_t = std::function<return_t(args_t...)>;
   using function_ptr_t = return_t (*)(args_t...);
 

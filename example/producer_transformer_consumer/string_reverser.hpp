@@ -1,14 +1,14 @@
 #pragma once
 
 #include <flow/logging.hpp>
-#include <flow/transformer_handle.hpp>
+#include <flow/transformer.hpp>
 
 namespace example {
 class string_reverser {
 public:
   void initialize(flow::network& network)
   {
-    flow::register(string_reverse_handle, network);
+    flow::register(string_reverse, network);
   }
 
 private:
@@ -18,7 +18,7 @@ private:
     return message;
   }
 
-  flow::transformer_handle<std::string(std::string)> string_reverser_handle{
+  flow::transformer<std::string(std::string)> string_reverser{
     reverse_message,
     "hello_world",
     "hello_world_reversed"

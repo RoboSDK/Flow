@@ -101,12 +101,8 @@ public:
    */
   void push(flow::spinner_routine auto&& spinner)
   {
-    using spinner_t = decltype(spinner);
-    auto cancellable = flow::make_cancellable_function(std::forward<spinner_t>(spinner));
-
-    m_handle.push(cancellable->handle());
-    m_context->tasks.push_back(spin_spinner(m_context->thread_pool, *cancellable));
-    m_callbacks.push_back(cancellable);
+    m_handle.push(spinner.handle());
+    m_context->tasks.push_back(spin_spinner(m_context->thread_pool, spinner));
   }
 
   /**
@@ -120,10 +116,8 @@ public:
     using return_t = std::decay_t<typename flow::metaprogramming::function_traits<producer_t>::return_type>;
 
     auto& channel = make_channel_if_not_exists<return_t>(channel_name);
-    auto cancellable = flow::make_cancellable_function(std::forward<producer_t>(producer));
 
-    m_context->tasks.push_back(spin_producer<return_t>(channel, *cancellable));
-    m_callbacks.push_back(cancellable);
+    m_context->tasks.push_back(spin_producer<return_t>(channel, producer));
   }
 
   /**
@@ -140,28 +134,24 @@ public:
 
     auto& producer_channel = make_channel_if_not_exists<argument_t>(producer_channel_name);
     auto& consumer_channel = make_channel_if_not_exists<argument_t>(consumer_channel_name);
-    auto cancellable = flow::make_cancellable_function(std::forward<transformer_t>(transformer));
 
-    m_context->tasks.push_back(spin_transformer<return_t, argument_t>(producer_channel, consumer_channel, *cancellable));
-    m_callbacks.push_back(cancellable);
+    m_context->tasks.push_back(spin_transformer<return_t, argument_t>(producer_channel, consumer_channel, transformer));
   }
 
   /**
    * Pushes a consumer_routine into the network
-   * @param consumer A routine no other routine depends on and depends on at least a single routine
+   * @param callback A routine no other routine depends on and depends on at least a single routine
    * @param channel_name The channel it will consume from
    */
-  void push(flow::consumer_routine auto&& consumer, std::string channel_name = "")
+  void push(flow::consumer_routine auto&& callback, std::string channel_name = "")
   {
-    using consumer_t = decltype(consumer);
+    using consumer_t = decltype(callback);
     using argument_t = std::decay_t<typename flow::metaprogramming::function_traits<consumer_t>::template args<0>::type>;
 
     auto& channel = make_channel_if_not_exists<argument_t>(channel_name);
-    auto cancellable = flow::make_cancellable_function(std::forward<consumer_t>(consumer));
 
-    m_handle.push(cancellable->handle());
-    m_context->tasks.push_back(spin_consumer<argument_t>(channel, *cancellable));
-    m_callbacks.push_back(cancellable);
+    m_handle.push(callback.handle());
+    m_context->tasks.push_back(spin_consumer<argument_t>(channel, callback));
   }
 
   /**
@@ -201,12 +191,12 @@ public:
     auto& timeout_function = *timeout_function_ptr;
 
     m_context->tasks.push_back(timeout_function());
-    m_callbacks.push_back(std::move(timeout_function_ptr));
+    m_heap_storage.push_back(std::move(timeout_function_ptr));
   }
 
 private:
   context<configuration_t>* m_context;
-  std::vector<std::any> m_callbacks;
+  std::vector<std::any> m_heap_storage;
 
   network_handle m_handle{};
 };
