@@ -6,10 +6,10 @@
 
 #include "channel_set.hpp"
 #include "flow/cancellable_function.hpp"
-#include "flow/network_handle.hpp"
 #include "flow/channel.hpp"
 #include "flow/context.hpp"
-#include "flow/routine.hpp"
+#include "flow/network_handle.hpp"
+#include "flow/routine_concepts.hpp"
 #include "flow/spin.hpp"
 #include "flow/timeout_routine.hpp"
 
