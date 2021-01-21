@@ -30,7 +30,7 @@ public:
   {
   }
 
-  cppcoro::task<void> operator()()
+  [[maybe_unused]] cppcoro::task<void> operator()()
   {
     using namespace std::chrono;
     using namespace std::chrono_literals;
