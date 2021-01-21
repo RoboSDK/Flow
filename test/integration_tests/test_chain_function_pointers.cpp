@@ -31,7 +31,7 @@ void consumer(int&& val)
 
 int main()
 {
-  using network_t [[maybe_unused]] = flow::network<flow::configuration>;
+  using network_t  = flow::network<flow::configuration>;
 
   network_t network = flow::make_network(
     flow::make_producer(producer, "producer"),
@@ -39,5 +39,5 @@ int main()
     flow::make_consumer(consumer, "consumer"));
 
   network.cancel_after(0s);
-  cppcoro::sync_wait(network.spin());
+  flow::spin(std::move(network));
 }

@@ -5,6 +5,7 @@
 
 #include "flow/cancellable_function.hpp"
 #include "flow/channel.hpp"
+#include "flow/network.hpp"
 
 /**
  * The purpose of this module is make the coroutines that will can 'spin'
@@ -182,4 +183,5 @@ template<flow::routine routine_t>
     }
   }
 }
+
 }// namespace flow
