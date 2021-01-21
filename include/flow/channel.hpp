@@ -18,7 +18,7 @@
 /**
  * The link between routines in a network are channels.
  *
- * A channel in this framework is a single producer_routine single consumer_routine channel that are linked
+ * A channel in this framework is a single callable_producer single callable_consumer channel that are linked
  * to two corresponding neighbors in a network.
  */
 
@@ -34,14 +34,14 @@ struct resource {
   using multi_producer_sequencer = cppcoro::multi_producer_sequencer<std::size_t>;
 
   /*
-   * The sequence barrier is used to communicate from the consumer_routine end that it has
-   * received and consumed the message to the producer_routine end of the channel
+   * The sequence barrier is used to communicate from the callable_consumer end that it has
+   * received and consumed the message to the callable_producer end of the channel
    */
   sequence_barrier barrier{};
 
   /*
-   * The producer_routine sequencer generated sequence numbers that the producer_routine end of the channel
-   * uses to publish to the consumer_routine end
+   * The callable_producer sequencer generated sequence numbers that the callable_producer end of the channel
+   * uses to publish to the callable_consumer end
    */
   multi_producer_sequencer sequencer{ barrier, configuration_t::message_buffer_size };
 };
@@ -70,7 +70,7 @@ auto* get_channel_resource(auto& generator)
 }
 
 /**
- * A single producer_routine single consumer_routine channel
+ * A single callable_producer single callable_consumer channel
  * @tparam raw_message_t The raw message type is the message type with references potentially attached
  * @tparam configuration_t The global compile time configuration
  */
@@ -167,7 +167,7 @@ public:
 
   /**
    * Retrieve an iterable message generator. Will generate all messages that
-   * have already been published by a producer_routine
+   * have already been published by a callable_producer
    * @return a message generator
    */
   cppcoro::async_generator<message_t> message_generator(consumer_token<message_t>& token)
@@ -182,7 +182,7 @@ public:
 
 
   /**
-   * Notify the producer_routine to produce the next messages
+   * Notify the callable_producer to produce the next messages
    */
   void notify_message_consumed(consumer_token<message_t>& token)
   {
@@ -196,10 +196,10 @@ public:
    * Disable the channel
    *
    * When cancelling a network the beginning of the cancellation happens
-   * with the consumer_routine end of the network. This trickles down all the way to the
-   * beginning end of the network with the first producer_routine.
+   * with the callable_consumer end of the network. This trickles down all the way to the
+   * beginning end of the network with the first callable_producer.
    *
-   * The consumer_routine cancels itself, terminates the channel, and then flushes out any
+   * The callable_consumer cancels itself, terminates the channel, and then flushes out any
    * producers waiting for permission to publish.
    */
   void terminate()
@@ -208,8 +208,8 @@ public:
   }
 
   /**
-   * Used by the producer_routine ends of the channels to keep looping or not
-   * @return if the channel has been cancelled by the consumer_routine end of the channel
+   * Used by the callable_producer ends of the channels to keep looping or not
+   * @return if the channel has been cancelled by the callable_consumer end of the channel
    */
   bool is_terminated()
   {
@@ -217,7 +217,7 @@ public:
   }
 
   /**
-   * @return if any producer_routine channels are currently waiting for permission
+   * @return if any callable_producer channels are currently waiting for permission
    */
   bool is_waiting()
   {

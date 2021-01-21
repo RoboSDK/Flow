@@ -16,10 +16,10 @@
 namespace flow {
 
 /**
- * Generates a coroutine that keeps calling the spinner_routine until it is cancelled
+ * Generates a coroutine that keeps calling the callable_spinner until it is cancelled
  * @param scheduler a cppcoro::static_thread_pool, cppcoro::io_service, or another cppcoro scheduler
  * @param spinner A cancellable function with no return type and requires no arguments
- * @return A coroutine that continues until the spinner_routine is cancelled
+ * @return A coroutine that continues until the callable_spinner is cancelled
  */
 cppcoro::task<void> spin_spinner(
   auto& scheduler,
@@ -32,17 +32,17 @@ cppcoro::task<void> spin_spinner(
 }
 
 /**
- * Generates a coroutine that keeps calling the producer_routine until it is cancelled
+ * Generates a coroutine that keeps calling the callable_producer until it is cancelled
  *
- * Notice that the producer_routine is not flushing. The reason is that the producer_routine belongs at
+ * Notice that the callable_producer is not flushing. The reason is that the callable_producer belongs at
  * the beginning of the network and has no one else in front of it, and therefore nothing
  * to flush
  *
  * @param channel a flow channel that represents a connection between the receiver
- *                for the data that the producer_routine produces, and the producer_routine itself
- * @param producer A producer_routine is a cancellable function with no arguments required to call it and
+ *                for the data that the callable_producer produces, and the callable_producer itself
+ * @param producer A callable_producer is a cancellable function with no arguments required to call it and
  *                 a specified return type
- * @return A coroutine that continues until the producer_routine is cancelled
+ * @return A coroutine that continues until the callable_producer is cancelled
  */
 template<typename return_t>
 cppcoro::task<void> spin_producer(
@@ -65,23 +65,23 @@ cppcoro::task<void> spin_producer(
 /**
  * TODO: Handle many arguments, maybe convert it to a tuple?
  *
- * Generates a coroutine that keeps calling the consumer_routine until it is cancelled.
+ * Generates a coroutine that keeps calling the callable_consumer until it is cancelled.
  *
- * The consumer_routine will be placed at the end of the routine network and will be the one
- * that triggers any cancellation events. It depends on a transformer_routine or producer_routine to
+ * The callable_consumer will be placed at the end of the callable_routine network and will be the one
+ * that triggers any cancellation events. It depends on a callable_transformer or callable_producer to
  * send messages through the channel.
  *
- * When a consumer_routine detects that cancellation is requested, then it will process
+ * When a callable_consumer detects that cancellation is requested, then it will process
  * any messages it has left in the buffer.
  *
  * After the main loop it will terminate the channel and flush out any routines
  * currently waiting on the other end of the channel.
  *
- * @param channel a flow channel that represents a connection between a producer_routine or transformer_routine
- *                that is generating data and the consumer_routine that will be receiving the data
- * @param consumer A consumer_routine is a cancellable function with at least one argument required to call it and
+ * @param channel a flow channel that represents a connection between a callable_producer or callable_transformer
+ *                that is generating data and the callable_consumer that will be receiving the data
+ * @param consumer A callable_consumer is a cancellable function with at least one argument required to call it and
  *                 a specified return type
- * @return A coroutine that continues until the consumer_routine is cancelled
+ * @return A coroutine that continues until the callable_consumer is cancelled
  */
 template<typename argument_t>
 cppcoro::task<void> spin_consumer(
@@ -110,22 +110,22 @@ cppcoro::task<void> spin_consumer(
 /**
  * TODO: Handle many arguments, maybe convert it to a tuple?
  *
- * Generates a coroutine that keeps calling the transformer_routine until the channel its
- * sending messages to is terminated by the consumer_routine or transformer_routine on the other end
+ * Generates a coroutine that keeps calling the callable_transformer until the channel its
+ * sending messages to is terminated by the callable_consumer or callable_transformer on the other end
  *
- * Transformers will live in between a producer_routine and consumer_routine.
+ * Transformers will live in between a callable_producer and callable_consumer.
  *
- * When a transformer_routine detects that the next routine in line has terminated the channel, then it will process
+ * When a callable_transformer detects that the next callable_routine in line has terminated the channel, then it will process
  * any messages it has left in the buffer and break out of its loop.
  *
- * After the main loop it will terminate the producer_routine channel and flush out any routines
- * currently waiting on the other end of the producer_routine channel.
+ * After the main loop it will terminate the callable_producer channel and flush out any routines
+ * currently waiting on the other end of the callable_producer channel.
  *
- * @param producer_channel The channel that will have a producing routine on the other end
- * @param consumer_channel The channel that will have a consuming routine on the other end
- * @param transformer A consumer_routine is a cancellable function with at least one argument required to call it and
+ * @param producer_channel The channel that will have a producing callable_routine on the other end
+ * @param consumer_channel The channel that will have a consuming callable_routine on the other end
+ * @param transformer A callable_consumer is a cancellable function with at least one argument required to call it and
  *                 a specified return type
- * @return A coroutine that continues until the transformer_routine is cancelled
+ * @return A coroutine that continues until the callable_transformer is cancelled
  */
 template<typename return_t, typename argument_t>
 cppcoro::task<void> spin_transformer(
@@ -161,15 +161,16 @@ cppcoro::task<void> spin_transformer(
 }
 
 /**
- * The consumer_routine or transformer_routine routine will flush out any producer_routine routines
+ * The callable_consumer or callable_transformer callable_routine will flush out any callable_producer routines
  * in waiting on the other end of the channel
  *
- * @param channel A communication channel between the consumer_routine and producer_routine routines
- * @param routine A consumer_routine or transformer_routine routine
+ * @param channel A communication channel between the callable_consumer and callable_producer routines
+ * @param routine A callable_consumer or callable_transformer callable_routine
  * @return A coroutine
  */
-template<flow::routine routine_t>
-  requires flow::consumer_routine<routine_t> or flow::transformer_routine<routine_t> cppcoro::task<void> flush(auto& channel, routine_t& routine, auto& consumer_token)
+template<flow::callable_routine routine_t>
+  requires flow::callable_consumer<routine_t> or flow::callable_transformer<routine_t> cppcoro::task<void>
+  flush(auto& channel, routine_t& routine, auto& consumer_token)
 {
   while (channel.is_waiting()) {
     auto next_message = channel.message_generator(consumer_token);

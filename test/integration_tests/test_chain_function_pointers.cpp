@@ -14,20 +14,20 @@ using namespace std::literals;
 
 int producer()
 {
-  //  flow::logging::error("producer_routine");
+  //  flow::logging::error("callable_producer");
   static int val = 0;
   return val++;
 }
 
 int transformer(int&& val)
 {
-  //  flow::logging::error("transformer_routine");
+  //  flow::logging::error("callable_transformer");
   return val * 2;
 }
 
 void consumer(int&& val)
 {
-  flow::logging::error("consumer_routine: {}", val);
+  flow::logging::error("callable_consumer: {}", val);
 }
 
 int main()

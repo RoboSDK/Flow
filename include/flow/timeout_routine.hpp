@@ -61,10 +61,10 @@ private:
 };
 
 /**
- * Return a routine that will expire in the specified time
+ * Return a callable_routine that will expire in the specified time
  *
  * @param callback The callback itself
- * @return A routine handle and callback pair
+ * @return A callable_routine handle and callback pair
  */
 auto make_timeout_routine(std::chrono::nanoseconds threshold, std::function<void()>&& callback)
 {

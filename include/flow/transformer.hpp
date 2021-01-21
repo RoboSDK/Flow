@@ -8,6 +8,7 @@ class transformer;
 template<typename return_t, typename... args_t>
 class transformer<return_t(args_t...)> {
 public:
+  using is_transformer = std::true_type;
 
   transformer() = default;
   ~transformer() = default;
@@ -17,7 +18,7 @@ public:
   transformer& operator=(transformer&&) noexcept = default;
   transformer& operator=(transformer const&) = default;
 
-  transformer(flow::transformer_routine auto&& callback, std::string producer_channel_name, std::string consumer_channel_name)
+  transformer(flow::callable_transformer auto&& callback, std::string producer_channel_name, std::string consumer_channel_name)
     : m_callback(flow::make_cancellable_function(std::forward<decltype(callback)>(callback))),
       m_producer_channel_name(std::move(producer_channel_name)),
       m_consumer_channel_name(std::move(consumer_channel_name))
@@ -36,7 +37,7 @@ private:
 };
 
 
-auto make_transformer(flow::transformer_routine auto&& callback, std::string producer_channel_name = "", std::string consumer_channel_name = "")
+auto make_transformer(flow::callable_transformer auto&& callback, std::string producer_channel_name = "", std::string consumer_channel_name = "")
 {
   using callback_t = decltype(callback);
   using argument_t = std::decay_t<typename flow::metaprogramming::function_traits<callback_t>::template args<0>::type>;
@@ -44,4 +45,7 @@ auto make_transformer(flow::transformer_routine auto&& callback, std::string pro
 
   return transformer<return_t(argument_t)>(std::forward<callback_t>(callback), std::move(producer_channel_name), std::move(consumer_channel_name));
 }
+
+template<typename transformer_t>
+concept transformer_concept = std::is_same_v<typename transformer_t::is_transformer, std::true_type>;
 }// namespace flow

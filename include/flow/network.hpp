@@ -21,54 +21,56 @@
 #include "flow/transformer.hpp"
 
 /**
- * A network is a sequence of routines connected by single producer_routine single consumer_routine channels.
+ * A network is a sequence of routines connected by single callable_producer single callable_consumer channels.
  * The end of the network depends on the data flow from the beginning of the network. The beginning
  * of the network has no dependencies.
  *
- * An empty network is a network which has no routines and can take a spinner_routine or a producer_routine.
+ * An empty network is a network which has no routines and can take a callable_spinner or a callable_producer.
  *
- * The minimal network s a network with a spinner_routine, because it depends on nothing and nothing depends on it.
+ * The minimal network s a network with a callable_spinner, because it depends on nothing and nothing depends on it.
  *
- * When a network is begun with a producer_routine, transformers may be inserted into the network until it is capped
- * with a consumer_routine.
+ * When a network is begun with a callable_producer, transformers may be inserted into the network until it is capped
+ * with a callable_consumer.
  *
  * Each network is considered independent from another network and may not communicate with each other.
  *
- * producer_routine -> transfomer -> ... -> consumer_routine
+ * callable_producer -> transfomer -> ... -> callable_consumer
  *
  * Each channel in the network uses contiguous memory to pass data to the channel waiting on the other way. All
- * data must flow from producer_routine to consumer_routine; no cyclical dependencies.
+ * data must flow from callable_producer to callable_consumer; no cyclical dependencies.
  *
  * Cancellation
  * Cancelling the network of coroutines is a bit tricky because if you stop them all at once, some of them will hang
  * with no way to have them leave the awaiting state.
  *
- * When starting the network reaction all routines will begin to wait and the first routine that is given priority is the
- * producer_routine at the beginning of the network, and the last will be the end of the network, or consumer_routine.
+ * When starting the network reaction all routines will begin to wait and the first callable_routine that is given priority is the
+ * callable_producer at the beginning of the network, and the last will be the end of the network, or callable_consumer.
  *
- * The consumer_routine then has to be the one that initializes the cancellation. The algorithm is as follows:
+ * The callable_consumer then has to be the one that initializes the cancellation. The algorithm is as follows:
  *
  * Consumer receives cancellation request from the cancellation handle
- * consumer_routine terminates the channel it is communicating with
- * consumer_routine flushes out any awaiting producers/transformers on the producing end of the channel
- * end routine
+ * callable_consumer terminates the channel it is communicating with
+ * callable_consumer flushes out any awaiting producers/transformers on the producing end of the channel
+ * end callable_routine
  *
- * The transformer_routine or producer_routine that is next in the network will then receiving channel termination notification
- * from the consumer_routine at the end of the network and break out of its loop
- * It well then notify terminate the producer_routine channel it receives data from and flush it out
+ * The callable_transformer or callable_producer that is next in the network will then receiving channel termination notification
+ * from the callable_consumer at the end of the network and break out of its loop
+ * It well then notify terminate the callable_producer channel it receives data from and flush it out
  *
- * rinse repeat until the beginning of the network, which is a producer_routine
- * The producer_routine simply breaks out of its loop and exits the scope
+ * rinse repeat until the beginning of the network, which is a callable_producer
+ * The callable_producer simply breaks out of its loop and exits the scope
  */
 
 namespace flow {
 template<typename configuration_t>
 class network {
 public:
+  using is_network = std::true_type;
+
   enum class state {
     empty,/// Initial state
-    open,/// Has producers and transformers with no consumer_routine
-    closed/// The network is complete and is capped by a consumer_routine
+    open,/// Has producers and transformers with no callable_consumer
+    closed/// The network is complete and is capped by a callable_consumer
   };
 
   /**
@@ -97,8 +99,8 @@ public:
   }
 
   /**
-   * Pushes a routine into the network
-   * @param spinner A routine with no dependencies and nothing depends on it
+   * Pushes a callable_routine into the network
+   * @param spinner A callable_routine with no dependencies and nothing depends on it
    */
   template<typename routine_t>
   requires std::is_same_v<flow::spinner, routine_t> void push(routine_t&& routine)
@@ -109,9 +111,9 @@ public:
   }
 
   /**
-   * Pushes a producer_routine into the network
-   * @param producer The producer_routine routine
-   * @param channel_name The channel name the producer_routine will publish to
+   * Pushes a callable_producer into the network
+   * @param producer The callable_producer callable_routine
+   * @param channel_name The channel name the callable_producer will publish to
    */
 
   template<typename message_t>
@@ -123,8 +125,8 @@ public:
   }
 
   /**
-   *  Pushes a transformer_routine into the network and creates any necessary channels it requires
-   * @param transformer A routine that depends on another routine and is depended on by a consumer_routine or transformer_routine
+   *  Pushes a callable_transformer into the network and creates any necessary channels it requires
+   * @param transformer A callable_routine that depends on another callable_routine and is depended on by a callable_consumer or callable_transformer
    * @param producer_channel_name The channel it depends on
    * @param consumer_channel_name The channel that it will publish to
    */
@@ -139,8 +141,8 @@ public:
   }
 
   /**
-   * Pushes a consumer_routine into the network
-   * @param callback A routine no other routine depends on and depends on at least a single routine
+   * Pushes a callable_consumer into the network
+   * @param callback A callable_routine no other callable_routine depends on and depends on at least a single callable_routine
    * @param channel_name The channel it will consume from
    */
   template<typename message_t>
@@ -166,7 +168,7 @@ public:
    * Makes a handle to this network that will allow whoever holds the handle to cancel
    * the network
    *
-   * The cancellation handle will trigger the consumer_routine to cancel and trickel down all the way to the producer_routine
+   * The cancellation handle will trigger the callable_consumer to cancel and trickel down all the way to the callable_producer
    * @return A cancellation handle
    */
   network_handle handle()
@@ -222,4 +224,8 @@ auto make_network(auto&&... routines)
 {
   return make_network<flow::configuration>(std::forward<decltype(routines)>(routines)...);
 }
+
+template <typename network_t>
+concept is_network = std::is_same_v<typename network_t::is_network, std::true_type>;
+
 }// namespace flow
