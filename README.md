@@ -44,11 +44,10 @@ When I first learned about asynchrony and what its purpose was there
 was confusion between [concurrency and asynchronous processes](https://stackoverflow.com/questions/4844637/what-is-the-difference-between-concurrency-parallelism-and-asynchronous-methods). 
 
 After becoming more aware of asynchrony the rabbit holes led me down the world of [monads](https://www.youtube.com/watch?v=t1e8gqXLbsU) and functional programming
-with haskell. The reasoning behind this was because I was looking at how asynchrony was being used by libraries where
-at the time they were made monadic interfaces were all the rage due to the limitations of concurrency in modern C++. 
+with haskell. I was looking at how asynchrony was being used by libraries, where at the time they were implemented with monadic interfaces. . 
 
-It was difficult to grasp, but it was starting to make sense. Although I never build a monadic library; around that
-time I started looking into C++ 20 and found out about coroutines. After diving deeper and deeper into coroutines, 
+It was difficult to grasp, but it was starting to make sense. I never built a monadic library because it seemed mentally tedious.
+I started looking into C++ 20 and found out about coroutines. After diving deeper and deeper into coroutines, 
 these were the solution to all the problems in robotics; really, [real time systems](https://gridem.blogspot.com/2018/07/heterogeneous-concurrent-exactly-once.html).
 
 Most of the callback base frameworks like ROS (Robot Operating System) and even ROS2 are severely lacking in
@@ -56,7 +55,13 @@ real time capabilities because they ignore performance in their design. I learne
 I think it's great for what it is. 
 
 In ROS-land the major forms of communication are done through publishers and subscribers (producers and consumers) where
-some loop is being done by a node object, or a while loop in the main program. 
+some loop is being done by a node object, or a while loop in the main program. This is strictly a multi-threaded form
+of concurrency and strong synchronization is required to communicate within callbacks. We all know this is not
+what we want with asynchronous operations.
+
+**Note on the current state of the project**: Right now this is an pre-pre-pre-alpha. I've been working on this in my spare time
+over the last few months. I've had to make a couple of redesigns, but I think this is the one that will work to server
+as a base.
 
 I have many more additions I want to add, such as support for TCP/IP and UDP, performance optimizations, and ergonomics
 such as adding in a when_all to subscribe to multiple channels at once with a consumer or transformer.
