@@ -1,5 +1,7 @@
 #pragma once
 
+#include "flow/options.hpp"
+
 namespace flow {
 
 template<typename message_t>
@@ -29,23 +31,23 @@ private:
 };
 
 template<typename return_t>
-auto make_producer(std::function<return_t()>&& callback, std::string channel_name = "")
+auto make_producer(std::function<return_t()>&& callback, flow::options options = flow::options{})
 {
   using callback_t = decltype(callback);
-  return producer<return_t>(std::forward<callback_t>(callback), std::move(channel_name));
+  return producer<return_t>(std::forward<callback_t>(callback), std::move(options.publish_to));
 }
 
 template<typename return_t>
-auto make_producer(return_t (*callback)(), std::string channel_name = "")
+auto make_producer(return_t (*callback)(), flow::options options = flow::options{})
 {
   using callback_t = decltype(callback);
-  return producer<return_t>(std::forward<callback_t>(callback), std::move(channel_name));
+  return producer<return_t>(std::forward<callback_t>(callback), std::move(options.publish_to));
 }
 
-auto make_producer(auto&& lambda, std::string channel_name = "")
+auto make_producer(auto&& lambda, flow::options&& options = flow::options{})
 {
   using callback_t = decltype(lambda);
-  return make_producer(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(channel_name));
+  return make_producer(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(options.publish_to));
 }
 
 template<typename producer_t>

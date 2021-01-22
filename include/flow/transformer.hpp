@@ -1,5 +1,7 @@
 #pragma once
 
+#include "flow/options.hpp"
+
 namespace flow {
 
 template<typename T>
@@ -38,23 +40,23 @@ private:
 };
 
 template<typename return_t, typename argument_t>
-auto make_transformer(std::function<return_t(argument_t&&)>&& callback, std::string channel_name = "")
+auto make_transformer(std::function<return_t(argument_t&&)>&& callback, flow::options options = flow::options{})
 {
   using callback_t = decltype(callback);
-  return transformer<return_t(argument_t)>(std::forward<callback_t>(callback), std::move(channel_name));
+  return transformer<return_t(argument_t)>(std::forward<callback_t>(callback), std::move(options.subscribe_to), std::move(options.publish_to));
 }
 
 template<typename return_t, typename argument_t>
-auto make_transformer(return_t (*callback)(argument_t&&), std::string producer_channel_name = "", std::string consumer_channel_name = "")
+auto make_transformer(return_t (*callback)(argument_t&&), flow::options options = flow::options{})
 {
   using callback_t = decltype(callback);
-  return transformer<return_t(argument_t)>(std::forward<callback_t>(callback), std::move(producer_channel_name), std::move(consumer_channel_name));
+  return transformer<return_t(argument_t)>(std::forward<callback_t>(callback), std::move(options.subscribe_to), std::move(options.publish_to));
 }
 
-auto make_transformer(auto&& lambda, std::string producer_channel_name = "", std::string consumer_channel_name = "")
+auto make_transformer(auto&& lambda, flow::options options = flow::options{})
 {
   using callback_t = decltype(lambda);
-  return make_transformer(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(producer_channel_name), std::move(consumer_channel_name));
+  return make_transformer(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(options.subscribe_to), std::move(options.publish_to));
 }
 
 
