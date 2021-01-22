@@ -9,13 +9,7 @@ class producer_routine : flow::user_routine {
 public:
   void initialize(auto& network)
   {
-    using namespace flow;
-
-    auto say_hello = make_producer(
-      hello_world,
-      options{ .publish_to{ "hello_world" } });
-
-    network.push(std::move(say_hello));
+    network.push(flow::make_producer(hello_world, "hello_world"));
   }
 
 private:

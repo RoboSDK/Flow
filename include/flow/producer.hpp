@@ -50,6 +50,26 @@ auto make_producer(auto&& lambda, flow::options&& options = flow::options{})
   return make_producer(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(options.publish_to));
 }
 
+template<typename return_t>
+auto make_producer(std::function<return_t()>&& callback, std::string channel_name)
+{
+  using callback_t = decltype(callback);
+  return producer<return_t>(std::forward<callback_t>(callback), std::move(channel_name));
+}
+
+template<typename return_t>
+auto make_producer(return_t (*callback)(), std::string channel_name)
+{
+  using callback_t = decltype(callback);
+  return producer<return_t>(std::forward<callback_t>(callback), std::move(channel_name));
+}
+
+auto make_producer(auto&& lambda, std::string channel_name)
+{
+  using callback_t = decltype(lambda);
+  return make_producer(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(channel_name));
+}
+
 template<typename producer_t>
 concept producer_concept = std::is_same_v<typename producer_t::is_producer, std::true_type>;
 

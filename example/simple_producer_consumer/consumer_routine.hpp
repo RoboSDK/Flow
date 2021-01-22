@@ -9,11 +9,7 @@ class consumer_routine : flow::user_routine {
 public:
   void initialize(auto& network)
   {
-    using namespace flow;
-    auto receiver = make_consumer(receive_hello,
-      options{ .subscribe_to = "hello_world" });
-
-    network.push(std::move(receiver));
+    network.push(flow::make_consumer(receive_hello, "hello_world"));
   }
 
 private:

@@ -14,25 +14,25 @@ aims to provide this framework.
 
 1. [Core Concepts](#core-concepts)
    1. [Overview](#1-overview)
-	  1. [Operations](#1-1-operations)
-	  2. [Communication](#1-2-communication)
+      1. [Operations](#1-1-operations)
+      2. [Communication](#1-2-communication)
    2. [Examples](#2-examples)
 2. [Dependencies](#dependencies)
-	1. [Necessary Dependencies ](#1-necessary-dependencies)
-	2. [Library Dependencies ](#2-library-dependencies)
-	3. [Optional Dependencies ](#3-optional-dependencies)
-	   1. [Tools](#3-1-tools")
+    1. [Necessary Dependencies ](#1-necessary-dependencies)
+    2. [Library Dependencies ](#2-library-dependencies)
+    3. [Optional Dependencies ](#3-optional-dependencies)
+       1. [Tools](#3-1-tools")
 3. [Build Instructions](#build-instructions)
-	1. [Build Directory](#1-build-directory)
-	2. [Environment Variables](#2-environment-variables)
-	3. [Configure](#3-configure)
-		1. [Via GUI](#3-1-configure-via-gui)
-		2. [Via CCmake](#3-2-configure-via-ccmake)
-	4. [Build](#4-build)
+    1. [Build Directory](#1-build-directory)
+    2. [Environment Variables](#2-environment-variables)
+    3. [Configure](#3-configure)
+        1. [Via GUI](#3-1-configure-via-gui)
+        2. [Via CCmake](#3-2-configure-via-ccmake)
+    4. [Build](#4-build)
 4. [Troubleshooting](#troubleshooting)
-	1. [Update Conan](#1-update-conan)
-	2. [Clear Conan Cache](#2-clear-conan-cache)
-	3. [Misconfiguration](#2-misconfiguration)
+    1. [Update Conan](#1-update-conan)
+    2. [Clear Conan Cache](#2-clear-conan-cache)
+    3. [Misconfiguration](#2-misconfiguration)
 5. [Testing](#testing)
 6. [Fuzz Testing](#fuzz-testing)
 
@@ -79,21 +79,21 @@ Each node in this graph represents an operation, and the specific type of operat
 has.
 
 1. *Spinner* - A spinner is an operation with no dependencies and nothing depends on it. it's a closed system. 
-	- Notation:  `()`
+    - Notation:  `()`
     - Example: In C++ this is a `void()` function, or any other process that 
     
 2. *Producer* - A producer is an operation with no dependencies and some other operation must depend on it. 
-	- Notation:  `()->R`
-	- Example: In C++ this is a `R()` function, or any other process that emulates the behavior
+    - Notation:  `()->R`
+    - Example: In C++ this is a `R()` function, or any other process that emulates the behavior
     
 3. *Consumer* - A receiver is an operation with at least one dependency and nothing depends on it.
-	- Notation:  `(A)`
-	- Example: In C++ this is a `void(auto&&... args)` function, or any other process that emulates the behavior
+    - Notation:  `(A)`
+    - Example: In C++ this is a `void(auto&&... args)` function, or any other process that emulates the behavior
     
 3. *Transformer* - A transformer is an operation with at least one dependency and at least one operation depends on it.
-	- Notation:  `R(A)`
-	- Example: In C++ this is a `auto(auto&&... args)` function, or any other process that emulates the behavior
-	
+    - Notation:  `R(A)`
+    - Example: In C++ this is a `auto(auto&&... args)` function, or any other process that emulates the behavior
+    
 The flow network is composed of these 4 types of functions, and any operations where the dependencies are not satisfied
 is an invalid network.
 
@@ -194,37 +194,35 @@ return "Hello World";
 
 std::string reverse_string(std::string&& message) 
 {
-	std::ranges::reverse(message);
-	return std::move(message); // no RVO here
+    std::ranges::reverse(message);
+    return std::move(message); // no RVO here
 }
 
 std::size_t hash_string(std::string&& message) 
 {
-	return std::hash\<std::string\>{}(std::move(message));
+    return std::hash\<std::string\>{}(std::move(message));
 }
 
 // For now all messages are passed in by r-value
 void receive_hashed_message(std::std::size_t&& message) 
 {
-	flow::logging::info("Received Message: {}", message);
+    flow::logging::info("Received Message: {}", message);
 }
 
 int main()
 {
   using namespacw flow;
   using namespace std::literals;
-  auto producer = make_producer(hello_world, options{.publish_to="hello_world"});
-
-  // Notice that the hello_world channel is the channel this transformer is subscribing to
+  auto producer = make_producer(hello_world, "hello_world");
   auto reverser = make_transformer(reverse_string, options{.publish_to="reversed", .subscribe_to="hello_world"});
   auto hasher = make_transformer(hash_string, options{.publish_to="hashed", .subscribe_to="reversed"});
-  auto receiver = make_consumer(receive_hashed_message, options{.subscribe_to="hashed"});
+  auto receiver = make_consumer(receive_hashed_message, "hashed");
 
   // Order doesn't matter here
   auto network = flow::make_network(std::move(producer), 
-									std::move(reverser), 
-									std::move(hasher), 
-									std::move(receiver));
+                                    std::move(reverser), 
+                                    std::move(hasher), 
+                                    std::move(receiver));
 
   network.cancel_after(2s);
 
@@ -249,31 +247,31 @@ to see which features are supported by each compiler.
 The following compilers should work:
 
   * [gcc 10.2+](https://gcc.gnu.org/)
-	<details>
-	<summary>Install command</summary>
+    <details>
+    <summary>Install command</summary>
 
-	- Ubuntu 20.04:
+    - Ubuntu 20.04:
 
-	  	sudo apt install build-essential gcc-10 g++-10
-		sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
+        sudo apt install build-essential gcc-10 g++-10
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
       
-	</details>
+    </details>
 
 2. [Conan](https://conan.io/)
-	<details>
-	<summary>Install Command</summary>
-	
-	- Via pip - https://docs.conan.io/en/latest/installation.html#install-with-pip-recommended
-		
-			pip install --user conan
+    <details>
+    <summary>Install Command</summary>
+    
+    - Via pip - https://docs.conan.io/en/latest/installation.html#install-with-pip-recommended
+        
+            pip install --user conan
     
      - Windows:
 
-   		choco install conan -y
+        choco install conan -y
 
-	- MacOS:
+    - MacOS:
 
-	  	brew install conan
+        brew install conan
 
    </details>
 
@@ -281,17 +279,17 @@ The following compilers should work:
    <details>
    <summary>Install Command</summary>
 
-	- Debian/Ubuntu:
+    - Debian/Ubuntu:
 
-	  	sudo apt-get install cmake
+        sudo apt-get install cmake
 
-	- Windows:
+    - Windows:
 
-	  	choco install cmake -y
+        choco install cmake -y
 
-	- MacOS:
+    - MacOS:
 
-	  	brew install cmake
+        brew install cmake
 
    </details>
 
@@ -300,12 +298,12 @@ The following compilers should work:
 1. [liburing](https://github.com/axboe/liburing)
    <details>
    <summary>Install Command</summary>
-   		sudo ./scripts/install_liburing.sh
+        sudo ./scripts/install_liburing.sh
    </details>
 2. [cppcoro](https://github.com/Garcia6l20/cppcoro)
    <details>
    <summary>Install Command</summary>
-   		sudo ./scripts/install_libcppcoro.sh
+        sudo ./scripts/install_libcppcoro.sh
    </details>
 
 <a name="3-optional-dependencies"></a>
@@ -314,72 +312,72 @@ The following compilers should work:
 <a name="3-1-tools"></a>
 #### C++ Tools
   * [Doxygen](http://doxygen.nl/)
-	<details>
-	<summary>Install Command</summary>
+    <details>
+    <summary>Install Command</summary>
 
-	- Debian/Ubuntu:
-		
-			sudo apt-get install doxygen
-			sudo apt-get install graphviz
+    - Debian/Ubuntu:
+        
+            sudo apt-get install doxygen
+            sudo apt-get install graphviz
 
-	- Windows:
-		
-			choco install doxygen.install -y
-			choco install graphviz -y
+    - Windows:
+        
+            choco install doxygen.install -y
+            choco install graphviz -y
 
-	- MacOS:
- 		
-			brew install doxygen
-	 		brew install graphviz
+    - MacOS:
+        
+            brew install doxygen
+            brew install graphviz
 
-	</details>
+    </details>
 
 
   * [ccache](https://ccache.dev/)
-	<details>
-	<summary>Install Command</summary>
+    <details>
+    <summary>Install Command</summary>
 
-	- Debian/Ubuntu:
-		
-			sudo apt-get install ccache
+    - Debian/Ubuntu:
+        
+            sudo apt-get install ccache
 
-	- Windows:
-		
-			choco install ccache -y
+    - Windows:
+        
+            choco install ccache -y
 
-	- MacOS:
- 		
-			brew install ccache
+    - MacOS:
+        
+            brew install ccache
 
-	</details>
+    </details>
 
 
   * [Cppcheck](http://cppcheck.sourceforge.net/)
-	<details>
-	<summary>Install Command</summary>
+    <details>
+    <summary>Install Command</summary>
 
-	- Debian/Ubuntu:
-		
-			sudo apt-get install cppcheck
+    - Debian/Ubuntu:
+        
+            sudo apt-get install cppcheck
 
-	- Windows:
-		
-			choco install cppcheck -y
+    - Windows:
+        
+            choco install cppcheck -y
 
-	- MacOS:
- 		
-			brew install cppcheck
+    - MacOS:
+        
+            brew install cppcheck
 
-	</details>
+    </details>
 
 
   * [include-what-you-use](https://include-what-you-use.org/)
-	<details>
-	<summary>Install Command</summary>
+    <details>
+    <summary>Install Command</summary>
 
-	Follow instructions here:
-	https://github.com/include-what-you-use/include-what-you-use#how-to-install
-	</details>
+    Follow instructions here:
+    https://github.com/include-what-you-use/include-what-you-use#how-to-install
+    </details>
 
 
 <a name="build-instructions"></a>
@@ -404,68 +402,68 @@ CMake will detect which compiler was used to build each of the Conan targets. If
 <summary>Commands for setting the compilers </summary>
 
 - Debian/Ubuntu/MacOS:
-	
-	Set your desired compiler (`clang`, `gcc`, etc):
-		
-	- Temporarily (only for the current shell)
-	
-		Run one of the followings in the terminal:
-	
-		- clang
-		
-				CC=clang CXX=clang++
-			
-		- gcc
-		
-				CC=gcc CXX=g++
-	
-	- Permanent:
+    
+    Set your desired compiler (`clang`, `gcc`, etc):
+        
+    - Temporarily (only for the current shell)
+    
+        Run one of the followings in the terminal:
+    
+        - clang
+        
+                CC=clang CXX=clang++
+            
+        - gcc
+        
+                CC=gcc CXX=g++
+    
+    - Permanent:
 
-		Open `~/.bashrc` using your text editor:
-			
-			gedit ~/.bashrc
-			
-		Add `CC` and `CXX` to point to the compilers:
-			
-			export CC=clang
-			export CXX=clang++
-			
-		Save and close the file.
+        Open `~/.bashrc` using your text editor:
+            
+            gedit ~/.bashrc
+            
+        Add `CC` and `CXX` to point to the compilers:
+            
+            export CC=clang
+            export CXX=clang++
+            
+        Save and close the file.
 
 - Windows:
 
-	- Permanent:
-	
-		Run one of the followings in PowerShell:
-				
-		- Visual Studio generator and compiler (cl)
-			
-				[Environment]::SetEnvironmentVariable("CC", "cl.exe", "User")
-				[Environment]::SetEnvironmentVariable("CXX", "cl.exe", "User")
-				refreshenv
-			
-		  Set the architecture using [vsvarsall](https://docs.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=vs-2019#vcvarsall-syntax):
-			
-				vsvarsall.bat x64
+    - Permanent:
+    
+        Run one of the followings in PowerShell:
+                
+        - Visual Studio generator and compiler (cl)
+            
+                [Environment]::SetEnvironmentVariable("CC", "cl.exe", "User")
+                [Environment]::SetEnvironmentVariable("CXX", "cl.exe", "User")
+                refreshenv
+            
+          Set the architecture using [vsvarsall](https://docs.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=vs-2019#vcvarsall-syntax):
+            
+                vsvarsall.bat x64
 
-		- clang
+        - clang
 
-				[Environment]::SetEnvironmentVariable("CC", "clang.exe", "User")
-				[Environment]::SetEnvironmentVariable("CXX", "clang++.exe", "User")
-				refreshenv
-	 
-		- gcc
+                [Environment]::SetEnvironmentVariable("CC", "clang.exe", "User")
+                [Environment]::SetEnvironmentVariable("CXX", "clang++.exe", "User")
+                refreshenv
+     
+        - gcc
 
-				[Environment]::SetEnvironmentVariable("CC", "gcc.exe", "User")
-				[Environment]::SetEnvironmentVariable("CXX", "g++.exe", "User")
-				refreshenv
-	 
+                [Environment]::SetEnvironmentVariable("CC", "gcc.exe", "User")
+                [Environment]::SetEnvironmentVariable("CXX", "g++.exe", "User")
+                refreshenv
+     
 
   - Temporarily (only for the current shell):
-		
-			$Env:CC="clang.exe"
-			$Env:CXX="clang++.exe"
-			
+        
+            $Env:CC="clang.exe"
+            $Env:CXX="clang++.exe"
+            
 </details>
 
 <a name="3-configure"></a>
@@ -552,7 +550,7 @@ project (all targets):
 
 For Visual Studio, give the build configuration (Release, RelWithDeb, Debug, etc) like the following:
 
-	cmake --build ./build -- /p:configuration=Release
+    cmake --build ./build -- /p:configuration=Release
 
 <a name="troubleshooting"></a>
 ## Troubleshooting
