@@ -9,18 +9,19 @@ class producer_routine : flow::user_routine {
 public:
   void initialize(auto& network)
   {
-    network.push(std::move(hello_world_producer));
+    using namespace flow;
+
+    auto say_hello = make_producer(
+      hello_world,
+      options{ .publish_to{ "hello_world" } });
+
+    network.push(std::move(say_hello));
   }
 
 private:
-  std::string message_handler()
+  static std::string hello_world()
   {
     return "Hello World!";
   }
-
-  flow::producer<std::string> hello_world_producer{
-    [this] { return message_handler(); },
-    "hello_world"
-  };
 };
 }// namespace example

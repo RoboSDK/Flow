@@ -13,14 +13,14 @@ public:
   }
 
 private:
-  std::string message_handler()
+  std::string hello_world()
   {
     flow::logging::info("Producing Hello World string!");
     return "Hello World!";
   }
 
   flow::producer<std::string> hello_world_producer{
-    [this] { return message_handler(); },
+    [this] { return hello_world(); },
     "hello_world"
   };
 };
