@@ -64,7 +64,7 @@ over the last few months. I've had to make a couple of redesigns, but I think th
 as a base.
 
 I have many more additions I want to add, such as support for TCP/IP and UDP, performance optimizations, and ergonomics
-such as adding in a when_all to subscribe to multiple channels at once with a consumer or transformer.
+such as adding in a when_all to subscribe to multiple channels at once with a receiver or transformer.
 
 <a name="1-overview"></a>
 ### Overview
@@ -86,7 +86,7 @@ has.
 	- Notation:  `()->R`
 	- Example: In C++ this is a `R()` function, or any other process that emulates the behavior
     
-3. *Consumer* - A consumer is an operation with at least one dependency and nothing depends on it.
+3. *Consumer* - A receiver is an operation with at least one dependency and nothing depends on it.
 	- Notation:  `(A)`
 	- Example: In C++ this is a `void(auto&&... args)` function, or any other process that emulates the behavior
     
@@ -100,10 +100,10 @@ is an invalid network.
 <a name="1-2-communication"></a>
 ### Communication
 Each of these operations are connected to each other through a `channel`. Each channel needs to have
-at least one producer and one consumer on the other end. A transformer doubles as a producer and consumer, 
+at least one producer and one receiver on the other end. A transformer doubles as a producer and receiver, 
 so a path through the network may look something like this
 
-`{()->A , (A)->B, (B)->C, (C)}` This network contains a producer, two transformers, and a consumer. It is complete 
+`{()->A , (A)->B, (B)->C, (C)}` This network contains a producer, two transformers, and a receiver. It is complete 
 and and closed. There will be three channels in between; each with its own channel name. If no channel name is provided,
 then an empty string will be used; you can think of this as a *global channel*. 
 
@@ -112,20 +112,20 @@ A global channel is a channel that is available globally for that specific messa
 
 **Not yet implemented**: At the moment channels use a multi-producer scheme, so if only one producer exists in that
 channel, then it is inefficient due to synchronization of atomics. There will be a way to make channels that are
-single producer single consumer in the future. These will be done by tightly linking multiple functions and generating
+single producer single receiver in the future. These will be done by tightly linking multiple functions and generating
 private channels that are inaccessible through the main network. Think of it as creating a subnet within the network.
 
 Each of the operations in the network will begin and start to process data and eventually reach a frequency.
 
 Looking at the original example: `{()->A , (A)->B, (B)->C, (C)}`
 
-At t0 the two transformers and consumer at the end will be waiting for messages and the producer will begin to 
+At t0 the two transformers and receiver at the end will be waiting for messages and the producer will begin to 
 produce data. This could be through a network socket that has no local dependencies (e.g. sensor data). 
 
 At t1 The first transformer receives the first message and transforms it, and at the same time the producer begins
 producing a second piece of data. 
 
-This keeps going until all 4 operations are constantly communicating information to the final consumer with some
+This keeps going until all 4 operations are constantly communicating information to the final receiver with some
 frequency.
 
 <a name="1-3-Cancellation"></a>
@@ -133,13 +133,13 @@ frequency.
 
 Cancellation of coroutines is tricky, but there is a logical way to cancel this large network. 
 
-The producers begin the chain of operations, and the way to end the chain is by beginning with the consumer
+The producers begin the chain of operations, and the way to end the chain is by beginning with the receiver
 at the end of the chain. when a cancellation request is performed the consumers at the end of the
 network flow will begin by exiting their main loop. 
 
-At this point, transformers and producers down the chain will be awaiting compute time for their coroutine. The consumer
+At this point, transformers and producers down the chain will be awaiting compute time for their coroutine. The receiver
 will then `flush` out the waiting transformer or producer that is next in line, once that transformer is free the 
-consumer will end. Then the transformer will repeat this until the producer is reached at the beginning of the chain 
+receiver will end. Then the transformer will repeat this until the producer is reached at the beginning of the chain 
 and then the producer coroutines will end and exit their scope.
 
 
@@ -167,7 +167,7 @@ int main()
 
   /**
    * The producer hello_world is going to be publishing to the global std::string channel.
-   * The consumer receive_message is going to subscribe to the global std::string channel.
+   * The receiver receive_message is going to subscribe to the global std::string channel.
    */
   auto network = flow::make_network(hello_world, receive_message);
 
@@ -211,19 +211,20 @@ void receive_hashed_message(std::std::size_t&& message)
 
 int main()
 {
+  using namespacw flow;
   using namespace std::literals;
-  auto producer = flow::make_producer(hello_world, "hello_world");
+  auto producer = make_producer(hello_world, options{.publish_to="hello_world"});
 
   // Notice that the hello_world channel is the channel this transformer is subscribing to
-  auto reverser = flow::make_transformer(reverse_string, "hello_world", "reversed");
-  auto hasher = flow::make_transformer(hash_string, "reversed", "hashed");
-  auto consumer = flow::make_consumer(receive_hashed_message, "hashed");
+  auto reverser = make_transformer(reverse_string, options{.publish_to="reversed", .subscribe_to="hello_world"});
+  auto hasher = make_transformer(hash_string, options{.publish_to="hashed", .subscribe_to="reversed"});
+  auto receiver = make_consumer(receive_hashed_message, options{.subscribe_to="hashed"});
 
   // Order doesn't matter here
   auto network = flow::make_network(std::move(producer), 
 									std::move(reverser), 
 									std::move(hasher), 
-									std::move(consumer));
+									std::move(receiver));
 
   network.cancel_after(2s);
 
