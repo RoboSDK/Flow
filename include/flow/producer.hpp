@@ -26,7 +26,7 @@ public:
   auto& callback() { return *m_callback; }
 
 private:
-  typename detail::cancellable_routine<message_t()>::sPtr m_callback{ nullptr };
+  typename detail::cancellable_function<message_t()>::sPtr m_callback{ nullptr };
   std::string m_channel_name{};
 };
 

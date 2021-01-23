@@ -33,7 +33,7 @@ public:
   auto& callback() { return *m_callback; }
 
 private:
-  typename detail::cancellable_routine<return_t(args_t&&...)>::sPtr m_callback{ nullptr };
+  typename detail::cancellable_function<return_t(args_t&&...)>::sPtr m_callback{ nullptr };
 
   std::string m_producer_channel_name{};
   std::string m_consumer_channel_name{};

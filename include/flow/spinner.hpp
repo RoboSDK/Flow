@@ -20,7 +20,7 @@ public:
   auto& callback() { return *m_callback; }
 
 private:
-  detail::cancellable_routine<void()>::sPtr m_callback{ nullptr };
+  detail::cancellable_function<void()>::sPtr m_callback{ nullptr };
 };
 
 auto make_spinner(std::function<void()>&& callback)

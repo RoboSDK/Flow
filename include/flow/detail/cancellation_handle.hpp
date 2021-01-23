@@ -6,10 +6,10 @@
 #include "metaprogramming.hpp"
 
 /**
- * Any std::function, function pointer, or lambda may be used to make a cancellable_routine
+ * Any std::function, function pointer, or lambda may be used to make a cancellable_function
  *
  * A cancellable function can generate a cancellation_handle via the handle() method. The handle is
- * the object whereby cancellation is transmitted to the cancellable_routine.
+ * the object whereby cancellation is transmitted to the cancellable_function.
  *
  * The nominal use case is as follows:
  *   void do_foo() {  // do foo here }

@@ -5,7 +5,7 @@
 #include <cppcoro/when_all_ready.hpp>
 
 #include "flow/configuration.hpp"
-#include "flow/detail/cancellable_routine.hpp"
+#include "flow/detail/cancellable_function.hpp"
 #include "flow/detail/channel.hpp"
 #include "flow/detail/channel_set.hpp"
 #include "flow/detail/mixed_array.hpp"
@@ -198,6 +198,7 @@ private:
 
   std::unique_ptr<thread_pool_t> thread_pool = std::make_unique<cppcoro::static_thread_pool>();
   std::unique_ptr<resource_generator_t> resource_generator = std::make_unique<resource_generator_t>();
+
   detail::channel_set<configuration_t> channels{};
 
   std::vector<cppcoro::task<void>> tasks{};

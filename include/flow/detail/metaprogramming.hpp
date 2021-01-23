@@ -199,7 +199,7 @@ void for_each(auto&& callback)
 }
 
 /**
- * Base case for the other contains function
+ ase case for the other contains function
  * @tparam EmptyListType Literally an empty type <>
  * @return always false
  */
@@ -210,7 +210,7 @@ constexpr bool contains()
 }
 
 /**
- * return_turns whether the list passed in contains the first template argument
+ a return_turns whether the list passed in contains the first template argument
  *
  * complexity: O(n)
  *

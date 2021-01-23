@@ -9,10 +9,10 @@
 #include "metaprogramming.hpp"
 
 /**
- * Any std::function, function pointer, or lambda may be used to make a cancellable_routine
+ * Any std::function, function pointer, or lambda may be used to make a cancellable_function
  *
  * A cancellable routine can generate a cancellation_handle via the handle() method. The handle is
- * the object whereby cancellation is transmitted to the cancellable_routine.
+ * the object whereby cancellation is transmitted to the cancellable_function.
  *
  * The nominal use case is as follows:
  *   void do_foo() {  // do foo here }
@@ -34,17 +34,17 @@ namespace flow::detail {
  * @tparam Args The arguments of the function
  */
 template<typename T>
-class cancellable_routine;
+class cancellable_function;
 
 template<typename return_t, typename... args_t>
-class cancellable_routine<return_t(args_t...)> {
+class cancellable_function<return_t(args_t...)> {
 public:
-  using sPtr = std::shared_ptr<cancellable_routine<return_t(args_t...)>>;
+  using sPtr = std::shared_ptr<cancellable_function<return_t(args_t...)>>;
   using callback_t = std::function<return_t(args_t...)>;
   using function_ptr_t = return_t (*)(args_t...);
 
-  [[maybe_unused]] explicit cancellable_routine(callback_t&& callback) : m_callback(std::move(callback)) {}
-  [[maybe_unused]] explicit cancellable_routine(function_ptr_t callback) : m_callback(callback) {}
+  [[maybe_unused]] explicit cancellable_function(callback_t&& callback) : m_callback(std::move(callback)) {}
+  [[maybe_unused]] explicit cancellable_function(function_ptr_t callback) : m_callback(callback) {}
 
   return_t operator()(args_t&&... args)
   {
@@ -80,14 +80,14 @@ private:
 template<typename return_t, typename... args_t>
 auto make_cancellable_routine(std::function<return_t(args_t...)>&& callback)
 {
-  using cancellable_routine_t = cancellable_routine<return_t(args_t...)>;
+  using cancellable_routine_t = cancellable_function<return_t(args_t...)>;
   return std::make_shared<cancellable_routine_t>(std::forward<decltype(callback)>(callback));
 }
 
 template<typename return_t, typename... args_t>
 [[maybe_unused]] auto make_cancellable_routine(return_t (*callback)(args_t...))
 {
-  using cancellable_routine_t = cancellable_routine<return_t(args_t...)>;
+  using cancellable_routine_t = cancellable_function<return_t(args_t...)>;
   return std::make_shared<cancellable_routine_t>(std::forward<decltype(callback)>(callback));
 }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "flow/detail/cancellable_routine.hpp"
+#include "flow/detail/cancellable_function.hpp"
 #include "flow/detail/metaprogramming.hpp"
 #include "flow/options.hpp"
 #include "flow/routine_concepts.hpp"
@@ -30,7 +30,7 @@ public:
   auto& callback() { return *m_callback; }
 
 private:
-  typename detail::cancellable_routine<void(message_t&&)>::sPtr m_callback{ nullptr };
+  typename detail::cancellable_function<void(message_t&&)>::sPtr m_callback{ nullptr };
   std::string m_channel_name{};
 };
 

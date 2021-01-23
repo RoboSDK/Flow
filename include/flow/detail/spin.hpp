@@ -6,7 +6,7 @@
 #include "flow/network.hpp"
 #include "flow/routine_concepts.hpp"
 
-#include "cancellable_routine.hpp"
+#include "cancellable_function.hpp"
 #include "channel.hpp"
 
 /**
@@ -25,7 +25,7 @@ namespace flow::detail {
  */
 cppcoro::task<void> spin_spinner(
   auto& scheduler,
-  cancellable_routine<void()>& spinner)
+  cancellable_function<void()>& spinner)
 {
   while (not spinner.is_cancellation_requested()) {
     co_await scheduler.schedule();
@@ -49,7 +49,7 @@ cppcoro::task<void> spin_spinner(
 template<typename return_t>
 cppcoro::task<void> spin_producer(
   auto& channel,
-  cancellable_routine<return_t()>& producer)
+  cancellable_function<return_t()>& producer)
 {
   producer_token<return_t> producer_token{};
 
@@ -89,7 +89,7 @@ cppcoro::task<void> spin_producer(
 template<typename argument_t>
 cppcoro::task<void> spin_consumer(
   auto& channel,
-  cancellable_routine<void(argument_t&&)>& consumer)
+  cancellable_function<void(argument_t&&)>& consumer)
 {
   consumer_token<argument_t> consumer_token{};
 
@@ -134,7 +134,7 @@ template<typename return_t, typename argument_t>
 cppcoro::task<void> spin_transformer(
   auto& producer_channel,
   auto& consumer_channel,
-  cancellable_routine<return_t(argument_t&&)> transformer)
+  cancellable_function<return_t(argument_t&&)> transformer)
 {
   producer_token<return_t> producer_token{};
   consumer_token<argument_t> consumer_token{};
