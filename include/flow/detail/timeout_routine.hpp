@@ -60,25 +60,4 @@ private:
   std::chrono::nanoseconds m_time_limit;
   std::chrono::nanoseconds m_time_elapsed{ 0 };
 };
-
-/**
- * Return a callable_routine that will expire in the specified time
- *
- * @param callback The callback itself
- * @return A callable_routine handle and callback pair
- */
-auto make_shared_timeout_routine(std::chrono::nanoseconds threshold, std::function<void()>&& callback)
-{
-  return std::make_shared<timeout_routine>(threshold, std::forward<decltype(callback)>(callback));
-}
-
-[[maybe_unused]] auto make_shared_timeout_routine(std::chrono::nanoseconds threshold, void (*callback)())
-{
-  return std::make_shared<timeout_routine>(threshold, std::forward<decltype(callback)>(callback));
-}
-
-[[maybe_unused]] auto make_shared_timeout_routine(std::chrono::nanoseconds threshold, auto&& lambda)
-{
-  return make_shared_timeout_routine(threshold, detail::metaprogramming::to_function(lambda));
-}
 }// namespace flow

@@ -176,7 +176,8 @@ public:
    */
   void cancel_after(std::chrono::nanoseconds time)
   {
-    auto timeout_routine = detail::make_shared_timeout_routine(time, [&] {
+    // Needs to be heap allocated so coroutines can access the member data out of scope
+    auto timeout_routine = std::make_shared<detail::timeout_routine>(time, [&] {
       handle().request_cancellation();
     });
 
