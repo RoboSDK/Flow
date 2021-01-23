@@ -6,8 +6,8 @@
 #include <tuple>
 #include <variant>
 
+#include "flow/detail/metaprogramming.hpp"
 #include "flow/logging.hpp"
-#include "flow/metaprogramming.hpp"
 
 namespace flow {
 

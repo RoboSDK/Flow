@@ -1,6 +1,6 @@
 #pragma once
 
-#include "flow/cancellation_handle.hpp"
+#include "flow/detail/cancellation_handle.hpp"
 
 namespace flow {
 class network_handle {

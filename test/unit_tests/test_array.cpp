@@ -1,5 +1,5 @@
 #include <catch2/catch.hpp>
-#include <flow/make_array.hpp>
+#include <flow/detail/make_array.hpp>
 
 
 TEST_CASE("Make the array", "[make_array]")

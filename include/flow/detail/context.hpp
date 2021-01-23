@@ -4,8 +4,8 @@
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
 
-#include <flow/channel.hpp>
-#include <flow/channel_set.hpp>
+#include <flow/detail/channel.hpp>
+#include <flow/detail/channel_set.hpp>
 
 /**
  * This is a global context that all communicate will be built upon

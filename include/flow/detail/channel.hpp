@@ -2,11 +2,11 @@
 
 #include <array>
 
-#include "flow/atomic.hpp"
-#include "flow/consumer_token.hpp"
+#include "consumer_token.hpp"
+#include "flow/detail/atomic.hpp"
 #include "flow/logging.hpp"
-#include "flow/metaprogramming.hpp"
-#include "flow/producer_token.hpp"
+#include "metaprogramming.hpp"
+#include "producer_token.hpp"
 
 #include <cppcoro/async_generator.hpp>
 #include <cppcoro/multi_producer_sequencer.hpp>

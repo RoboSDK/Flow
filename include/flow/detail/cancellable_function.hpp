@@ -6,9 +6,9 @@
 #include <cppcoro/cancellation_token.hpp>
 #include <cppcoro/operation_cancelled.hpp>
 
-#include "flow/metaprogramming.hpp"
-#include "flow/cancellation_handle.hpp"
-#include "logging.hpp"
+#include "cancellation_handle.hpp"
+#include "flow/logging.hpp"
+#include "metaprogramming.hpp"
 
 /**
  * This module is dedicated to the cancellation_handle and cancellable_function.

@@ -1,6 +1,6 @@
 #include <catch2/catch.hpp>
 #include <cppcoro/sync_wait.hpp>
-#include <flow/timeout_routine.hpp>
+#include <flow/detail/timeout_routine.hpp>
 
 TEST_CASE("Test timeout_routine behavior", "[timeout_routine]")
 {
@@ -10,13 +10,11 @@ TEST_CASE("Test timeout_routine behavior", "[timeout_routine]")
   static constexpr auto time_limit = 1000ms;
 
   bool called = false;
-  auto timeout_routine_ptr = flow::make_timeout_routine(time_limit, [&] {
+  auto timeout_routine = flow::make_shared_timeout_routine(time_limit, [&] {
     called = true;
   });
 
-  auto& timeout_routine = *timeout_routine_ptr;
-
   REQUIRE_FALSE(called);
-  cppcoro::sync_wait(timeout_routine());
+  cppcoro::sync_wait(timeout_routine->spin());
   REQUIRE(called);
 }

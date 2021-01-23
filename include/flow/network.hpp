@@ -4,16 +4,16 @@
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all_ready.hpp>
 
-#include "channel_set.hpp"
-#include "flow/cancellable_function.hpp"
-#include "flow/channel.hpp"
-#include "flow/context.hpp"
-#include "flow/mixed_array.hpp"
+#include "flow/configuration.hpp"
+#include "flow/detail/cancellable_function.hpp"
+#include "flow/detail/channel.hpp"
+#include "flow/detail/channel_set.hpp"
+#include "flow/detail/context.hpp"
+#include "flow/detail/mixed_array.hpp"
+#include "flow/detail/spin.hpp"
+#include "flow/detail/timeout_routine.hpp"
 #include "flow/network_handle.hpp"
 #include "flow/routine_concepts.hpp"
-#include "flow/spin.hpp"
-#include "flow/timeout_routine.hpp"
-#include "flow/configuration.hpp"
 
 #include "flow/consumer.hpp"
 #include "flow/producer.hpp"
@@ -185,14 +185,12 @@ public:
    */
   void cancel_after(std::chrono::milliseconds time)
   {
-    auto timeout_function_ptr = make_timeout_routine(time, [&] {
+    auto timeout_routine = make_shared_timeout_routine(time, [&] {
       handle().request_cancellation();
     });
 
-    auto& timeout_function = *timeout_function_ptr;
-
-    m_context->tasks.push_back(timeout_function());
-    m_heap_storage.push_back(std::move(timeout_function_ptr));
+    m_context->tasks.push_back(timeout_routine->spin());
+    m_heap_storage.push_back(std::move(timeout_routine));
   }
 
 private:

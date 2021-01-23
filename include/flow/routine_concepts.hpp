@@ -1,8 +1,8 @@
 #pragma once
 
-#include <concepts>
-#include "flow/metaprogramming.hpp"
+#include "flow/detail/metaprogramming.hpp"
 #include "flow/user_routine.hpp"
+#include <concepts>
 
 /**
  * A callable_routine is a core concept of this framework; a building block of a network.

@@ -6,8 +6,8 @@
 #include <cppcoro/cancellation_token.hpp>
 #include <cppcoro/operation_cancelled.hpp>
 
-#include "flow/metaprogramming.hpp"
-#include "logging.hpp"
+#include "flow/logging.hpp"
+#include "metaprogramming.hpp"
 
 /**
  * This module is dedicated to the cancellation_handle

@@ -1,5 +1,5 @@
 #include <catch2/catch.hpp>
-#include <flow/metaprogramming.hpp>
+#include <flow/detail/metaprogramming.hpp>
 
 namespace {
 struct Foo {

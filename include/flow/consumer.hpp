@@ -1,10 +1,10 @@
 #pragma once
 
-#include <string>
-#include "flow/metaprogramming.hpp"
-#include "flow/cancellable_function.hpp"
-#include "flow/routine_concepts.hpp"
+#include "flow/detail/cancellable_function.hpp"
+#include "flow/detail/metaprogramming.hpp"
 #include "flow/options.hpp"
+#include "flow/routine_concepts.hpp"
+#include <string>
 
 namespace flow {
 

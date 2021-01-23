@@ -2,7 +2,7 @@
 
 #include <any>
 
-#include "flow/channel.hpp"
+#include "flow/detail/channel.hpp"
 
 /**
  * A channel set will contain a unique channels only

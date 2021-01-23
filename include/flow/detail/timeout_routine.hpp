@@ -6,7 +6,7 @@
 #include <cppcoro/on_scope_exit.hpp>
 #include <cppcoro/task.hpp>
 
-#include "flow/metaprogramming.hpp"
+#include "flow/detail/metaprogramming.hpp"
 
 /**
  * Routine that will run until the specified time limit and call the passed in callback
@@ -15,6 +15,7 @@
 namespace flow {
 class timeout_routine {
 public:
+  using sPtr = std::shared_ptr<timeout_routine>;
   using callback_t = std::function<void()>;
   using function_ptr_t = void (*)();
 
@@ -30,7 +31,7 @@ public:
   {
   }
 
-  [[maybe_unused]] cppcoro::task<void> operator()()
+  [[maybe_unused]] cppcoro::task<void> spin()
   {
     using namespace std::chrono;
     using namespace std::chrono_literals;
@@ -66,18 +67,18 @@ private:
  * @param callback The callback itself
  * @return A callable_routine handle and callback pair
  */
-auto make_timeout_routine(std::chrono::nanoseconds threshold, std::function<void()>&& callback)
+auto make_shared_timeout_routine(std::chrono::nanoseconds threshold, std::function<void()>&& callback)
 {
   return std::make_shared<timeout_routine>(threshold, std::forward<decltype(callback)>(callback));
 }
 
-[[maybe_unused]] auto make_timeout_routine(std::chrono::nanoseconds threshold, void (*callback)())
+[[maybe_unused]] auto make_shared_timeout_routine(std::chrono::nanoseconds threshold, void (*callback)())
 {
   return std::make_shared<timeout_routine>(threshold, std::forward<decltype(callback)>(callback));
 }
 
-[[maybe_unused]] auto make_timeout_routine(std::chrono::nanoseconds threshold, auto&& lambda)
+[[maybe_unused]] auto make_shared_timeout_routine(std::chrono::nanoseconds threshold, auto&& lambda)
 {
-  return make_timeout_routine(threshold, flow::metaprogramming::to_function(lambda));
+  return make_shared_timeout_routine(threshold, flow::metaprogramming::to_function(lambda));
 }
 }// namespace flow
