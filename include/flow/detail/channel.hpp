@@ -14,7 +14,7 @@
 /**
  * The link between routines in a network are channels.
  *
- * A channel in this framework is a single callable_producer single callable_consumer channel that are linked
+ * A multi channel in this framework is a multi producer multi consumer channel that are linked
  * to two corresponding neighbors in a network.
  */
 
@@ -48,22 +48,19 @@ struct resource {
  * @tparam configuration_t The global compile time configuration for the project
  */
 template<typename configuration_t>
-struct channel_resource_generator {
+class channel_resource_generator {
   using resource_t = resource<configuration_t>;
+public:
+
+  resource_t* operator()() {
+    return &channel_resources[std::atomic_ref(current_resource)++];
+  }
+
+private:
 
   std::array<resource_t, configuration_t::max_resources> channel_resources{};
   std::size_t current_resource{};
 };
-
-/**
- * Get the next channel resource available from the generator
- * @param generator a channel resource generator
- * @return A pointer to the resource
- */
-auto* get_channel_resource(auto& generator)
-{
-  return &generator.channel_resources[std::atomic_ref(generator.current_resource)++];
-}
 
 /**
  * A single callable_producer single callable_consumer channel

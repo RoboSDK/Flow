@@ -6,8 +6,6 @@
 #include "metaprogramming.hpp"
 
 /**
- * This module is dedicated to the cancellation_handle
- *
  * Any std::function, function pointer, or lambda may be used to make a cancellable_routine
  *
  * A cancellable function can generate a cancellation_handle via the handle() method. The handle is

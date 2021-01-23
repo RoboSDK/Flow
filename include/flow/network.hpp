@@ -8,7 +8,6 @@
 #include "flow/detail/cancellable_routine.hpp"
 #include "flow/detail/channel.hpp"
 #include "flow/detail/channel_set.hpp"
-#include "flow/detail/context.hpp"
 #include "flow/detail/mixed_array.hpp"
 #include "flow/detail/spin.hpp"
 #include "flow/detail/timeout_routine.hpp"
@@ -82,20 +81,20 @@ public:
   template<typename message_t>
   auto& make_channel_if_not_exists(std::string channel_name)
   {
-    if (m_context->channels.template contains<message_t>(channel_name)) {
-      return m_context->channels.template at<message_t>(channel_name);
+    if (channels.template contains<message_t>(channel_name)) {
+      return channels.template at<message_t>(channel_name);
     }
 
     using channel_t = detail::channel<message_t, configuration_t>;
 
     channel_t channel{
       channel_name,
-      get_channel_resource(m_context->resource_generator),
-      &m_context->thread_pool
+      std::invoke(*resource_generator),
+      thread_pool.get()
     };
 
-    m_context->channels.put(std::move(channel));
-    return m_context->channels.template at<message_t>(channel_name);
+    channels.put(std::move(channel));
+    return channels.template at<message_t>(channel_name);
   }
 
   /**
@@ -106,7 +105,7 @@ public:
   requires std::is_same_v<flow::spinner, routine_t> void push(routine_t&& routine)
   {
     m_handle.push(routine.callback().handle());
-    m_context->tasks.push_back(detail::spin_spinner(m_context->thread_pool, routine.callback()));
+    tasks.push_back(detail::spin_spinner(thread_pool, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
   }
 
@@ -120,7 +119,7 @@ public:
   void push(flow::producer<message_t>&& routine)
   {
     auto& channel = make_channel_if_not_exists<message_t>(routine.channel_name());
-    m_context->tasks.push_back(detail::spin_producer<message_t>(channel, routine.callback()));
+    tasks.push_back(detail::spin_producer<message_t>(channel, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
   }
 
@@ -136,7 +135,7 @@ public:
     auto& producer_channel = make_channel_if_not_exists<args_t...>(routine.producer_channel_name());
     auto& consumer_channel = make_channel_if_not_exists<return_t>(routine.consumer_channel_name());
 
-    m_context->tasks.push_back(detail::spin_transformer<return_t, args_t...>(producer_channel, consumer_channel, routine.callback()));
+    tasks.push_back(detail::spin_transformer<return_t, args_t...>(producer_channel, consumer_channel, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
   }
 
@@ -151,7 +150,7 @@ public:
     auto& channel = make_channel_if_not_exists<message_t>(routine.channel_name());
 
     m_handle.push(routine.callback().handle());
-    m_context->tasks.push_back(detail::spin_consumer<message_t>(channel, routine.callback()));
+    tasks.push_back(detail::spin_consumer<message_t>(channel, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
   }
 
@@ -161,7 +160,7 @@ public:
    */
   cppcoro::task<void> spin()
   {
-    co_await cppcoro::when_all_ready(std::move(m_context->tasks));
+    co_await cppcoro::when_all_ready(std::move(tasks));
   }
 
   /**
@@ -189,14 +188,19 @@ public:
       handle().request_cancellation();
     });
 
-    m_context->tasks.push_back(timeout_routine->spin());
+    tasks.push_back(timeout_routine->spin());
     m_heap_storage.push_back(std::move(timeout_routine));
   }
 
 private:
-  using context_t = flow::context<configuration_t>;
-  std::unique_ptr<context_t> m_context = std::make_unique<context_t>();
+  using thread_pool_t = cppcoro::static_thread_pool;
+  using resource_generator_t = detail::channel_resource_generator<configuration_t>;
 
+  std::unique_ptr<thread_pool_t> thread_pool = std::make_unique<cppcoro::static_thread_pool>();
+  std::unique_ptr<resource_generator_t> resource_generator = std::make_unique<resource_generator_t>();
+  detail::channel_set<configuration_t> channels{};
+
+  std::vector<cppcoro::task<void>> tasks{};
   std::vector<std::any> m_heap_storage{};
 
   network_handle m_handle{};
