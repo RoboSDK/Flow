@@ -20,44 +20,44 @@
 #include "flow/transformer.hpp"
 
 /**
- * A network is a sequence of routines connected by single callable_producer single callable_consumer m_channels.
+ * A network is a sequence of routines connected by single producer_function single consumer_function m_channels.
  * The end of the network depends on the data flow from the beginning of the network. The beginning
  * of the network has no dependencies.
  *
- * An empty network is a network which has no routines and can take a callable_spinner or a callable_producer.
+ * An empty network is a network which has no routines and can take a spinner_function or a producer_function.
  *
- * The minimal network s a network with a callable_spinner, because it depends on nothing and nothing depends on it.
+ * The minimal network s a network with a spinner_function, because it depends on nothing and nothing depends on it.
  *
- * When a network is begun with a callable_producer, transformers may be inserted into the network until it is capped
- * with a callable_consumer.
+ * When a network is begun with a producer_function, transformers may be inserted into the network until it is capped
+ * with a consumer_function.
  *
  * Each network is considered independent from another network and may not communicate with each other.
  *
- * callable_producer -> transfomer -> ... -> callable_consumer
+ * producer_function -> transfomer -> ... -> consumer_function
  *
  * Each multi_channel in the network uses contiguous memory to pass data to the multi_channel waiting on the other way. All
- * data must flow from callable_producer to callable_consumer; no cyclical dependencies.
+ * data must flow from producer_function to consumer_function; no cyclical dependencies.
  *
  * Cancellation
  * Cancelling the network of coroutines is a bit tricky because if you stop them all at once, some of them will hang
  * with no way to have them leave the awaiting state.
  *
  * When starting the network reaction all routines will begin to wait and the first callable_routine that is given priority is the
- * callable_producer at the beginning of the network, and the last will be the end of the network, or callable_consumer.
+ * producer_function at the beginning of the network, and the last will be the end of the network, or consumer_function.
  *
- * The callable_consumer then has to be the one that initializes the cancellation. The algorithm is as follows:
+ * The consumer_function then has to be the one that initializes the cancellation. The algorithm is as follows:
  *
  * Consumer receives cancellation request from the cancellation handle
- * callable_consumer terminates the multi_channel it is communicating with
- * callable_consumer flushes out any awaiting producers/transformers on the producing end of the multi_channel
+ * consumer_function terminates the multi_channel it is communicating with
+ * consumer_function flushes out any awaiting producers/transformers on the producing end of the multi_channel
  * end callable_routine
  *
- * The callable_transformer or callable_producer that is next in the network will then receiving multi_channel termination notification
- * from the callable_consumer at the end of the network and break out of its loop
- * It well then notify terminate the callable_producer multi_channel it receives data from and flush it out
+ * The transformer_function or producer_function that is next in the network will then receiving multi_channel termination notification
+ * from the consumer_function at the end of the network and break out of its loop
+ * It well then notify terminate the producer_function multi_channel it receives data from and flush it out
  *
- * rinse repeat until the beginning of the network, which is a callable_producer
- * The callable_producer simply breaks out of its loop and exits the scope
+ * rinse repeat until the beginning of the network, which is a producer_function
+ * The producer_function simply breaks out of its loop and exits the scope
  */
 
 namespace flow {
@@ -95,7 +95,7 @@ public:
    * Pushes a callable_routine into the network
    * @param spinner A callable_routine with no dependencies and nothing depends on it
    */
-  void push(flow::spinner_concept auto&& routine)
+  void push(flow::spinner_routine auto&& routine)
   {
     m_handle.push(routine.callback().handle());
     m_routines_to_spin.push_back(detail::spin_spinner(m_thread_pool, routine.callback()));
@@ -103,9 +103,9 @@ public:
   }
 
   /**
-   * Pushes a callable_producer into the network
-   * @param producer The callable_producer callable_routine
-   * @param channel_name The multi_channel name the callable_producer will publish to
+   * Pushes a producer_function into the network
+   * @param producer The producer_function callable_routine
+   * @param channel_name The multi_channel name the producer_function will publish to
    */
   template<typename message_t>
   void push(flow::producer<message_t>&& routine)
@@ -116,8 +116,8 @@ public:
   }
 
   /**
-   *  Pushes a callable_transformer into the network and creates any necessary m_channels it requires
-   * @param transformer A callable_routine that depends on another callable_routine and is depended on by a callable_consumer or callable_transformer
+   *  Pushes a transformer_function into the network and creates any necessary m_channels it requires
+   * @param transformer A callable_routine that depends on another callable_routine and is depended on by a consumer_function or transformer_function
    * @param producer_channel_name The multi_channel it depends on
    * @param consumer_channel_name The multi_channel that it will publish to
    */
@@ -132,7 +132,7 @@ public:
   }
 
   /**
-   * Pushes a callable_consumer into the network
+   * Pushes a consumer_function into the network
    * @param callback A callable_routine no other callable_routine depends on and depends on at least a single callable_routine
    * @param channel_name The multi_channel it will consume from
    */
@@ -159,7 +159,7 @@ public:
    * Makes a handle to this network that will allow whoever holds the handle to cancel
    * the network
    *
-   * The cancellation handle will trigger the callable_consumer to cancel and trickel down all the way to the callable_producer
+   * The cancellation handle will trigger the consumer_function to cancel and trickel down all the way to the producer_function
    * @return A cancellation handle
    */
   network_handle handle()
@@ -209,7 +209,7 @@ template <typename network_t>
 concept not_is_network = not std::is_same_v<typename network_t::is_network, std::true_type>;
 
 template<typename routine_t>
-concept routine = spinner_concept<routine_t> or producer_concept<routine_t> or consumer_concept<routine_t> or transformer_concept<routine_t>;
+concept routine = spinner_routine<routine_t> or producer_routine<routine_t> or concept_routine<routine_t> or transformer_routine<routine_t>;
 
 template<typename... routines_t>
 concept routines = (routine<routines_t> and ...);
@@ -250,11 +250,11 @@ auto make_network(flow::not_network_or_user_routines auto&&... callables)
   std::for_each(std::begin(callables_array), std::end(callables_array), detail::make_visitor([&](auto& callable) {
          using callable_t = decltype(callable);
 
-         if constexpr (flow::callable_transformer<callable_t>) {
+         if constexpr (flow::transformer_function<callable_t>) {
            network.push(flow::make_transformer(callable));
-         } else if constexpr(flow::callable_consumer<callable_t>) {
+         } else if constexpr(flow::consumer_function<callable_t>) {
            network.push(flow::make_consumer(callable));
-         } else if constexpr(flow::callable_producer<callable_t>) {
+         } else if constexpr(flow::producer_function<callable_t>) {
            network.push(flow::make_producer(callable));
          } else {
            network.push(flow::make_spinner(callable));

@@ -299,7 +299,7 @@ int raw_transformer(int /*unused*/) { return 42; }
 TEST_CASE("Test function traits", "[function_traits]")
 {
   using namespace flow::detail::metaprogramming;
-  SECTION("Test callable_spinner")
+  SECTION("Test spinner_function")
   {
     auto test_spinner = [](auto&& spinner) {
       STATIC_REQUIRE(function_traits<decltype(spinner)>::arity == 0);
@@ -315,7 +315,7 @@ TEST_CASE("Test function traits", "[function_traits]")
     test_spinner(raw_spinner);
   }
 
-  SECTION("Test callable_producer")
+  SECTION("Test producer_function")
   {
     auto test_producer = [](auto&& producer) {
            STATIC_REQUIRE(function_traits<decltype(producer)>::arity == 0);
@@ -331,7 +331,7 @@ TEST_CASE("Test function traits", "[function_traits]")
     test_producer(raw_producer);
   }
 
-  SECTION("Test callable_consumer")
+  SECTION("Test consumer_function")
   {
     auto test_consumer = [](auto&& consumer) {
            STATIC_REQUIRE(function_traits<decltype(consumer)>::arity > 0);

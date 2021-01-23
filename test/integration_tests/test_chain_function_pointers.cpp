@@ -13,20 +13,20 @@
 namespace local {
 int producer()
 {
-  //  flow::logging::error("callable_producer");
+  //  flow::logging::error("producer_function");
   static int val = 0;
   return val++;
 }
 
 int transformer(int&& val)
 {
-  //  flow::logging::error("callable_transformer");
+  //  flow::logging::error("transformer_function");
   return val * 2;
 }
 
 void consumer(int&& /*unused*/)
 {
-//  flow::logging::error("callable_consumer: {}", val);
+//  flow::logging::error("consumer_function: {}", val);
 }
 }// namespace local
 

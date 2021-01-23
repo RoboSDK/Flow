@@ -121,7 +121,7 @@ public:
 
   /**
    * Retrieve an iterable message generator. Will generate all messages that
-   * have already been published by a callable_producer
+   * have already been published by a producer_function
    * @return a message generator
    */
   cppcoro::async_generator<message_t> message_generator(consumer_token<message_t>& token)
@@ -136,7 +136,7 @@ public:
 
 
   /**
-   * Notify the callable_producer to produce the next messages
+   * Notify the producer_function to produce the next messages
    */
   void notify_message_consumed(consumer_token<message_t>& token)
   {
@@ -150,10 +150,10 @@ public:
    * Disable the multi_channel
    *
    * When cancelling a network the beginning of the cancellation happens
-   * with the callable_consumer end of the network. This trickles down all the way to the
-   * beginning end of the network with the first callable_producer.
+   * with the consumer_function end of the network. This trickles down all the way to the
+   * beginning end of the network with the first producer_function.
    *
-   * The callable_consumer cancels itself, terminates the multi_channel, and then flushes out any
+   * The consumer_function cancels itself, terminates the multi_channel, and then flushes out any
    * producers waiting for permission to publish.
    */
   void terminate()
@@ -162,8 +162,8 @@ public:
   }
 
   /**
-   * Used by the callable_producer ends of the m_channels to keep looping or not
-   * @return if the multi_channel has been cancelled by the callable_consumer end of the multi_channel
+   * Used by the producer_function ends of the m_channels to keep looping or not
+   * @return if the multi_channel has been cancelled by the consumer_function end of the multi_channel
    */
   bool is_terminated()
   {
@@ -171,7 +171,7 @@ public:
   }
 
   /**
-   * @return if any callable_producer m_channels are currently waiting for permission
+   * @return if any producer_function m_channels are currently waiting for permission
    */
   bool is_waiting()
   {

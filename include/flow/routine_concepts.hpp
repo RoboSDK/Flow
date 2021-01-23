@@ -22,35 +22,35 @@ template<typename... routines_t>
 concept are_user_routines = (is_user_routine<routines_t> and ...);
 
 /**
- * A callable_spinner is a callable which has a void return type and requires no arguments
+ * A spinner_function is a callable which has a void return type and requires no arguments
  * @tparam callable_t Any callable type
  */
 template<typename callable_t>
-concept callable_spinner = not is_user_routine<callable_t> and traits<callable_t>::arity == 0 and std::is_void_v<typename traits<callable_t>::return_type>;
+concept spinner_function = not is_user_routine<callable_t> and traits<callable_t>::arity == 0 and std::is_void_v<typename traits<callable_t>::return_type>;
 
 /**
- * A callable_producer is a callable which has a return type and requires no arguments
+ * A producer_function is a callable which has a return type and requires no arguments
  * @tparam callable_t Any callable type
  */
 template<typename callable_t>
-concept callable_producer = not is_user_routine<callable_t> and traits<callable_t>::arity == 0 and not std::is_void_v<typename traits<callable_t>::return_type>;
+concept producer_function = not is_user_routine<callable_t> and traits<callable_t>::arity == 0 and not std::is_void_v<typename traits<callable_t>::return_type>;
 
 /**
- * A callable_consumer is a callable which has no return type and requires at least one argument
+ * A consumer_function is a callable which has no return type and requires at least one argument
  * @tparam callable_t Any callable type
  */
 template<typename callable_t>
-concept callable_consumer = not is_user_routine<callable_t> and traits<callable_t>::arity >= 1 and std::is_void_v<typename traits<callable_t>::return_type>;
+concept consumer_function = not is_user_routine<callable_t> and traits<callable_t>::arity >= 1 and std::is_void_v<typename traits<callable_t>::return_type>;
 
 /**
- * A callable_transformer is a callable which has a return type and requires at least one argument
+ * A transformer_function is a callable which has a return type and requires at least one argument
  * @tparam callable_t Any callable type
  */
 template<typename callable_t>
-concept callable_transformer = traits<callable_t>::arity >= 1 and not std::is_void_v<typename traits<callable_t>::return_type>;
+concept transformer_function = traits<callable_t>::arity >= 1 and not std::is_void_v<typename traits<callable_t>::return_type>;
 
 template<typename callable_t>
-concept callable_routine = callable_spinner<callable_t> or callable_producer<callable_t> or callable_consumer<callable_t> or callable_transformer<callable_t>;
+concept callable_routine = spinner_function<callable_t> or producer_function<callable_t> or consumer_function<callable_t> or transformer_function<callable_t>;
 
 template<typename... callables_t>
 concept callable_routines = (callable_routine<callables_t> and ...);

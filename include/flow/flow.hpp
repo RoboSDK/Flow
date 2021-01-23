@@ -1,62 +1,71 @@
 #pragma once
 
-#include <iostream>
-
+#include "flow/consumer.hpp"
 #include "flow/network.hpp"
 #include "flow/producer.hpp"
-#include "flow/consumer.hpp"
 #include "flow/spinner.hpp"
 #include "flow/transformer.hpp"
 
-#include <spdlog/async.h>
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/spdlog.h>
-
 namespace flow {
-void begin()
-{
-  try {
-    auto async_file = spdlog::basic_logger_mt<spdlog::async_factory>("flow", "logs/flow_log.txt");
-    async_file->set_pattern("[%H:%M:%S:%F] [%t] %v");
-    async_file->set_level(spdlog::level::trace);
-    spdlog::set_default_logger(async_file);
-  }
-  catch (const spdlog::spdlog_ex& ex) {
-    std::cout << "Log initialization failed: " << ex.what() << std::endl;
-  }
-}
-
-template<typename configuration_t, flow::not_is_network... callables_t>
-auto spin(callables_t&&... callables)
+/**
+ * Creates a global network using the routines and functions and spins it up.
+ *
+ * The constraint on routines_t is that they are not a global network. This will trigger
+ * the function dedicated to spinning up a network directly.
+ *
+ * This function should be used in the context where there is no need to ever quit.
+ * Passing in the routines directly means no handle is available to request cancellation.
+ *
+ * @tparam configuration_t A compile time configuration file. It may or may not be from the user.
+ * @tparam routines_t A list of routines that will be linked to a global network
+ */
+template<typename configuration_t, flow::not_is_network... routines_t>
+auto spin(routines_t&&... routines)
 {
   using network_t = flow::network<configuration_t>;
   network_t network{};
 
-  auto callables_array = detail::make_mixed_array(std::forward<decltype(callables)>(callables)...);
-  std::for_each(std::begin(callables_array), std::end(callables_array), detail::make_visitor([&](auto& callable) {
-          using callable_t = decltype(callable);
+  auto routines_array = detail::make_mixed_array(std::forward<decltype(routines)>(routines)...);
+  std::for_each(std::begin(routines_array), std::end(routines_array), detail::make_visitor([&](auto& r) {
+    using routine_t = decltype(r);
 
-          if constexpr (flow::callable_transformer<callable_t>) {
-            network.push(flow::make_transformer(callable));
-          } else if constexpr(flow::callable_consumer<callable_t>) {
-            network.push(flow::make_consumer(callable));
-          } else if constexpr(flow::callable_producer<callable_t>) {
-            network.push(flow::make_producer(callable));
-          } else if constexpr(flow::callable_spinner<callable_t>){
-            network.push(flow::make_spinner(callable));
-          } else if constexpr(flow::routine<callable_t>) {
-            network.push(std::move(callable));
-          }
+    if constexpr (transformer_function<routine_t>) {
+      network.push(make_transformer(r));
+    }
+    else if constexpr (consumer_function<routine_t>) {
+      network.push(flow::make_consumer(r));
+    }
+    else if constexpr (producer_function<routine_t>) {
+      network.push(flow::make_producer(r));
+    }
+    else if constexpr (spinner_function<routine_t>) {
+      network.push(flow::make_spinner(r));
+    }
+    else if constexpr (routine<routine_t>) {
+      network.push(std::move(r));
+    }
   }));
 
   return cppcoro::sync_wait(network.spin());
 }
 
-auto spin(not_is_network auto&&... routines)
+/**
+ * This function is called when user routines and functions are passed in directly
+ * to the spin function without a compile time configuration passed in by the user.
+ *
+ * The default library configuration will be used.
+ *See above for more
+ * @param routines
+ */
+auto spin(flow::not_is_network auto&&... routines)
 {
   return spin<flow::configuration>(std::forward<decltype(routines)>(routines)...);
 }
 
+/**
+ * When spinning up a global network this function will be called.
+ * @param global_network  The network where user name channel names are used
+ */
 auto spin(flow::is_network auto&& global_network)
 {
   return cppcoro::sync_wait(global_network.spin());

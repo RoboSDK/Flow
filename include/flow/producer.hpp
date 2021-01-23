@@ -18,7 +18,7 @@ public:
   producer& operator=(producer&&) noexcept = default;
   producer& operator=(producer const&) = default;
 
-  producer(flow::callable_producer auto&& callback, std::string channel_name)
+  producer(flow::producer_function auto&& callback, std::string channel_name)
     : m_callback(detail::make_shared_cancellable_function(std::forward<decltype(callback)>(callback))),
       m_channel_name(std::move(channel_name)) {}
 
@@ -73,6 +73,6 @@ auto make_producer(auto&& lambda, std::string channel_name)
 }
 
 template<typename producer_t>
-concept producer_concept = std::is_same_v<typename producer_t::is_producer, std::true_type>;
+concept producer_routine = std::is_same_v<typename producer_t::is_producer, std::true_type>;
 
 }// namespace flow

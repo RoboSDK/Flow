@@ -21,7 +21,7 @@ public:
   transformer& operator=(transformer&&) noexcept = default;
   transformer& operator=(transformer const&) = default;
 
-  transformer(flow::callable_transformer auto&& callback, std::string producer_channel_name, std::string consumer_channel_name)
+  transformer(flow::transformer_function auto&& callback, std::string producer_channel_name, std::string consumer_channel_name)
     : m_callback(detail::make_shared_cancellable_function(std::forward<decltype(callback)>(callback))),
       m_producer_channel_name(std::move(producer_channel_name)),
       m_consumer_channel_name(std::move(consumer_channel_name))
@@ -82,5 +82,5 @@ auto make_transformer(auto&& lambda, std::string publish_to, std::string subscri
 
 
 template<typename transformer_t>
-concept transformer_concept = std::is_same_v<typename transformer_t::is_transformer, std::true_type>;
+concept transformer_routine = std::is_same_v<typename transformer_t::is_transformer, std::true_type>;
 }// namespace flow

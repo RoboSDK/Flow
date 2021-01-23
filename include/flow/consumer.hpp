@@ -22,7 +22,7 @@ public:
   consumer& operator=(consumer&&) noexcept = default;
   consumer& operator=(consumer const&) = default;
 
-  consumer(flow::callable_consumer auto&& callback, std::string channel_name)
+  consumer(flow::consumer_function auto&& callback, std::string channel_name)
     : m_callback(detail::make_shared_cancellable_function(std::forward<decltype(callback)>(callback))),
       m_channel_name(std::move(channel_name)) {}
 
@@ -76,5 +76,5 @@ auto make_consumer(auto&& lambda, std::string channel_name)
   return make_consumer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(channel_name));
 }
 template<typename consumer_t>
-concept consumer_concept = std::is_same_v<typename consumer_t::is_consumer, std::true_type>;
+concept concept_routine = std::is_same_v<typename consumer_t::is_consumer, std::true_type>;
 }// namespace flow

@@ -14,7 +14,7 @@ public:
   spinner& operator=(spinner&&) noexcept = default;
   spinner& operator=(spinner const&) = default;
 
-  spinner(flow::callable_spinner auto&& callback)
+  spinner(flow::spinner_function auto&& callback)
     : m_callback(detail::make_shared_cancellable_function(std::forward<decltype(callback)>(callback))) {}
 
   auto& callback() { return *m_callback; }
@@ -43,5 +43,5 @@ auto make_spinner(auto&& lambda)
 
 
 template<typename spinner_t>
-concept spinner_concept = std::is_same_v<typename spinner_t::is_spinner, std::true_type>;
+concept spinner_routine = std::is_same_v<typename spinner_t::is_spinner, std::true_type>;
 }// namespace flow
