@@ -5,7 +5,7 @@
 #include <flow/flow.hpp>
 #include <flow/logging.hpp>
 #include <flow/network.hpp>
-#include <flow/producer_impl.hpp>
+#include <flow/producer.hpp>
 #include <flow/transformer.hpp>
 
 #include <cppcoro/sync_wait.hpp>

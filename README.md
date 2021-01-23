@@ -78,7 +78,7 @@ meant to be used for closed feedback systems.
 Each node in this graph represents an function, and the specific type of function is defined by the dependencies it
 has.
 
-1. *Spinner* - A spinner is an function with no dependencies and nothing depends on it. it's a closed system. 
+1. *Spinner* - A spinner_impl is an function with no dependencies and nothing depends on it. it's a closed system. 
     - Notation:  `()`
     - Example: In C++ this is a `()->void` function, or any other process that 
     

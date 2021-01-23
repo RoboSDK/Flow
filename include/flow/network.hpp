@@ -15,7 +15,7 @@
 #include "flow/routine_concepts.hpp"
 
 #include "flow/consumer.hpp"
-#include "flow/producer_impl.hpp"
+#include "flow/producer.hpp"
 #include "flow/spinner.hpp"
 #include "flow/transformer.hpp"
 
