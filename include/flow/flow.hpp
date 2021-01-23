@@ -26,27 +26,8 @@ void begin()
   }
 }
 
-template<typename configuration_t>
-auto spin(flow::routines auto&&... routines)
-{
-  using network_t = flow::network<configuration_t>;
-  network_t network{};
-
-  auto routines_array = detail::make_mixed_array(std::forward<decltype(routines)>(routines)...);
-  std::for_each(std::begin(routines_array), std::end(routines_array), detail::make_visitor([&](auto& routine) {
-    network.push(std::move(routine));
-  }));
-
-  return cppcoro::sync_wait(network.spin());
-}
-
-auto spin(flow::routines auto&&... routines)
-{
-  return spin<flow::configuration>(std::forward<decltype(routines)>(routines)...);
-}
-
-template<typename configuration_t>
-auto spin(flow::not_network_or_user_routines auto&&... callables)
+template<typename configuration_t, flow::not_is_network... callables_t>
+auto spin(callables_t&&... callables)
 {
   using network_t = flow::network<configuration_t>;
   network_t network{};
@@ -61,42 +42,23 @@ auto spin(flow::not_network_or_user_routines auto&&... callables)
             network.push(flow::make_consumer(callable));
           } else if constexpr(flow::callable_producer<callable_t>) {
             network.push(flow::make_producer(callable));
-          } else {
+          } else if constexpr(flow::callable_spinner<callable_t>){
             network.push(flow::make_spinner(callable));
+          } else if constexpr(flow::routine<callable_t>) {
+            network.push(std::move(callable));
           }
   }));
 
   return cppcoro::sync_wait(network.spin());
 }
 
-
-auto spin(not_network_or_user_routines auto&&... routines)
+auto spin(not_is_network auto&&... routines)
 {
   return spin<flow::configuration>(std::forward<decltype(routines)>(routines)...);
 }
 
-template<typename configuration_t>
-auto spin(flow::are_user_routines auto&&... routines)
+auto spin(flow::is_network auto&& global_network)
 {
-  using network_t = flow::network<configuration_t>;
-
-  network_t network{};
-
-  auto routines_array = detail::make_mixed_array(std::forward<decltype(routines)>(routines)...);
-  std::for_each(std::begin(routines_array), std::end(routines_array), detail::make_visitor([&](auto& routine) {
-    routine.initialize(network);
-  }));
-
-  return cppcoro::sync_wait(network.spin());
-}
-
-auto spin(flow::are_user_routines auto&&... routines)
-{
-  return spin<flow::configuration>(std::forward<decltype(routines)>(routines)...);
-}
-
-auto spin(flow::is_network auto&& main_network)
-{
-  return cppcoro::sync_wait(main_network.spin());
+  return cppcoro::sync_wait(global_network.spin());
 }
 }// namespace flow

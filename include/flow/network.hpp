@@ -205,6 +205,9 @@ private:
 template <typename network_t>
 concept is_network = std::is_same_v<typename network_t::is_network, std::true_type>;
 
+template <typename network_t>
+concept not_is_network = not std::is_same_v<typename network_t::is_network, std::true_type>;
+
 template<typename routine_t>
 concept routine = spinner_concept<routine_t> or producer_concept<routine_t> or consumer_concept<routine_t> or transformer_concept<routine_t>;
 
