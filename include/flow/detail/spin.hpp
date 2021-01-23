@@ -7,7 +7,7 @@
 #include "flow/routine_concepts.hpp"
 
 #include "cancellable_function.hpp"
-#include "channel.hpp"
+#include "multi_channel.hpp"
 
 /**
  * The purpose of this module is make the coroutines that will can 'spin'
@@ -40,7 +40,7 @@ cppcoro::task<void> spin_spinner(
  * the beginning of the network and has no one else in front of it, and therefore nothing
  * to flush
  *
- * @param channel a flow channel that represents a connection between the receiver
+ * @param channel a flow multi_channel that represents a connection between the receiver
  *                for the data that the callable_producer produces, and the callable_producer itself
  * @param producer A callable_producer is a cancellable function with no arguments required to call it and
  *                 a specified return type
@@ -72,15 +72,15 @@ cppcoro::task<void> spin_producer(
  *
  * The callable_consumer will be placed at the end of the callable_routine network and will be the one
  * that triggers any cancellation events. It depends on a callable_transformer or callable_producer to
- * send messages through the channel.
+ * send messages through the multi_channel.
  *
  * When a callable_consumer detects that cancellation is requested, then it will process
  * any messages it has left in the buffer.
  *
- * After the main loop it will terminate the channel and flush out any routines
- * currently waiting on the other end of the channel.
+ * After the main loop it will terminate the multi_channel and flush out any routines
+ * currently waiting on the other end of the multi_channel.
  *
- * @param channel a flow channel that represents a connection between a callable_producer or callable_transformer
+ * @param channel a flow multi_channel that represents a connection between a callable_producer or callable_transformer
  *                that is generating data and the callable_consumer that will be receiving the data
  * @param consumer A callable_consumer is a cancellable function with at least one argument required to call it and
  *                 a specified return type
@@ -113,19 +113,19 @@ cppcoro::task<void> spin_consumer(
 /**
  * TODO: Handle many arguments, maybe convert it to a tuple?
  *
- * Generates a coroutine that keeps calling the callable_transformer until the channel its
+ * Generates a coroutine that keeps calling the callable_transformer until the multi_channel its
  * sending messages to is terminated by the callable_consumer or callable_transformer on the other end
  *
  * Transformers will live in between a callable_producer and callable_consumer.
  *
- * When a callable_transformer detects that the next callable_routine in line has terminated the channel, then it will process
+ * When a callable_transformer detects that the next callable_routine in line has terminated the multi_channel, then it will process
  * any messages it has left in the buffer and break out of its loop.
  *
- * After the main loop it will terminate the callable_producer channel and flush out any routines
- * currently waiting on the other end of the callable_producer channel.
+ * After the main loop it will terminate the callable_producer multi_channel and flush out any routines
+ * currently waiting on the other end of the callable_producer multi_channel.
  *
- * @param producer_channel The channel that will have a producing callable_routine on the other end
- * @param consumer_channel The channel that will have a consuming callable_routine on the other end
+ * @param producer_channel The multi_channel that will have a producing callable_routine on the other end
+ * @param consumer_channel The multi_channel that will have a consuming callable_routine on the other end
  * @param transformer A callable_consumer is a cancellable function with at least one argument required to call it and
  *                 a specified return type
  * @return A coroutine that continues until the callable_transformer is cancelled
@@ -170,9 +170,9 @@ cppcoro::task<void> spin_transformer(
 
 /**
  * The callable_consumer or callable_transformer callable_routine will flush out any callable_producer routines
- * in waiting on the other end of the channel
+ * in waiting on the other end of the multi_channel
  *
- * @param channel A communication channel between the callable_consumer and callable_producer routines
+ * @param channel A communication multi_channel between the callable_consumer and callable_producer routines
  * @param routine A callable_consumer or callable_transformer callable_routine
  * @return A coroutine
  */

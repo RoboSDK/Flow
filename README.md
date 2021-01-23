@@ -64,7 +64,7 @@ over the last few months. I've had to make a couple of redesigns, but I think th
 as a base.
 
 I have many more additions I want to add, such as support for TCP/IP and UDP, performance optimizations, and ergonomics
-such as adding in a when_all to subscribe to multiple channels at once with a receiver or transformer.
+such as adding in a when_all to subscribe to multiple m_channels at once with a receiver or transformer.
 
 <a name="1-overview"></a>
 ### Overview
@@ -99,21 +99,21 @@ is an invalid network.
 
 <a name="1-2-communication"></a>
 ### Communication
-Each of these operations are connected to each other through a `channel`. Each channel needs to have
+Each of these operations are connected to each other through a `multi_channel`. Each multi_channel needs to have
 at least one producer and one receiver on the other end. A transformer doubles as a producer and receiver, 
 so a path through the network may look something like this
 
 `{()->A , (A)->B, (B)->C, (C)}` This network contains a producer, two transformers, and a receiver. It is complete 
-and and closed. There will be three channels in between; each with its own channel name. If no channel name is provided,
-then an empty string will be used; you can think of this as a *global channel*. 
+and and closed. There will be three m_channels in between; each with its own multi_channel name. If no multi_channel name is provided,
+then an empty string will be used; you can think of this as a *global multi_channel*. 
 
-A global channel is a channel that is available globally for that specific message type. Publishing an
-`int` without a channel name will publish to the global `int` channel.
+A global multi_channel is a multi_channel that is available globally for that specific message type. Publishing an
+`int` without a multi_channel name will publish to the global `int` multi_channel.
 
-**Not yet implemented**: At the moment channels use a multi-producer scheme, so if only one producer exists in that
-channel, then it is inefficient due to synchronization of atomics. There will be a way to make channels that are
+**Not yet implemented**: At the moment m_channels use a multi-producer scheme, so if only one producer exists in that
+multi_channel, then it is inefficient due to synchronization of atomics. There will be a way to make m_channels that are
 single producer single receiver in the future. These will be done by tightly linking multiple functions and generating
-private channels that are inaccessible through the main network. Think of it as creating a subnet within the network.
+private m_channels that are inaccessible through the main network. Think of it as creating a subnet within the network.
 
 Each of the operations in the network will begin and start to process data and eventually reach a frequency.
 
@@ -166,8 +166,8 @@ int main()
   using namespace std::literals;
 
   /**
-   * The producer hello_world is going to be publishing to the global std::string channel.
-   * The receiver receive_message is going to subscribe to the global std::string channel.
+   * The producer hello_world is going to be publishing to the global std::string multi_channel.
+   * The receiver receive_message is going to subscribe to the global std::string multi_channel.
    */
   auto network = flow::make_network(hello_world, receive_message);
 

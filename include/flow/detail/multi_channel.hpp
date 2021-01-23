@@ -2,91 +2,53 @@
 
 #include <stack>
 
+#include "channel_resource.hpp"
 #include "consumer_token.hpp"
 #include "producer_token.hpp"
 
 #include <cppcoro/async_generator.hpp>
 #include <cppcoro/multi_producer_sequencer.hpp>
-#include <cppcoro/sequence_barrier.hpp>
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
 
 /**
- * The link between routines in a network are channels.
+ * The link between routines in a network are m_channels.
  *
- * A multi channel in this framework is a multi producer multi consumer channel that are linked
+ * A multi multi_channel in this framework is a multi producer multi consumer multi_channel that are linked
  * to two corresponding neighbors in a network.
  */
 
 namespace flow::detail {
 
 /**
- * This is a resource that each channel will own
- * @tparam configuration_t The compile time global configuration for this project
- */
-template<typename configuration_t>
-struct resource {
-  using sequence_barrier = cppcoro::sequence_barrier<std::size_t>;
-  using multi_producer_sequencer = cppcoro::multi_producer_sequencer<std::size_t>;
-
-  /*
-   * The sequence barrier is used to communicate from the callable_consumer end that it has
-   * received and consumed the message to the callable_producer end of the channel
-   */
-  sequence_barrier barrier{};
-
-  /*
-   * The callable_producer sequencer generated sequence numbers that the callable_producer end of the channel
-   * uses to publish to the callable_consumer end
-   */
-  multi_producer_sequencer sequencer{ barrier, configuration_t::message_buffer_size };
-};
-
-/**
- * Has an array of contiguous channel resources. Channel resources will be
- * retrieved from this generator
- * @tparam configuration_t The global compile time configuration for the project
- */
-template<typename configuration_t>
-class channel_resource_generator {
-  using resource_t = resource<configuration_t>;
-public:
-
-  resource_t* operator()() {
-    return &channel_resources[std::atomic_ref(current_resource)++];
-  }
-
-private:
-
-  std::array<resource_t, configuration_t::max_resources> channel_resources{};
-  std::size_t current_resource{};
-};
-
-/**
- * A single callable_producer single callable_consumer channel
+ * A multi producer multi consumer channel
+ *
+ * This means that because the assumption is that multiple producers and consumers will be used to
+ * communicate through this single channel, there will be a performance cost of atomics for synchronization
+ *
  * @tparam raw_message_t The raw message type is the message type with references potentially attached
  * @tparam configuration_t The global compile time configuration
  */
 template<typename raw_message_t, typename configuration_t>
-class channel {
+class multi_channel {
   using message_t = std::decay_t<raw_message_t>;/// Remove references
-  using resource_t = resource<configuration_t>;
+  using resource_t = channel_resource<configuration_t, cppcoro::multi_producer_sequencer<std::size_t>>;
   using scheduler_t = cppcoro::static_thread_pool;/// The static thread pool is used to schedule threads
 
 public:
   /**
-   * @param name Name of the channel
-   * @param resource A generated channel resource
+   * @param name Name of the multi_channel
+   * @param resource A generated multi_channel channel_resource
    * @param scheduler The global scheduler
    */
-  channel(std::string name, resource_t* resource, scheduler_t* scheduler)
+  multi_channel(std::string name, resource_t* resource, scheduler_t* scheduler)
     : m_name{ std::move(name) },
       m_resource{ resource },
       m_scheduler{ scheduler }
   {
   }
 
-  channel& operator=(channel const& other)
+  multi_channel& operator=(multi_channel const& other)
   {
     m_resource = other.m_resource;
     m_scheduler = other.m_scheduler;
@@ -94,14 +56,14 @@ public:
     return *this;
   }
 
-  channel(channel const& other)
+  multi_channel(multi_channel const& other)
   {
     m_resource = other.m_resource;
     m_scheduler = other.m_scheduler;
     std::copy(std::begin(other.m_buffer), std::end(other.m_buffer), std::begin(m_buffer));
   }
 
-  channel& operator=(channel&& other) noexcept
+  multi_channel& operator=(multi_channel&& other) noexcept
   {
     m_resource = other.m_resource;
     m_scheduler = other.m_scheduler;
@@ -109,14 +71,14 @@ public:
     return *this;
   }
 
-  channel(channel&& other) noexcept : m_resource(other.m_resource)
+  multi_channel(multi_channel&& other) noexcept : m_resource(other.m_resource)
   {
     *this = std::move(other);
   }
 
   /**
-   * Used to store the channel into a channel set
-   * @return The hash of the message and channel name
+   * Used to store the multi_channel into a multi_channel set
+   * @return The hash of the message and multi_channel name
    */
   std::size_t hash() { return typeid(message_t).hash_code() ^ std::hash<std::string>{}(m_name); }
 
@@ -141,7 +103,7 @@ public:
 
   /**
    * Publish the produced message
-   * @param message The message type the channel communicates
+   * @param message The message type the multi_channel communicates
    */
   void publish_messages(producer_token<message_t>& token)
   {
@@ -185,13 +147,13 @@ public:
   }
 
   /**
-   * Disable the channel
+   * Disable the multi_channel
    *
    * When cancelling a network the beginning of the cancellation happens
    * with the callable_consumer end of the network. This trickles down all the way to the
    * beginning end of the network with the first callable_producer.
    *
-   * The callable_consumer cancels itself, terminates the channel, and then flushes out any
+   * The callable_consumer cancels itself, terminates the multi_channel, and then flushes out any
    * producers waiting for permission to publish.
    */
   void terminate()
@@ -200,8 +162,8 @@ public:
   }
 
   /**
-   * Used by the callable_producer ends of the channels to keep looping or not
-   * @return if the channel has been cancelled by the callable_consumer end of the channel
+   * Used by the callable_producer ends of the m_channels to keep looping or not
+   * @return if the multi_channel has been cancelled by the callable_consumer end of the multi_channel
    */
   bool is_terminated()
   {
@@ -209,7 +171,7 @@ public:
   }
 
   /**
-   * @return if any callable_producer channels are currently waiting for permission
+   * @return if any callable_producer m_channels are currently waiting for permission
    */
   bool is_waiting()
   {
@@ -231,4 +193,4 @@ private:
   resource_t* m_resource{ nullptr };
   scheduler_t* m_scheduler{ nullptr };
 };
-}// namespace flow
+}// namespace flow::detail

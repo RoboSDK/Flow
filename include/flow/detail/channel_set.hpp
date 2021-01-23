@@ -2,10 +2,10 @@
 
 #include <any>
 
-#include "channel.hpp"
+#include "multi_channel.hpp"
 
 /**
- * A channel set will contain a unique channels only
+ * A multi_channel set will contain a unique m_channels only
  */
 namespace flow::detail {
 
@@ -14,9 +14,9 @@ class channel_set {
 public:
 
   /**
-   * Determine if the channel exists in the set
-   * @tparam message_t The message type of the channel
-   * @param channel_name The name of the channel
+   * Determine if the multi_channel exists in the set
+   * @tparam message_t The message type of the multi_channel
+   * @param channel_name The name of the multi_channel
    * @return Whether or not the channele exists
    */
   template<typename message_t>
@@ -26,8 +26,8 @@ public:
   }
 
   /**
-   * Give ownership of a channel to the channel set
-   * @param channel Any channel
+   * Give ownership of a multi_channel to the multi_channel set
+   * @param channel Any multi_channel
    */
   void put(auto&& channel)
   {
@@ -35,23 +35,23 @@ public:
   }
 
   /**
-   * Retrieve a channel
-   * @tparam message_t The message type of the channel
-   * @param channel_name The name of the channel
-   * @return A reference to the channel
+   * Retrieve a multi_channel
+   * @tparam message_t The message type of the multi_channel
+   * @param channel_name The name of the multi_channel
+   * @return A reference to the multi_channel
    */
   template<typename message_t>
   auto& at(std::string const& channel_name = "")
   {
-    return std::any_cast<detail::channel<message_t, config_t>&>(m_channels.at(hash<message_t>(channel_name)));
+    return std::any_cast<detail::multi_channel<message_t, config_t>&>(m_channels.at(hash<message_t>(channel_name)));
   }
 
 private:
   /**
-   * Helper function used to hash the channel information to retrieve from the map
-   * @tparam message_t The message type of the channel
-   * @param channel_name  The channel name
-   * @return The channel name and message type hashed
+   * Helper function used to hash the multi_channel information to retrieve from the map
+   * @tparam message_t The message type of the multi_channel
+   * @param channel_name  The multi_channel name
+   * @return The multi_channel name and message type hashed
    */
   template<typename message_t>
   std::size_t hash(std::string const& channel_name) const

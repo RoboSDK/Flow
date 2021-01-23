@@ -171,7 +171,7 @@ constexpr auto pop_back([[maybe_unused]] std::tuple<current, the_rest_t...> l = 
  * detail::metaprogramming::container<T> as a template argument and handles it
  *
  * flow::for_each<int, double>([&]<typename message_t>(detail::metaprogramming::container<message_t> ) {
- *   const auto& ch = std::any_cast<channel<message_t>>(channels.at(typeid(channel<message_t>)));
+ *   const auto& ch = std::any_cast<multi_channel<message_t>>(m_channels.at(typeid(multi_channel<message_t>)));
  *   ch.do_work();
  * });
  *

@@ -16,8 +16,8 @@ int main()
   using namespace std::literals;
 
   /**
-   * The producer hello_world is going to be publishing to the global std::string channel.
-   * The consumer receive_message is going to subscribe to the global std::string channel.
+   * The producer hello_world is going to be publishing to the global std::string multi_channel.
+   * The consumer receive_message is going to subscribe to the global std::string multi_channel.
    */
   auto network = flow::make_network(hello_world, receive_message);
 

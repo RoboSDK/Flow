@@ -6,9 +6,9 @@
 
 #include "flow/configuration.hpp"
 #include "flow/detail/cancellable_function.hpp"
-#include "flow/detail/channel.hpp"
 #include "flow/detail/channel_set.hpp"
 #include "flow/detail/mixed_array.hpp"
+#include "flow/detail/multi_channel.hpp"
 #include "flow/detail/spin.hpp"
 #include "flow/detail/timeout_routine.hpp"
 #include "flow/network_handle.hpp"
@@ -20,7 +20,7 @@
 #include "flow/transformer.hpp"
 
 /**
- * A network is a sequence of routines connected by single callable_producer single callable_consumer channels.
+ * A network is a sequence of routines connected by single callable_producer single callable_consumer m_channels.
  * The end of the network depends on the data flow from the beginning of the network. The beginning
  * of the network has no dependencies.
  *
@@ -35,7 +35,7 @@
  *
  * callable_producer -> transfomer -> ... -> callable_consumer
  *
- * Each channel in the network uses contiguous memory to pass data to the channel waiting on the other way. All
+ * Each multi_channel in the network uses contiguous memory to pass data to the multi_channel waiting on the other way. All
  * data must flow from callable_producer to callable_consumer; no cyclical dependencies.
  *
  * Cancellation
@@ -48,13 +48,13 @@
  * The callable_consumer then has to be the one that initializes the cancellation. The algorithm is as follows:
  *
  * Consumer receives cancellation request from the cancellation handle
- * callable_consumer terminates the channel it is communicating with
- * callable_consumer flushes out any awaiting producers/transformers on the producing end of the channel
+ * callable_consumer terminates the multi_channel it is communicating with
+ * callable_consumer flushes out any awaiting producers/transformers on the producing end of the multi_channel
  * end callable_routine
  *
- * The callable_transformer or callable_producer that is next in the network will then receiving channel termination notification
+ * The callable_transformer or callable_producer that is next in the network will then receiving multi_channel termination notification
  * from the callable_consumer at the end of the network and break out of its loop
- * It well then notify terminate the callable_producer channel it receives data from and flush it out
+ * It well then notify terminate the callable_producer multi_channel it receives data from and flush it out
  *
  * rinse repeat until the beginning of the network, which is a callable_producer
  * The callable_producer simply breaks out of its loop and exits the scope
@@ -66,68 +66,60 @@ class network {
 public:
   using is_network = std::true_type;
 
-  enum class state {
-    empty,/// Initial state
-    open,/// Has producers and transformers with no callable_consumer
-    closed/// The network is complete and is capped by a callable_consumer
-  };
-
   /**
-   * Makes a channel if it doesn't exist and returns a reference to it
-   * @tparam message_t The message type the channel will communicate
-   * @param channel_name The name of the channel (optional)
-   * @return A reference to the channel
+   * Makes a multi_channel if it doesn't exist and returns a reference to it
+   * @tparam message_t The message type the multi_channel will communicate
+   * @param channel_name The name of the multi_channel (optional)
+   * @return A reference to the multi_channel
    */
   template<typename message_t>
   auto& make_channel_if_not_exists(std::string channel_name)
   {
-    if (channels.template contains<message_t>(channel_name)) {
-      return channels.template at<message_t>(channel_name);
+    if (m_channels.template contains<message_t>(channel_name)) {
+      return m_channels.template at<message_t>(channel_name);
     }
 
-    using channel_t = detail::channel<message_t, configuration_t>;
+    using channel_t = detail::multi_channel<message_t, configuration_t>;
 
     channel_t channel{
       channel_name,
-      std::invoke(*resource_generator),
-      thread_pool.get()
+      std::invoke(*m_resource_generator),
+      m_thread_pool.get()
     };
 
-    channels.put(std::move(channel));
-    return channels.template at<message_t>(channel_name);
+    m_channels.put(std::move(channel));
+    return m_channels.template at<message_t>(channel_name);
   }
 
   /**
    * Pushes a callable_routine into the network
    * @param spinner A callable_routine with no dependencies and nothing depends on it
    */
-  template<typename routine_t>
-  requires std::is_same_v<flow::spinner, routine_t> void push(routine_t&& routine)
+  void push(flow::spinner_concept auto&& routine)
   {
     m_handle.push(routine.callback().handle());
-    tasks.push_back(detail::spin_spinner(thread_pool, routine.callback()));
+    m_routines_to_spin.push_back(detail::spin_spinner(m_thread_pool, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
   }
 
   /**
    * Pushes a callable_producer into the network
    * @param producer The callable_producer callable_routine
-   * @param channel_name The channel name the callable_producer will publish to
+   * @param channel_name The multi_channel name the callable_producer will publish to
    */
-
   template<typename message_t>
   void push(flow::producer<message_t>&& routine)
   {
     auto& channel = make_channel_if_not_exists<message_t>(routine.channel_name());
-    tasks.push_back(detail::spin_producer<message_t>(channel, routine.callback()));
+    m_routines_to_spin.push_back(detail::spin_producer<message_t>(channel, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
   }
 
   /**
-   *  Pushes a callable_transformer into the network and creates any necessary channels it requires
+   *  Pushes a callable_transformer into the network and creates any necessary m_channels it requires
    * @param transformer A callable_routine that depends on another callable_routine and is depended on by a callable_consumer or callable_transformer
-   * @param producer_channel_name The channel it depends on
-   * @param consumer_channel_name The channel that it will publish to
+   * @param producer_channel_name The multi_channel it depends on
+   * @param consumer_channel_name The multi_channel that it will publish to
    */
   template<typename return_t, typename... args_t>
   void push(flow::transformer<return_t(args_t...)>&& routine)
@@ -135,14 +127,14 @@ public:
     auto& producer_channel = make_channel_if_not_exists<args_t...>(routine.producer_channel_name());
     auto& consumer_channel = make_channel_if_not_exists<return_t>(routine.consumer_channel_name());
 
-    tasks.push_back(detail::spin_transformer<return_t, args_t...>(producer_channel, consumer_channel, routine.callback()));
+    m_routines_to_spin.push_back(detail::spin_transformer<return_t, args_t...>(producer_channel, consumer_channel, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
   }
 
   /**
    * Pushes a callable_consumer into the network
    * @param callback A callable_routine no other callable_routine depends on and depends on at least a single callable_routine
-   * @param channel_name The channel it will consume from
+   * @param channel_name The multi_channel it will consume from
    */
   template<typename message_t>
   void push(flow::consumer<message_t>&& routine)
@@ -150,7 +142,7 @@ public:
     auto& channel = make_channel_if_not_exists<message_t>(routine.channel_name());
 
     m_handle.push(routine.callback().handle());
-    tasks.push_back(detail::spin_consumer<message_t>(channel, routine.callback()));
+    m_routines_to_spin.push_back(detail::spin_consumer<message_t>(channel, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
   }
 
@@ -160,7 +152,7 @@ public:
    */
   cppcoro::task<void> spin()
   {
-    co_await cppcoro::when_all_ready(std::move(tasks));
+    co_await cppcoro::when_all_ready(std::move(m_routines_to_spin));
   }
 
   /**
@@ -188,20 +180,20 @@ public:
       handle().request_cancellation();
     });
 
-    tasks.push_back(timeout_routine->spin());
+    m_routines_to_spin.push_back(timeout_routine->spin());
     m_heap_storage.push_back(std::move(timeout_routine));
   }
 
 private:
   using thread_pool_t = cppcoro::static_thread_pool;
-  using resource_generator_t = detail::channel_resource_generator<configuration_t>;
+  using multi_channel_resource_generator = detail::channel_resource_generator<configuration_t, cppcoro::multi_producer_sequencer<std::size_t>>;
 
-  std::unique_ptr<thread_pool_t> thread_pool = std::make_unique<cppcoro::static_thread_pool>();
-  std::unique_ptr<resource_generator_t> resource_generator = std::make_unique<resource_generator_t>();
+  std::unique_ptr<thread_pool_t> m_thread_pool = std::make_unique<cppcoro::static_thread_pool>();
+  std::unique_ptr<multi_channel_resource_generator> m_resource_generator = std::make_unique<multi_channel_resource_generator>();
 
-  detail::channel_set<configuration_t> channels{};
+  detail::channel_set<configuration_t> m_channels{};
 
-  std::vector<cppcoro::task<void>> tasks{};
+  std::vector<cppcoro::task<void>> m_routines_to_spin{};
   std::vector<std::any> m_heap_storage{};
 
   network_handle m_handle{};
