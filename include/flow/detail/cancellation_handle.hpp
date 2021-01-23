@@ -6,21 +6,12 @@
 #include "metaprogramming.hpp"
 
 /**
- * Any std::function, function pointer, or lambda may be used to make a cancellable_function
+ * A cancellation_handle is a handle to a cancellable_function. This allows
+ * the owner of the handle to cancel the function being called at any time.
  *
- * A cancellable function can generate a cancellation_handle via the handle() method. The handle is
- * the object whereby cancellation is transmitted to the cancellable_function.
- *
- * The nominal use case is as follows:
- *   void do_foo() {  // do foo here }
- *
- *   auto cancellable = flow::make_cancellable_routine(do_foo);
- *   auto handle = cancellable.handle(); // may be copied
- *
- *   while (not cancellable.is_cancellation_requested()) { // do work }
- *
- * These cancellable functions are used by the network data structure to cancel the callable_consumer
- * at the end of the network. This triggers the full cancellation of the network itself.
+ * Note: This does not prevent the owner of cancellable_function from being called,
+ * but it does notify the user of that function that they should cancel if they are
+ * calling that function within a loop.
  */
 
 namespace flow::detail {

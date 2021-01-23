@@ -58,7 +58,7 @@ public:
 
   cancellation_handle handle()
   {
-    return cancellation_handle{ &m_cancellation_source};
+    return cancellation_handle{ &m_cancellation_source };
   }
 
 private:
@@ -96,4 +96,4 @@ auto make_cancellable_routine(auto&& lambda)
   return make_cancellable_routine(detail::metaprogramming::to_function(lambda));
 }
 
-}// namespace flow
+}// namespace flow::detail
