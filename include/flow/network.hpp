@@ -172,9 +172,9 @@ public:
    *
    * This does not mean the network will be stopped after this amount of time! It takes a non-deterministic
    * amount of time to fully shut the network down.
-   * @param time in milliseconds
+   * @param any chrono time
    */
-  void cancel_after(std::chrono::milliseconds time)
+  void cancel_after(std::chrono::nanoseconds time)
   {
     auto timeout_routine = detail::make_shared_timeout_routine(time, [&] {
       handle().request_cancellation();
