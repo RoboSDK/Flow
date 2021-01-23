@@ -20,7 +20,7 @@ private:
     return std::move(message);
   }
 
-  flow::transformer<std::string(std::string)> string_reverser{
+  flow::detail::transformer_impl<std::string(std::string)> string_reverser{
     [this](std::string&& msg) { return reverse_message(std::move(msg)); },
     "hello_world",
     "hello_world_reversed"

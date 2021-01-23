@@ -20,7 +20,7 @@ private:
     return hashed;
   }
 
-  flow::transformer<std::size_t(std::string)> string_hasher{
+  flow::detail::transformer_impl<std::size_t(std::string)> string_hasher{
     [this](std::string&& msg) { return hash_message(std::move(msg)); },
     "hello_world_reversed",
     "hashed"

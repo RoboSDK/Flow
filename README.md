@@ -64,7 +64,7 @@ over the last few months. I've had to make a couple of redesigns, but I think th
 as a base.
 
 I have many more additions I want to add, such as support for TCP/IP and UDP, performance optimizations, and ergonomics
-such as adding in a when_all to subscribe to multiple m_channels at once with a receiver or transformer.
+such as adding in a when_all to subscribe to multiple m_channels at once with a receiver or transformer_impl.
 
 <a name="1-overview"></a>
 ### Overview
@@ -90,7 +90,7 @@ has.
     - Notation:  `(A)`
     - Example: In C++ this is a `(A&&... a)->void` function, or any other process that emulates the behavior
     
-3. *Transformer* - A transformer is an function with at least one dependency and at least one function depends on it.
+3. *Transformer* - A transformer_impl is an function with at least one dependency and at least one function depends on it.
     - Notation:  `(A)->R`
     - Example: In C++ this is a `(A&&... a)->R` function, or any other process that emulates the behavior
     
@@ -100,7 +100,7 @@ is an invalid network.
 <a name="1-2-communication"></a>
 ### Communication
 Each of these functions are connected to each other through a `multi_channel`. Each multi_channel needs to have
-at least one producer_impl and one receiver on the other end. A transformer doubles as a producer_impl and receiver, 
+at least one producer_impl and one receiver on the other end. A transformer_impl doubles as a producer_impl and receiver, 
 so a path through the network may look something like this
 
 `{()->A , (A)->B, (B)->C, (C)}` This network contains a producer_impl, two transformers, and a receiver. It is complete 
@@ -122,7 +122,7 @@ Looking at the original example: `{()->A , (A)->B, (B)->C, (C)}`
 At t0 the two transformers and receiver at the end will be waiting for messages and the producer_impl will begin to 
 produce data. This could be through a network socket that has no local dependencies (e.g. sensor data). 
 
-At t1 The first transformer receives the first message and transforms it, and at the same time the producer_impl begins
+At t1 The first transformer_impl receives the first message and transforms it, and at the same time the producer_impl begins
 producing a second piece of data. 
 
 This keeps going until all 4 functions are constantly communicating information to the final receiver with some
@@ -138,8 +138,8 @@ at the end of the chain. when a cancellation request is performed the consumers 
 network flow will begin by exiting their main loop. 
 
 At this point, transformers and producers down the chain will be awaiting compute time for their coroutine. The receiver
-will then `flush` out the waiting transformer or producer_impl that is next in line, once that transformer is free the 
-receiver will end. Then the transformer will repeat this until the producer_impl is reached at the beginning of the chain 
+will then `flush` out the waiting transformer_impl or producer_impl that is next in line, once that transformer_impl is free the 
+receiver will end. Then the transformer_impl will repeat this until the producer_impl is reached at the beginning of the chain 
 and then the producer_impl coroutines will end and exit their scope.
 
 

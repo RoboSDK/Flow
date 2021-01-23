@@ -122,7 +122,7 @@ public:
    * @param consumer_channel_name The multi_channel that it will publish to
    */
   template<typename return_t, typename... args_t>
-  void push(flow::transformer<return_t(args_t...)>&& routine)
+  void push(flow::detail::transformer_impl<return_t(args_t...)>&& routine)
   {
     auto& producer_channel = make_channel_if_not_exists<args_t...>(routine.producer_channel_name());
     auto& consumer_channel = make_channel_if_not_exists<return_t>(routine.consumer_channel_name());
