@@ -18,7 +18,7 @@ private:
     flow::logging::info("Received Hashed Message: {}", message);
   }
 
-  flow::consumer<std::size_t> consumer{
+  flow::detail::consumer_impl<std::size_t> consumer{
     [this](std::size_t&& msg) { receive_hashed_message(std::move(msg)); },
     "hashed"
   };

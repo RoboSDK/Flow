@@ -137,7 +137,7 @@ public:
    * @param channel_name The multi_channel it will consume from
    */
   template<typename message_t>
-  void push(flow::consumer<message_t>&& routine)
+  void push(detail::consumer_impl<message_t>&& routine)
   {
     auto& channel = make_channel_if_not_exists<message_t>(routine.channel_name());
 

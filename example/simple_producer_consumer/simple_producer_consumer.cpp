@@ -30,7 +30,7 @@ int main()
   [[maybe_unused]] auto hello_world = make_routine<producer>(make_hello_world, "hello_world");
 //  auto reverser = make_routine<transformer>(reverse_string, "hello_world", "reversed");
 //  auto hasher = make_routine<transformer>(hash_string, "reversed", "hashed");
-//  auto receiver = make_routine<consumer>(receive_hashed_message, "hashed");
+  [[maybe_unused]] auto receiver = make_routine<consumer>(receive_hashed_message, "hashed");
 
   // Order doesn't matter here
 //  auto network = flow::make_network(std::move(hello_world),
