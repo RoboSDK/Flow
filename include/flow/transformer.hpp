@@ -85,7 +85,6 @@ auto make_transformer(auto&& lambda, std::string subscribe_to, std::string publi
   return make_transformer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(publish_to), std::move(subscribe_to));
 }
 
-
 template<typename transformer_t>
 concept transformer_routine = std::is_same_v<typename transformer_t::is_transformer, std::true_type> or std::is_same_v<transformer_t, flow::transformer>;
 }// namespace flow
