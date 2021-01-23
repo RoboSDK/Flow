@@ -3,7 +3,6 @@
 #include <array>
 
 #include "consumer_token.hpp"
-#include "flow/detail/atomic.hpp"
 #include "flow/logging.hpp"
 #include "metaprogramming.hpp"
 #include "producer_token.hpp"
@@ -176,7 +175,7 @@ public:
 
     do {
       co_yield m_buffer[token.sequence & m_index_mask];
-    } while (flow::atomic_post_increment(token.sequence) < token.end_sequence);
+    } while (std::atomic_ref(token.sequence)++ < token.end_sequence);
   }
 
 

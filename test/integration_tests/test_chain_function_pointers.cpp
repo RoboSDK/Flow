@@ -24,9 +24,9 @@ int transformer(int&& val)
   return val * 2;
 }
 
-void consumer(int&& val)
+void consumer(int&& /*unused*/)
 {
-  flow::logging::error("callable_consumer: {}", val);
+//  flow::logging::error("callable_consumer: {}", val);
 }
 }// namespace local
 
