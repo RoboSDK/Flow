@@ -15,7 +15,7 @@
 #include "flow/routine_concepts.hpp"
 
 #include "flow/consumer.hpp"
-#include "flow/producer.hpp"
+#include "flow/producer_impl.hpp"
 #include "flow/spinner.hpp"
 #include "flow/transformer.hpp"
 
@@ -108,7 +108,7 @@ public:
    * @param channel_name The multi_channel name the producer_function will publish to
    */
   template<typename message_t>
-  void push(flow::producer<message_t>&& routine)
+  void push(flow::detail::producer_impl<message_t>&& routine)
   {
     auto& channel = make_channel_if_not_exists<message_t>(routine.channel_name());
     m_routines_to_spin.push_back(detail::spin_producer<message_t>(channel, routine.callback()));
@@ -209,7 +209,7 @@ template <typename network_t>
 concept not_is_network = not std::is_same_v<typename network_t::is_network, std::true_type>;
 
 template<typename routine_t>
-concept routine = spinner_routine<routine_t> or producer_routine<routine_t> or concept_routine<routine_t> or transformer_routine<routine_t>;
+concept routine = spinner_routine<routine_t> or producer_routine<routine_t> or consumer_routine<routine_t> or transformer_routine<routine_t>;
 
 template<typename... routines_t>
 concept routines = (routine<routines_t> and ...);
@@ -251,7 +251,7 @@ auto make_network(flow::not_network_or_user_routines auto&&... callables)
          using callable_t = decltype(callable);
 
          if constexpr (flow::transformer_function<callable_t>) {
-           network.push(flow::make_transformer(callable));
+           network.push(flow::make_transformer(callable, std::string(), std::string()));
          } else if constexpr(flow::consumer_function<callable_t>) {
            network.push(flow::make_consumer(callable));
          } else if constexpr(flow::producer_function<callable_t>) {

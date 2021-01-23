@@ -5,7 +5,7 @@
 #include <flow/flow.hpp>
 #include <flow/logging.hpp>
 #include <flow/network.hpp>
-#include <flow/producer.hpp>
+#include <flow/producer_impl.hpp>
 #include <flow/transformer.hpp>
 
 #include <cppcoro/sync_wait.hpp>
@@ -38,8 +38,8 @@ int main()
   using network_t = flow::network<flow::configuration>;
 
   network_t network = make_network(
-    make_producer(local::producer, options{ .publish_to = "producer" }),
-    make_transformer(local::transformer, options{  .publish_to = "consumer" , .subscribe_to = "producer"}),
+    make_producer(local::producer, options{ .publish_to = "producer_impl" }),
+    make_transformer(local::transformer, options{  .publish_to = "consumer" , .subscribe_to = "producer_impl"}),
     make_consumer(local::consumer, options{ .subscribe_to = "consumer" }));
 
   network.cancel_after(0s);

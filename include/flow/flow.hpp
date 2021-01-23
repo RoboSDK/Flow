@@ -1,10 +1,13 @@
 #pragma once
 
+#include "flow/make_routine.hpp"
+
 #include "flow/consumer.hpp"
-#include "flow/network.hpp"
-#include "flow/producer.hpp"
+#include "flow/producer_impl.hpp"
 #include "flow/spinner.hpp"
 #include "flow/transformer.hpp"
+
+#include "flow/network.hpp"
 
 namespace flow {
 /**
@@ -30,7 +33,7 @@ auto spin(routines_t&&... routines)
     using routine_t = decltype(r);
 
     if constexpr (transformer_function<routine_t>) {
-      network.push(make_transformer(r));
+      network.push(make_transformer(r, std::string(), std::string()));
     }
     else if constexpr (consumer_function<routine_t>) {
       network.push(flow::make_consumer(r));

@@ -61,23 +61,23 @@ auto make_transformer(auto&& lambda, flow::options options = flow::options{})
 }
 
 template<typename return_t, typename argument_t>
-auto make_transformer(std::function<return_t(argument_t&&)>&& callback, std::string publish_to, std::string subscribe_to)
+auto make_transformer(std::function<return_t(argument_t&&)>&& callback, std::string subscribe_to, std::string publish_to)
 {
   using callback_t = decltype(callback);
   return transformer<return_t(argument_t)>(std::forward<callback_t>(callback), std::move(subscribe_to), std::move(publish_to));
 }
 
 template<typename return_t, typename argument_t>
-auto make_transformer(return_t (*callback)(argument_t&&), std::string publish_to, std::string subscribe_to)
+auto make_transformer(return_t (*callback)(argument_t&&), std::string subscribe_to, std::string publish_to)
 {
   using callback_t = decltype(callback);
   return transformer<return_t(argument_t)>(std::forward<callback_t>(callback), std::move(subscribe_to), std::move(publish_to));
 }
 
-auto make_transformer(auto&& lambda, std::string publish_to, std::string subscribe_to)
+auto make_transformer(auto&& lambda, std::string subscribe_to, std::string publish_to)
 {
   using callback_t = decltype(lambda);
-  return make_transformer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(subscribe_to), std::move(publish_to));
+  return make_transformer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(publish_to), std::move(subscribe_to));
 }
 
 

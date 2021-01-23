@@ -1,7 +1,7 @@
 #pragma once
 
 #include <flow/logging.hpp>
-#include <flow/producer.hpp>
+#include <flow/producer_impl.hpp>
 #include <flow/user_routine.hpp>
 
 namespace example {

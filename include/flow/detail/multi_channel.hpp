@@ -14,14 +14,14 @@
 /**
  * The link between routines in a network are m_channels.
  *
- * A multi multi_channel in this framework is a multi producer multi consumer multi_channel that are linked
+ * A multi multi_channel in this framework is a multi producer_impl multi consumer multi_channel that are linked
  * to two corresponding neighbors in a network.
  */
 
 namespace flow::detail {
 
 /**
- * A multi producer multi consumer channel
+ * A multi producer_impl multi consumer channel
  *
  * This means that because the assumption is that multiple producers and consumers will be used to
  * communicate through this single channel, there will be a performance cost of atomics for synchronization

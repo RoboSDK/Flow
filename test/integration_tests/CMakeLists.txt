@@ -20,6 +20,7 @@ if (ENABLE_EXAMPLES)
     list(APPEND examples
                 minimal_producer_consumer
                 simple_producer_consumer
+                simple_user_producer_consumer
                 producer_transformer_consumer)
 
     foreach (example ${examples})

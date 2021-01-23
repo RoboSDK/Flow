@@ -82,7 +82,7 @@ has.
     - Notation:  `()`
     - Example: In C++ this is a `()->void` function, or any other process that 
     
-2. *Producer* - A producer is an function with no dependencies and some other function must depend on it. 
+2. *Producer* - A producer_impl is an function with no dependencies and some other function must depend on it. 
     - Notation:  `()->R`
     - Example: In C++ this is a `()->R` function, or any other process that emulates the behavior
     
@@ -100,29 +100,29 @@ is an invalid network.
 <a name="1-2-communication"></a>
 ### Communication
 Each of these functions are connected to each other through a `multi_channel`. Each multi_channel needs to have
-at least one producer and one receiver on the other end. A transformer doubles as a producer and receiver, 
+at least one producer_impl and one receiver on the other end. A transformer doubles as a producer_impl and receiver, 
 so a path through the network may look something like this
 
-`{()->A , (A)->B, (B)->C, (C)}` This network contains a producer, two transformers, and a receiver. It is complete 
+`{()->A , (A)->B, (B)->C, (C)}` This network contains a producer_impl, two transformers, and a receiver. It is complete 
 and and closed. There will be three m_channels in between; each with its own multi_channel name. If no multi_channel name is provided,
 then an empty string will be used; you can think of this as a *global multi_channel*. 
 
 A global multi_channel is a multi_channel that is available globally for that specific message type. Publishing an
 `int` without a multi_channel name will publish to the global `int` multi_channel.
 
-**Not yet implemented**: At the moment m_channels use a multi-producer scheme, so if only one producer exists in that
+**Not yet implemented**: At the moment m_channels use a multi-producer_impl scheme, so if only one producer_impl exists in that
 multi_channel, then it is inefficient due to synchronization of atomics. There will be a way to make m_channels that are
-single producer single receiver in the future. These will be done by tightly linking multiple functions and generating
+single producer_impl single receiver in the future. These will be done by tightly linking multiple functions and generating
 private m_channels that are inaccessible through the main network. Think of it as creating a subnet within the network.
 
 Each of the functions in the network will begin and start to process data and eventually reach a frequency.
 
 Looking at the original example: `{()->A , (A)->B, (B)->C, (C)}`
 
-At t0 the two transformers and receiver at the end will be waiting for messages and the producer will begin to 
+At t0 the two transformers and receiver at the end will be waiting for messages and the producer_impl will begin to 
 produce data. This could be through a network socket that has no local dependencies (e.g. sensor data). 
 
-At t1 The first transformer receives the first message and transforms it, and at the same time the producer begins
+At t1 The first transformer receives the first message and transforms it, and at the same time the producer_impl begins
 producing a second piece of data. 
 
 This keeps going until all 4 functions are constantly communicating information to the final receiver with some
@@ -138,9 +138,9 @@ at the end of the chain. when a cancellation request is performed the consumers 
 network flow will begin by exiting their main loop. 
 
 At this point, transformers and producers down the chain will be awaiting compute time for their coroutine. The receiver
-will then `flush` out the waiting transformer or producer that is next in line, once that transformer is free the 
-receiver will end. Then the transformer will repeat this until the producer is reached at the beginning of the chain 
-and then the producer coroutines will end and exit their scope.
+will then `flush` out the waiting transformer or producer_impl that is next in line, once that transformer is free the 
+receiver will end. Then the transformer will repeat this until the producer_impl is reached at the beginning of the chain 
+and then the producer_impl coroutines will end and exit their scope.
 
 
 <a name="2-examples"></a>
@@ -166,7 +166,7 @@ int main()
   using namespace std::literals;
 
   /**
-   * The producer hello_world is going to be publishing to the global std::string multi_channel.
+   * The producer_impl hello_world is going to be publishing to the global std::string multi_channel.
    * The receiver receive_message is going to subscribe to the global std::string multi_channel.
    */
   auto network = flow::make_network(hello_world, receive_message);
@@ -213,13 +213,13 @@ int main()
 {
   using namespacw flow;
   using namespace std::literals;
-  auto producer = make_producer(hello_world, "hello_world");
+  auto producer_impl = make_producer(hello_world, "hello_world");
   auto reverser = make_transformer(reverse_string, options{.publish_to="reversed", .subscribe_to="hello_world"});
   auto hasher = make_transformer(hash_string, options{.publish_to="hashed", .subscribe_to="reversed"});
   auto receiver = make_consumer(receive_hashed_message, "hashed");
 
   // Order doesn't matter here
-  auto network = flow::make_network(std::move(producer), 
+  auto network = flow::make_network(std::move(producer_impl), 
                                     std::move(reverser), 
                                     std::move(hasher), 
                                     std::move(receiver));

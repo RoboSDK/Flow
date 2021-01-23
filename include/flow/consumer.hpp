@@ -76,5 +76,5 @@ auto make_consumer(auto&& lambda, std::string channel_name)
   return make_consumer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(channel_name));
 }
 template<typename consumer_t>
-concept concept_routine = std::is_same_v<typename consumer_t::is_consumer, std::true_type>;
+concept consumer_routine = std::is_same_v<typename consumer_t::is_consumer, std::true_type>;
 }// namespace flow
