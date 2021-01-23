@@ -14,7 +14,7 @@ aims to provide this framework.
 
 1. [Core Concepts](#core-concepts)
    1. [Overview](#1-overview)
-      1. [Operations](#1-1-operations)
+      1. [Functions](#1-1-functions)
       2. [Communication](#1-2-communication)
    2. [Examples](#2-examples)
 2. [Dependencies](#dependencies)
@@ -57,7 +57,7 @@ I think it's great for what it is.
 In ROS-land the major forms of communication are done through publishers and subscribers (producers and consumers) where
 some loop is being done by a node object, or a while loop in the main program. This is strictly a multi-threaded form
 of concurrency and strong synchronization is required to communicate within callbacks. We all know this is not
-what we want with asynchronous operations.
+what we want with asynchronous functions.
 
 **Note on the current state of the project**: Right now this is an pre-pre-pre-alpha. I've been working on this in my spare time
 over the last few months. I've had to make a couple of redesigns, but I think this is the one that will work to server
@@ -73,33 +73,33 @@ The philosophy behind this framework is dependency management by preventing cycl
 maximum flow in a network and thereby minimizing latency in the system (and probably increase throughput). This is 
 meant to be used for closed feedback systems.
 
-<a name="1-1-operations"></a>
-### Operations
-Each node in this graph represents an operation, and the specific type of operation is defined by the dependencies it
+<a name="1-1-functions"></a>
+### Functions
+Each node in this graph represents an function, and the specific type of function is defined by the dependencies it
 has.
 
-1. *Spinner* - A spinner is an operation with no dependencies and nothing depends on it. it's a closed system. 
+1. *Spinner* - A spinner is an function with no dependencies and nothing depends on it. it's a closed system. 
     - Notation:  `()`
-    - Example: In C++ this is a `void()` function, or any other process that 
+    - Example: In C++ this is a `()->void` function, or any other process that 
     
-2. *Producer* - A producer is an operation with no dependencies and some other operation must depend on it. 
+2. *Producer* - A producer is an function with no dependencies and some other function must depend on it. 
     - Notation:  `()->R`
-    - Example: In C++ this is a `R()` function, or any other process that emulates the behavior
+    - Example: In C++ this is a `()->R` function, or any other process that emulates the behavior
     
-3. *Consumer* - A receiver is an operation with at least one dependency and nothing depends on it.
+3. *Consumer* - A receiver is an function with at least one dependency and nothing depends on it.
     - Notation:  `(A)`
-    - Example: In C++ this is a `void(auto&&... args)` function, or any other process that emulates the behavior
+    - Example: In C++ this is a `(A&&... a)->void` function, or any other process that emulates the behavior
     
-3. *Transformer* - A transformer is an operation with at least one dependency and at least one operation depends on it.
-    - Notation:  `R(A)`
-    - Example: In C++ this is a `auto(auto&&... args)` function, or any other process that emulates the behavior
+3. *Transformer* - A transformer is an function with at least one dependency and at least one function depends on it.
+    - Notation:  `(A)->R`
+    - Example: In C++ this is a `(A&&... a)->R` function, or any other process that emulates the behavior
     
-The flow network is composed of these 4 types of functions, and any operations where the dependencies are not satisfied
+The flow network is composed of these 4 types of functions, and any functions where the dependencies are not satisfied
 is an invalid network.
 
 <a name="1-2-communication"></a>
 ### Communication
-Each of these operations are connected to each other through a `multi_channel`. Each multi_channel needs to have
+Each of these functions are connected to each other through a `multi_channel`. Each multi_channel needs to have
 at least one producer and one receiver on the other end. A transformer doubles as a producer and receiver, 
 so a path through the network may look something like this
 
@@ -115,7 +115,7 @@ multi_channel, then it is inefficient due to synchronization of atomics. There w
 single producer single receiver in the future. These will be done by tightly linking multiple functions and generating
 private m_channels that are inaccessible through the main network. Think of it as creating a subnet within the network.
 
-Each of the operations in the network will begin and start to process data and eventually reach a frequency.
+Each of the functions in the network will begin and start to process data and eventually reach a frequency.
 
 Looking at the original example: `{()->A , (A)->B, (B)->C, (C)}`
 
@@ -125,7 +125,7 @@ produce data. This could be through a network socket that has no local dependenc
 At t1 The first transformer receives the first message and transforms it, and at the same time the producer begins
 producing a second piece of data. 
 
-This keeps going until all 4 operations are constantly communicating information to the final receiver with some
+This keeps going until all 4 functions are constantly communicating information to the final receiver with some
 frequency.
 
 <a name="1-3-Cancellation"></a>
@@ -133,7 +133,7 @@ frequency.
 
 Cancellation of coroutines is tricky, but there is a logical way to cancel this large network. 
 
-The producers begin the chain of operations, and the way to end the chain is by beginning with the receiver
+The producers begin the chain of functions, and the way to end the chain is by beginning with the receiver
 at the end of the chain. when a cancellation request is performed the consumers at the end of the
 network flow will begin by exiting their main loop. 
 
