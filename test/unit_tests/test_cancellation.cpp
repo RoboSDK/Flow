@@ -24,15 +24,6 @@ void test_cancellable(M& dummy_message)
 
   (*cancellable)(dummy_message);// should call null callback
   REQUIRE(called_back == true);
-  try {
-    cancellable->throw_if_cancellation_requested();
-  }
-  catch (cppcoro::operation_cancelled const& e) {
-    SUCCEED("Cancelled successfully");
-    return;
-  }
-
-  FAIL("Did not cancel");
 }
 
 TEST_CASE("Test cancellable subscription", "[cancellable_subscription]")

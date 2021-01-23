@@ -38,7 +38,7 @@ auto make_spinner(void (*callback)())
 auto make_spinner(auto&& lambda)
 {
   using callback_t = decltype(lambda);
-  return make_spinner(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)));
+  return make_spinner(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)));
 }
 
 

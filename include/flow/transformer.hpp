@@ -56,7 +56,7 @@ auto make_transformer(return_t (*callback)(argument_t&&), flow::options options 
 auto make_transformer(auto&& lambda, flow::options options = flow::options{})
 {
   using callback_t = decltype(lambda);
-  return make_transformer(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(options.subscribe_to), std::move(options.publish_to));
+  return make_transformer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(options.subscribe_to), std::move(options.publish_to));
 }
 
 template<typename return_t, typename argument_t>
@@ -76,7 +76,7 @@ auto make_transformer(return_t (*callback)(argument_t&&), std::string publish_to
 auto make_transformer(auto&& lambda, std::string publish_to, std::string subscribe_to)
 {
   using callback_t = decltype(lambda);
-  return make_transformer(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(subscribe_to), std::move(publish_to));
+  return make_transformer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(subscribe_to), std::move(publish_to));
 }
 
 

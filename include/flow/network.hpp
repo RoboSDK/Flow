@@ -86,7 +86,7 @@ public:
       return m_context->channels.template at<message_t>(channel_name);
     }
 
-    using channel_t = channel<message_t, configuration_t>;
+    using channel_t = detail::channel<message_t, configuration_t>;
 
     channel_t channel{
       channel_name,
@@ -185,7 +185,7 @@ public:
    */
   void cancel_after(std::chrono::milliseconds time)
   {
-    auto timeout_routine = make_shared_timeout_routine(time, [&] {
+    auto timeout_routine = detail::make_shared_timeout_routine(time, [&] {
       handle().request_cancellation();
     });
 
@@ -226,8 +226,8 @@ auto make_network(flow::routines auto&&... routines)
 
   network_t network{};
 
-  auto routines_array = flow::make_mixed_array(std::forward<decltype(routines)>(routines)...);
-  std::for_each(std::begin(routines_array), std::end(routines_array), flow::make_visitor([&](auto& routine) {
+  auto routines_array = detail::make_mixed_array(std::forward<decltype(routines)>(routines)...);
+  std::for_each(std::begin(routines_array), std::end(routines_array), detail::make_visitor([&](auto& routine) {
     network.push(std::move(routine));
   }));
 
@@ -245,8 +245,8 @@ auto make_network(flow::not_network_or_user_routines auto&&... callables)
   using network_t = flow::network<configuration_t>;
   network_t network{};
 
-  auto callables_array = flow::make_mixed_array(std::forward<decltype(callables)>(callables)...);
-  std::for_each(std::begin(callables_array), std::end(callables_array), flow::make_visitor([&](auto& callable) {
+  auto callables_array = detail::make_mixed_array(std::forward<decltype(callables)>(callables)...);
+  std::for_each(std::begin(callables_array), std::end(callables_array), detail::make_visitor([&](auto& callable) {
          using callable_t = decltype(callable);
 
          if constexpr (flow::callable_transformer<callable_t>) {
@@ -275,8 +275,8 @@ auto make_network(flow::are_user_routines auto&&... routines)
 
   network_t network{};
 
-  auto routines_array = flow::make_mixed_array(std::forward<decltype(routines)>(routines)...);
-  std::for_each(std::begin(routines_array), std::end(routines_array), flow::make_visitor([&](auto& routine) {
+  auto routines_array = detail::make_mixed_array(std::forward<decltype(routines)>(routines)...);
+  std::for_each(std::begin(routines_array), std::end(routines_array), detail::make_visitor([&](auto& routine) {
          routine.initialize(network);
   }));
 

@@ -1,10 +1,8 @@
 #pragma once
 
-#include <array>
+#include <stack>
 
 #include "consumer_token.hpp"
-#include "flow/logging.hpp"
-#include "metaprogramming.hpp"
 #include "producer_token.hpp"
 
 #include <cppcoro/async_generator.hpp>
@@ -12,7 +10,6 @@
 #include <cppcoro/sequence_barrier.hpp>
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
-#include <stack>
 
 /**
  * The link between routines in a network are channels.
@@ -21,7 +18,7 @@
  * to two corresponding neighbors in a network.
  */
 
-namespace flow {
+namespace flow::detail {
 
 /**
  * This is a resource that each channel will own

@@ -2,13 +2,12 @@
 
 #include <any>
 
-#include "flow/detail/channel.hpp"
+#include "channel.hpp"
 
 /**
  * A channel set will contain a unique channels only
  */
-
-namespace flow {
+namespace flow::detail {
 
 template <typename config_t>
 class channel_set {
@@ -44,7 +43,7 @@ public:
   template<typename message_t>
   auto& at(std::string const& channel_name = "")
   {
-    return std::any_cast<channel<message_t, config_t>&>(m_channels.at(hash<message_t>(channel_name)));
+    return std::any_cast<detail::channel<message_t, config_t>&>(m_channels.at(hash<message_t>(channel_name)));
   }
 
 private:

@@ -3,7 +3,7 @@
 #include <stack>
 #include <cppcoro/sequence_range.hpp>
 
-namespace flow {
+namespace flow::detail {
 
 template <typename message_t>
 struct producer_token {

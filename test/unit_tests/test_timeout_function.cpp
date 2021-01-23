@@ -10,7 +10,7 @@ TEST_CASE("Test timeout_routine behavior", "[timeout_routine]")
   static constexpr auto time_limit = 1000ms;
 
   bool called = false;
-  auto timeout_routine = flow::make_shared_timeout_routine(time_limit, [&] {
+  auto timeout_routine = flow::detail::make_shared_timeout_routine(time_limit, [&] {
     called = true;
   });
 

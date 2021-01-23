@@ -51,7 +51,7 @@ auto make_consumer(void (*callback)(argument_t&&), flow::options options = flow:
 auto make_consumer(auto&& lambda, flow::options options= flow::options{})
 {
   using callback_t = decltype(lambda);
-  return make_consumer(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(options.subscribe_to));
+  return make_consumer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(options.subscribe_to));
 }
 
 template<typename argument_t>
@@ -71,7 +71,7 @@ auto make_consumer(void (*callback)(argument_t&&), std::string channel_name)
 auto make_consumer(auto&& lambda, std::string channel_name)
 {
   using callback_t = decltype(lambda);
-  return make_consumer(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(channel_name));
+  return make_consumer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(channel_name));
 }
 template<typename consumer_t>
 concept consumer_concept = std::is_same_v<typename consumer_t::is_consumer, std::true_type>;

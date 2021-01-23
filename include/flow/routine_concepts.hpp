@@ -13,7 +13,7 @@
 namespace flow {
 
 template<typename callable_t>
-using traits = flow::metaprogramming::function_traits<std::decay_t<callable_t>>;
+using traits = detail::metaprogramming::function_traits<std::decay_t<callable_t>>;
 
 template<typename routine_t>
 concept is_user_routine = std::is_base_of_v<user_routine, routine_t>;

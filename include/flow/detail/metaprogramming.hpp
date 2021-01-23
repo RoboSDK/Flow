@@ -1,8 +1,6 @@
 #ifndef FLOW_METAPROGRAMMING_HPP
 #define FLOW_METAPROGRAMMING_HPP
 
-#include <string_view>
-#include <type_traits>
 #include <variant>
 #include <tuple>
 #include <functional>
@@ -11,7 +9,7 @@
  * Metaprogramming utilities
  */
 
-namespace flow::metaprogramming {
+namespace flow::detail::metaprogramming {
 /*
  * A metaprogramming size_tc to pass in integral arguments as arguments at compile time
  */
@@ -170,9 +168,9 @@ constexpr auto pop_back([[maybe_unused]] std::tuple<current, the_rest_t...> l = 
 
 /**
  * Iterates through each type and applies it to a callback that takes a
- * flow::metaprogramming::container<T> as a template argument and handles it
+ * detail::metaprogramming::container<T> as a template argument and handles it
  *
- * flow::for_each<int, double>([&]<typename message_t>(flow::metaprogramming::container<message_t> ) {
+ * flow::for_each<int, double>([&]<typename message_t>(detail::metaprogramming::container<message_t> ) {
  *   const auto& ch = std::any_cast<channel<message_t>>(channels.at(typeid(channel<message_t>)));
  *   ch.do_work();
  * });
@@ -305,7 +303,7 @@ public:
 
   template<size_t I>
   struct args {
-    static_assert(I < arity, "flow::metaprogramming::function_traits: index is out of range, index must less than sizeof args_t");
+    static_assert(I < arity, "detail::metaprogramming::function_traits: index is out of range, index must less than sizeof args_t");
     using type = typename std::tuple_element<I, std::tuple<args_t...>>::type;
   };
 
@@ -359,5 +357,5 @@ typename function_traits<Function>::pointer to_function_pointer(const Function& 
   return static_cast<typename function_traits<Function>::pointer>(lambda);
 }
 
-}// namespace flow::metaprogramming
+}// namespace detail::metaprogramming
 #endif//FLOW_METAPreturn_tOGreturn_tAMMING_HPP

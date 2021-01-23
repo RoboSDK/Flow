@@ -1,12 +1,8 @@
 #pragma once
 
-#include <iostream>
-
 #include <cppcoro/cancellation_source.hpp>
 #include <cppcoro/cancellation_token.hpp>
-#include <cppcoro/operation_cancelled.hpp>
 
-#include "flow/logging.hpp"
 #include "metaprogramming.hpp"
 
 /**
@@ -29,7 +25,7 @@
  * at the end of the network. This triggers the full cancellation of the network itself.
  */
 
-namespace flow {
+namespace flow::detail {
 
 /**
  * Allows the owner of this handle to cancel a callback asynchronously

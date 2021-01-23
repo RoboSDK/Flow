@@ -5,7 +5,7 @@
 namespace flow {
 class network_handle {
 public:
-  void push(cancellation_handle&& handle) {
+  void push(detail::cancellation_handle&& handle) {
     m_handles.push_back(handle);
   }
 
@@ -15,7 +15,7 @@ public:
   }
 
 private:
-  std::vector<cancellation_handle> m_handles{};
+  std::vector<detail::cancellation_handle> m_handles{};
 };
 }
 

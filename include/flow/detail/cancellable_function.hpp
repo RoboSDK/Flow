@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <cppcoro/cancellation_source.hpp>
 #include <cppcoro/cancellation_token.hpp>
 
@@ -51,11 +53,6 @@ public:
     return m_callback(std::forward<args_t>(args)...);
   }
 
-  void throw_if_cancellation_requested()
-  {
-    m_cancel_token.throw_if_cancellation_requested();
-  }
-
   bool is_cancellation_requested()
   {
     return m_cancel_token.is_cancellation_requested();
@@ -98,7 +95,7 @@ template<typename return_t, typename... args_t>
 
 auto make_cancellable_function(auto&& lambda)
 {
-  return make_cancellable_function(flow::metaprogramming::to_function(lambda));
+  return make_cancellable_function(detail::metaprogramming::to_function(lambda));
 }
 
 }// namespace flow

@@ -1,15 +1,12 @@
-#ifndef FLOW_MIXED_ARRAY_HPP
-#define FLOW_MIXED_ARRAY_HPP
+#pragma once
 
-#include <algorithm>
 #include <array>
 #include <tuple>
 #include <variant>
 
-#include "flow/detail/metaprogramming.hpp"
-#include "flow/logging.hpp"
+#include "metaprogramming.hpp"
 
-namespace flow {
+namespace flow::detail {
 
 template<std::size_t N, typename... set_of_types_t>
 class mixed_array {
@@ -92,5 +89,3 @@ constexpr auto make_visitor(Visitors&&... visitors)
 }
 
 }// namespace flow
-
-#endif//FLOW_MIXED_ARRAY_HPP

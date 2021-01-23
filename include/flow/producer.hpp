@@ -47,7 +47,7 @@ auto make_producer(return_t (*callback)(), flow::options options = flow::options
 auto make_producer(auto&& lambda, flow::options&& options = flow::options{})
 {
   using callback_t = decltype(lambda);
-  return make_producer(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(options.publish_to));
+  return make_producer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(options.publish_to));
 }
 
 template<typename return_t>
@@ -67,7 +67,7 @@ auto make_producer(return_t (*callback)(), std::string channel_name)
 auto make_producer(auto&& lambda, std::string channel_name)
 {
   using callback_t = decltype(lambda);
-  return make_producer(flow::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(channel_name));
+  return make_producer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(channel_name));
 }
 
 template<typename producer_t>

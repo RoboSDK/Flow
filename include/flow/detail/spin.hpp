@@ -3,10 +3,11 @@
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>
 
-#include "flow/detail/cancellable_function.hpp"
-#include "flow/detail/channel.hpp"
 #include "flow/network.hpp"
 #include "flow/routine_concepts.hpp"
+
+#include "cancellable_function.hpp"
+#include "channel.hpp"
 
 /**
  * The purpose of this module is make the coroutines that will can 'spin'

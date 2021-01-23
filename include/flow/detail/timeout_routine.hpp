@@ -6,13 +6,13 @@
 #include <cppcoro/on_scope_exit.hpp>
 #include <cppcoro/task.hpp>
 
-#include "flow/detail/metaprogramming.hpp"
+#include "metaprogramming.hpp"
 
 /**
  * Routine that will run until the specified time limit and call the passed in callback
  */
 
-namespace flow {
+namespace flow::detail {
 class timeout_routine {
 public:
   using sPtr = std::shared_ptr<timeout_routine>;
@@ -79,6 +79,6 @@ auto make_shared_timeout_routine(std::chrono::nanoseconds threshold, std::functi
 
 [[maybe_unused]] auto make_shared_timeout_routine(std::chrono::nanoseconds threshold, auto&& lambda)
 {
-  return make_shared_timeout_routine(threshold, flow::metaprogramming::to_function(lambda));
+  return make_shared_timeout_routine(threshold, detail::metaprogramming::to_function(lambda));
 }
 }// namespace flow

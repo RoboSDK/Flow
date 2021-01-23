@@ -32,8 +32,8 @@ auto spin(flow::routines auto&&... routines)
   using network_t = flow::network<configuration_t>;
   network_t network{};
 
-  auto routines_array = flow::make_mixed_array(std::forward<decltype(routines)>(routines)...);
-  std::for_each(std::begin(routines_array), std::end(routines_array), flow::make_visitor([&](auto& routine) {
+  auto routines_array = detail::make_mixed_array(std::forward<decltype(routines)>(routines)...);
+  std::for_each(std::begin(routines_array), std::end(routines_array), detail::make_visitor([&](auto& routine) {
     network.push(std::move(routine));
   }));
 
@@ -51,8 +51,8 @@ auto spin(flow::not_network_or_user_routines auto&&... callables)
   using network_t = flow::network<configuration_t>;
   network_t network{};
 
-  auto callables_array = flow::make_mixed_array(std::forward<decltype(callables)>(callables)...);
-  std::for_each(std::begin(callables_array), std::end(callables_array), flow::make_visitor([&](auto& callable) {
+  auto callables_array = detail::make_mixed_array(std::forward<decltype(callables)>(callables)...);
+  std::for_each(std::begin(callables_array), std::end(callables_array), detail::make_visitor([&](auto& callable) {
           using callable_t = decltype(callable);
 
           if constexpr (flow::callable_transformer<callable_t>) {
@@ -82,8 +82,8 @@ auto spin(flow::are_user_routines auto&&... routines)
 
   network_t network{};
 
-  auto routines_array = flow::make_mixed_array(std::forward<decltype(routines)>(routines)...);
-  std::for_each(std::begin(routines_array), std::end(routines_array), flow::make_visitor([&](auto& routine) {
+  auto routines_array = detail::make_mixed_array(std::forward<decltype(routines)>(routines)...);
+  std::for_each(std::begin(routines_array), std::end(routines_array), detail::make_visitor([&](auto& routine) {
     routine.initialize(network);
   }));
 

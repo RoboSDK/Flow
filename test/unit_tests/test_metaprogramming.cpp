@@ -16,7 +16,7 @@ struct Baz {
 
 TEST_CASE("Test size_tc compile time size type", "[size_tc]")
 {
-  using namespace flow::metaprogramming;
+  using namespace flow::detail::metaprogramming;
   constexpr auto a = size_tc<4>{};
   constexpr auto b = size_tc(a);
   STATIC_REQUIRE(b.data == 4);
@@ -24,7 +24,7 @@ TEST_CASE("Test size_tc compile time size type", "[size_tc]")
 
 TEST_CASE("Test the type container metaprogramming helper class", "[type_container]")
 {
-  using namespace flow::metaprogramming;
+  using namespace flow::detail::metaprogramming;
   STATIC_REQUIRE(std::is_same_v<type_container<Foo>, type_container<Foo>>);
   STATIC_REQUIRE(std::is_same_v<type_container<Foo>::type, type_container<Foo>::type>);
   STATIC_REQUIRE_FALSE(std::is_same_v<type_container<Foo>, type_container<Bar<Foo>>>);
@@ -59,7 +59,7 @@ TEST_CASE("Test the type container metaprogramming helper class", "[type_contain
 
 TEST_CASE("Test the size function", "[size]")
 {
-  using namespace flow::metaprogramming;
+  using namespace flow::detail::metaprogramming;
   SECTION("Test one")
   {
     STATIC_REQUIRE(size<Foo>() == 1);
@@ -85,7 +85,7 @@ TEST_CASE("Test the size function", "[size]")
 
 TEST_CASE("Determine whether type containers are empty (e.g. contain no types)", "[empty]")
 {
-  using namespace flow::metaprogramming;
+  using namespace flow::detail::metaprogramming;
   SECTION("Test multiple are not empty")
   {
     STATIC_REQUIRE_FALSE(empty<Foo>());
@@ -107,7 +107,7 @@ TEST_CASE("Determine whether type containers are empty (e.g. contain no types)",
 
 TEST_CASE("Testing popping the first or next item from the list", "[pop_front]")
 {
-  using namespace flow::metaprogramming;
+  using namespace flow::detail::metaprogramming;
   // popping empty doesn't compiler (which is what we want)
   SECTION("Pop single items")
   {// they should be empty...
@@ -176,7 +176,7 @@ TEST_CASE("Testing popping the first or next item from the list", "[pop_front]")
 
 TEST_CASE("Test the next function to return the next type from the list. It could also be called front.", "[next]")
 {
-  using namespace flow::metaprogramming;
+  using namespace flow::detail::metaprogramming;
   SECTION("test next on single item")// should this be an error?
   {
     constexpr type_container<int> int_t = next<int>();
@@ -192,7 +192,7 @@ TEST_CASE("Test the next function to return the next type from the list. It coul
 
 TEST_CASE("Test whether any items passed in are the same type", "[same]")
 {
-  using namespace flow::metaprogramming;
+  using namespace flow::detail::metaprogramming;
   SECTION("test same on an empty item")// should this be an error?
   {
     STATIC_REQUIRE(same<>());
@@ -229,7 +229,7 @@ TEST_CASE("Test whether any items passed in are the same type", "[same]")
 
 TEST_CASE("Pop back items from a tuple or list of types", "[pop_back]")
 {
-  using namespace flow::metaprogramming;
+  using namespace flow::detail::metaprogramming;
   SECTION("Pop back one from one")// should this be an error?
   {
     {
@@ -261,7 +261,7 @@ TEST_CASE("Pop back items from a tuple or list of types", "[pop_back]")
 
 TEST_CASE("Iterate over items", "[for_each]")
 {
-  using namespace flow::metaprogramming;
+  using namespace flow::detail::metaprogramming;
 
   for_each<int, int, int>([]<typename item_t>([[maybe_unused]] type_container<item_t>) {
     STATIC_REQUIRE(same<item_t, int>());
@@ -274,7 +274,7 @@ TEST_CASE("Iterate over items", "[for_each]")
 
 TEST_CASE("Determine if a tuple contains another type", "[contains]")
 {
-  using namespace flow::metaprogramming;
+  using namespace flow::detail::metaprogramming;
   STATIC_REQUIRE(contains<int, /*|*/ int>());
   STATIC_REQUIRE(contains<int, /*|*/ int, int>());
   STATIC_REQUIRE(contains<Foo, /*|*/ int, int, float, double, double, double, double, Bar<Bar<Foo>>, Foo>());
@@ -285,7 +285,7 @@ TEST_CASE("Determine if a tuple contains another type", "[contains]")
 
 TEST_CASE("Make an set from a list of types", "[make_type_set]")
 {
-  using namespace flow::metaprogramming;
+  using namespace flow::detail::metaprogramming;
   [[maybe_unused]] constexpr std::tuple<int, double> set = make_type_set<int, double, double, int>();
   [[maybe_unused]] constexpr std::tuple<Foo> foos = make_type_set<Foo, Foo, Foo, Foo, Foo, Foo, Foo>();
 }
@@ -298,7 +298,7 @@ int raw_transformer(int /*unused*/) { return 42; }
 
 TEST_CASE("Test function traits", "[function_traits]")
 {
-  using namespace flow::metaprogramming;
+  using namespace flow::detail::metaprogramming;
   SECTION("Test callable_spinner")
   {
     auto test_spinner = [](auto&& spinner) {

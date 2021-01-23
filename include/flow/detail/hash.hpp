@@ -1,7 +1,7 @@
 #pragma once
 #include <typeinfo>
 
-namespace flow {
+namespace flow::detail {
 
 template<typename T>
 std::size_t hash()
