@@ -19,14 +19,14 @@ public:
   producer& operator=(producer const&) = default;
 
   producer(flow::callable_producer auto&& callback, std::string channel_name)
-    : m_callback(flow::make_cancellable_function(std::forward<decltype(callback)>(callback))),
+    : m_callback(detail::make_cancellable_function(std::forward<decltype(callback)>(callback))),
       m_channel_name(std::move(channel_name)) {}
 
   auto channel_name() { return m_channel_name; }
   auto& callback() { return *m_callback; }
 
 private:
-  typename flow::cancellable_function<message_t()>::sPtr m_callback{ nullptr };
+  typename detail::cancellable_function<message_t()>::sPtr m_callback{ nullptr };
   std::string m_channel_name{};
 };
 

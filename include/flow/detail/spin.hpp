@@ -14,7 +14,7 @@
  * Spin meaning to keep repeating in a loop until they are cancelled
  */
 
-namespace flow {
+namespace flow::detail {
 
 /**
  * Generates a coroutine that keeps calling the callable_spinner until it is cancelled

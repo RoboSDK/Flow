@@ -106,7 +106,7 @@ public:
   requires std::is_same_v<flow::spinner, routine_t> void push(routine_t&& routine)
   {
     m_handle.push(routine.callback().handle());
-    m_context->tasks.push_back(spin_spinner(m_context->thread_pool, routine.callback()));
+    m_context->tasks.push_back(detail::spin_spinner(m_context->thread_pool, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
   }
 
@@ -120,7 +120,7 @@ public:
   void push(flow::producer<message_t>&& routine)
   {
     auto& channel = make_channel_if_not_exists<message_t>(routine.channel_name());
-    m_context->tasks.push_back(spin_producer<message_t>(channel, routine.callback()));
+    m_context->tasks.push_back(detail::spin_producer<message_t>(channel, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
   }
 
@@ -136,7 +136,7 @@ public:
     auto& producer_channel = make_channel_if_not_exists<args_t...>(routine.producer_channel_name());
     auto& consumer_channel = make_channel_if_not_exists<return_t>(routine.consumer_channel_name());
 
-    m_context->tasks.push_back(spin_transformer<return_t, args_t...>(producer_channel, consumer_channel, routine.callback()));
+    m_context->tasks.push_back(detail::spin_transformer<return_t, args_t...>(producer_channel, consumer_channel, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
   }
 
@@ -151,7 +151,7 @@ public:
     auto& channel = make_channel_if_not_exists<message_t>(routine.channel_name());
 
     m_handle.push(routine.callback().handle());
-    m_context->tasks.push_back(spin_consumer<message_t>(channel, routine.callback()));
+    m_context->tasks.push_back(detail::spin_consumer<message_t>(channel, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
   }
 
