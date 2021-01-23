@@ -67,7 +67,6 @@ endmacro()
 
 
 add_catch_test(test_mixed_array)
-add_catch_test(test_array)
 add_catch_test(test_cancellation)
 add_catch_test(test_timeout_function)
 
