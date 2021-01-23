@@ -25,7 +25,7 @@ int main()
    * Note: cancellation begins in 2 seconds, but cancellation
    * is non-deterministic
    */
-  network.cancel_after(2s);
+  network.cancel_after(1ms);
 
   flow::spin(std::move(network));
 }

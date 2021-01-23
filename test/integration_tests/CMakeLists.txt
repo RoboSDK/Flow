@@ -15,3 +15,14 @@ macro(add_coroutine_test test_name)
 endmacro()
 
 add_coroutine_test(test_chain_function_pointers)
+
+if (ENABLE_EXAMPLES)
+    list(APPEND examples
+                minimal_producer_consumer
+                simple_producer_consumer
+                producer_transformer_consumer)
+
+    foreach (example ${examples})
+        add_test(NAME ${example} COMMAND ${example})
+    endforeach ()
+endif ()
