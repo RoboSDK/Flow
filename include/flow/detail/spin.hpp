@@ -29,7 +29,7 @@ cppcoro::task<void> spin_spinner(
 {
   while (not spinner.is_cancellation_requested()) {
     co_await scheduler.schedule();
-    std::invoke(spinner);
+    co_await spinner();
   }
 }
 
@@ -57,7 +57,8 @@ cppcoro::task<void> spin_producer(
     co_await channel.request_permission_to_publish(producer_token);
 
     for (std::size_t i = 0; i < producer_token.sequences.size(); ++i) {
-      producer_token.messages.push(std::invoke(producer));
+      return_t message = co_await [&]() -> cppcoro::task<return_t> { co_return std::invoke(producer); }();
+      producer_token.messages.push(std::move(message));
     }
 
     channel.publish_messages(producer_token);
@@ -98,7 +99,7 @@ cppcoro::task<void> spin_consumer(
 
     while (current_message != next_message.end()) {
       auto& message = *current_message;
-      std::invoke(consumer, std::move(message));
+      co_await [&]() -> cppcoro::task<void> { co_return consumer(std::move(message)); }();
 
       channel.notify_message_consumed(consumer_token);
       co_await ++current_message;
@@ -106,7 +107,7 @@ cppcoro::task<void> spin_consumer(
   }
 
   channel.terminate();
-  co_await flush(channel, consumer, consumer_token);
+  co_await flush<void>(channel, consumer, consumer_token);
 }
 
 /**
@@ -145,8 +146,13 @@ cppcoro::task<void> spin_transformer(
     auto current_message = co_await next_message.begin();
 
     while (current_message != next_message.end()) {
-      auto& message = *current_message;
-      producer_token.messages.push(std::invoke(transformer, std::move(message)));
+      auto& message_to_consume = *current_message;
+
+      auto message_to_produce = co_await [&]() -> cppcoro::task<return_t> {
+        co_return std::invoke(transformer, std::move(message_to_consume));
+      }();
+
+      producer_token.messages.push(std::move(message_to_produce));
       producer_channel.notify_message_consumed(consumer_token);
 
       if (producer_token.messages.size() == producer_token.sequences.size()) {
@@ -159,7 +165,7 @@ cppcoro::task<void> spin_transformer(
   }
 
   producer_channel.terminate();
-  co_await flush(producer_channel, transformer, consumer_token);
+  co_await flush<return_t>(producer_channel, transformer, consumer_token);
 }
 
 /**
@@ -170,9 +176,8 @@ cppcoro::task<void> spin_transformer(
  * @param routine A callable_consumer or callable_transformer callable_routine
  * @return A coroutine
  */
-template<flow::callable_routine routine_t>
-  requires flow::callable_consumer<routine_t> or flow::callable_transformer<routine_t> cppcoro::task<void>
-  flush(auto& channel, routine_t& routine, auto& consumer_token)
+template<typename return_t, flow::callable_routine routine_t>
+  requires flow::callable_consumer<routine_t> or flow::callable_transformer<routine_t> cppcoro::task<void> flush(auto& channel, routine_t& routine, auto& consumer_token)
 {
   while (channel.is_waiting()) {
     auto next_message = channel.message_generator(consumer_token);
@@ -180,11 +185,15 @@ template<flow::callable_routine routine_t>
 
     while (current_message != next_message.end()) {
       auto& message = *current_message;
-      std::invoke(routine, std::move(message));
+
+      co_await [&]() -> cppcoro::task<return_t> {
+        co_return std::invoke(routine, std::move(message));
+      }();
+
       channel.notify_message_consumed(consumer_token);
       co_await ++current_message;
     }
   }
 }
 
-}// namespace flow
+}// namespace flow::detail
