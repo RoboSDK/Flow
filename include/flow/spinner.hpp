@@ -15,12 +15,12 @@ public:
   spinner& operator=(spinner const&) = default;
 
   spinner(flow::callable_spinner auto&& callback)
-    : m_callback(detail::make_cancellable_function(std::forward<decltype(callback)>(callback))) {}
+    : m_callback(detail::make_cancellable_routine(std::forward<decltype(callback)>(callback))) {}
 
   auto& callback() { return *m_callback; }
 
 private:
-  detail::cancellable_function<void()>::sPtr m_callback{ nullptr };
+  detail::cancellable_routine<void()>::sPtr m_callback{ nullptr };
 };
 
 auto make_spinner(std::function<void()>&& callback)

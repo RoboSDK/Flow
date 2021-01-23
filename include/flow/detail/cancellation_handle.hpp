@@ -8,15 +8,15 @@
 /**
  * This module is dedicated to the cancellation_handle
  *
- * Any std::function, function pointer, or lambda may be used to make a cancellable_function
+ * Any std::function, function pointer, or lambda may be used to make a cancellable_routine
  *
  * A cancellable function can generate a cancellation_handle via the handle() method. The handle is
- * the object whereby cancellation is transmitted to the cancellable_function.
+ * the object whereby cancellation is transmitted to the cancellable_routine.
  *
  * The nominal use case is as follows:
  *   void do_foo() {  // do foo here }
  *
- *   auto cancellable = flow::make_cancellable_function(do_foo);
+ *   auto cancellable = flow::make_cancellable_routine(do_foo);
  *   auto handle = cancellable.handle(); // may be copied
  *
  *   while (not cancellable.is_cancellation_requested()) { // do work }

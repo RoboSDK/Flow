@@ -5,7 +5,7 @@
 #include <cppcoro/when_all_ready.hpp>
 
 #include "flow/configuration.hpp"
-#include "flow/detail/cancellable_function.hpp"
+#include "flow/detail/cancellable_routine.hpp"
 #include "flow/detail/channel.hpp"
 #include "flow/detail/channel_set.hpp"
 #include "flow/detail/context.hpp"

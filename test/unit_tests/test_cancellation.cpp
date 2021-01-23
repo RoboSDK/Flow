@@ -1,5 +1,5 @@
 #include <catch2/catch.hpp>
-#include <flow/detail/cancellable_function.hpp>
+#include <flow/detail/cancellable_routine.hpp>
 
 
 namespace {
@@ -15,7 +15,7 @@ void test_cancellable(M& dummy_message)
     called_back = true;
   };
 
-  [[maybe_unused]] auto cancellable = flow::detail::make_cancellable_function(std::move(callback));
+  [[maybe_unused]] auto cancellable = flow::detail::make_cancellable_routine(std::move(callback));
 
   auto handle = cancellable->handle();
 
