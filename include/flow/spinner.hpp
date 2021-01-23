@@ -15,7 +15,7 @@ public:
   spinner& operator=(spinner const&) = default;
 
   spinner(flow::callable_spinner auto&& callback)
-    : m_callback(detail::make_cancellable_routine(std::forward<decltype(callback)>(callback))) {}
+    : m_callback(detail::make_shared_cancellable_function(std::forward<decltype(callback)>(callback))) {}
 
   auto& callback() { return *m_callback; }
 

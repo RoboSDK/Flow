@@ -17,7 +17,7 @@
  * The nominal use case is as follows:
  *   void do_foo() {  // do foo here }
  *
- *   auto cancellable = flow::make_cancellable_routine(do_foo);
+ *   auto cancellable = flow::make_shared_cancellable_function(do_foo);
  *   auto handle = cancellable.handle(); // may be copied
  *
  *   while (not cancellable.is_cancellation_requested()) { // do work }
@@ -78,22 +78,22 @@ private:
  * @return A function handle and callback pair
  */
 template<typename return_t, typename... args_t>
-auto make_cancellable_routine(std::function<return_t(args_t...)>&& callback)
+auto make_shared_cancellable_function(std::function<return_t(args_t...)>&& callback)
 {
   using cancellable_routine_t = cancellable_function<return_t(args_t...)>;
   return std::make_shared<cancellable_routine_t>(std::forward<decltype(callback)>(callback));
 }
 
 template<typename return_t, typename... args_t>
-[[maybe_unused]] auto make_cancellable_routine(return_t (*callback)(args_t...))
+[[maybe_unused]] auto make_shared_cancellable_function(return_t (*callback)(args_t...))
 {
   using cancellable_routine_t = cancellable_function<return_t(args_t...)>;
   return std::make_shared<cancellable_routine_t>(std::forward<decltype(callback)>(callback));
 }
 
-auto make_cancellable_routine(auto&& lambda)
+auto make_shared_cancellable_function(auto&& lambda)
 {
-  return make_cancellable_routine(detail::metaprogramming::to_function(lambda));
+  return make_shared_cancellable_function(detail::metaprogramming::to_function(lambda));
 }
 
 }// namespace flow::detail

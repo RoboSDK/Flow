@@ -23,14 +23,16 @@ public:
   consumer& operator=(consumer const&) = default;
 
   consumer(flow::callable_consumer auto&& callback, std::string channel_name)
-    : m_callback(detail::make_cancellable_routine(std::forward<decltype(callback)>(callback))),
+    : m_callback(detail::make_shared_cancellable_function(std::forward<decltype(callback)>(callback))),
       m_channel_name(std::move(channel_name)) {}
 
   auto channel_name() { return m_channel_name; }
   auto& callback() { return *m_callback; }
 
 private:
-  typename detail::cancellable_function<void(message_t&&)>::sPtr m_callback{ nullptr };
+  using function_ptr = typename detail::cancellable_function<void(message_t&&)>::sPtr;
+
+  function_ptr m_callback{ nullptr };
   std::string m_channel_name{};
 };
 
