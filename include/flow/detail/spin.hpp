@@ -70,7 +70,7 @@ cppcoro::task<void> spin_producer(
  *
  * Generates a coroutine that keeps calling the consumer_function until it is cancelled.
  *
- * The consumer_function will be placed at the end of the callable_routine network and will be the one
+ * The consumer_function will be placed at the end of the function network and will be the one
  * that triggers any cancellation events. It depends on a transformer_function or producer_function to
  * send messages through the multi_channel.
  *
@@ -118,14 +118,14 @@ cppcoro::task<void> spin_consumer(
  *
  * Transformers will live in between a producer_function and consumer_function.
  *
- * When a transformer_function detects that the next callable_routine in line has terminated the multi_channel, then it will process
+ * When a transformer_function detects that the next function in line has terminated the multi_channel, then it will process
  * any messages it has left in the buffer and break out of its loop.
  *
  * After the main loop it will terminate the producer_function multi_channel and flush out any routines
  * currently waiting on the other end of the producer_function multi_channel.
  *
- * @param producer_channel The multi_channel that will have a producing callable_routine on the other end
- * @param consumer_channel The multi_channel that will have a consuming callable_routine on the other end
+ * @param producer_channel The multi_channel that will have a producing function on the other end
+ * @param consumer_channel The multi_channel that will have a consuming function on the other end
  * @param transformer A consumer_function is a cancellable function with at least one argument required to call it and
  *                 a specified return type
  * @return A coroutine that continues until the transformer_function is cancelled
@@ -169,15 +169,15 @@ cppcoro::task<void> spin_transformer(
 }
 
 /**
- * The consumer_function or transformer_function callable_routine will flush out any producer_function routines
+ * The consumer_function or transformer_function function will flush out any producer_function routines
  * in waiting on the other end of the multi_channel
  *
  * @param channel A communication multi_channel between the consumer_function and producer_function routines
- * @param routine A consumer_function or transformer_function callable_routine
+ * @param routine A consumer_function or transformer_function function
  * @return A coroutine
  */
-template<typename return_t, flow::callable_routine routine_t>
-  requires flow::consumer_function<routine_t> or flow::transformer_function<routine_t> cppcoro::task<void> flush(auto& channel, routine_t& routine, auto& consumer_token)
+template<typename return_t, flow::function routine_t>
+  cppcoro::task<void> flush(auto& channel, routine_t& routine, auto& consumer_token) requires flow::consumer_function<routine_t> or flow::transformer_function<routine_t>
 {
   while (channel.is_waiting()) {
     auto next_message = channel.message_generator(consumer_token);

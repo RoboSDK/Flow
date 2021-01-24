@@ -12,15 +12,11 @@
  */
 
 namespace flow {
-
 template<typename callable_t>
 using traits = detail::metaprogramming::function_traits<std::decay_t<callable_t>>;
 
 template<typename routine_t>
 concept is_user_routine = std::is_base_of_v<flow::user_routine, routine_t>;
-
-template<typename... routines_t>
-concept are_user_routines = (is_user_routine<routines_t> and ...);
 
 struct consumer {};
 struct spinner {};
@@ -41,7 +37,6 @@ concept consumer_routine = std::is_same_v<typename consumer_t::is_consumer, std:
 
 template<typename routine_t>
 concept routine = spinner_routine<routine_t> or producer_routine<routine_t> or consumer_routine<routine_t> or transformer_routine<routine_t>;
-
 
 /**
  * A spinner_function is a callable which has a void return type and requires no arguments
@@ -72,8 +67,8 @@ template<typename callable_t>
 concept transformer_function = not routine<callable_t> and not is_user_routine<callable_t> and traits<callable_t>::arity >= 1 and not std::is_void_v<typename traits<callable_t>::return_type>;
 
 template<typename callable_t>
-concept callable_routine = spinner_function<callable_t> or producer_function<callable_t> or consumer_function<callable_t> or transformer_function<callable_t>;
+concept function = spinner_function<callable_t> or producer_function<callable_t> or consumer_function<callable_t> or transformer_function<callable_t>;
 
 template<typename... callables_t>
-concept callable_routines = (callable_routine<callables_t> and ...);
+concept functions = (function<callables_t> and ...);
 }// namespace flow
