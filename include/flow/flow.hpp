@@ -22,7 +22,7 @@ namespace flow {
  * @tparam configuration_t A compile time configuration file. It may or may not be from the user.
  * @tparam routines_t A list of routines that will be linked to a global network
  */
-template<typename configuration_t, flow::not_is_network... routines_t>
+template<typename configuration_t = flow::configuration, flow::not_is_network... routines_t>
 auto spin(routines_t&&... routines)
 {
   using network_t = flow::network<configuration_t>;
@@ -32,7 +32,13 @@ auto spin(routines_t&&... routines)
   std::for_each(std::begin(routines_array), std::end(routines_array), detail::make_visitor([&](auto& r) {
     using routine_t = decltype(r);
 
-    if constexpr (transformer_function<routine_t>) {
+    if constexpr (routine<routine_t>) {
+      network.push(std::move(r));
+    }
+    else if constexpr (is_user_routine<routine_t>) {
+      r.initialize(network);
+    }
+    else if constexpr (transformer_function<routine_t>) {
       network.push(make_transformer(r, std::string(), std::string()));
     }
     else if constexpr (consumer_function<routine_t>) {
@@ -44,25 +50,9 @@ auto spin(routines_t&&... routines)
     else if constexpr (spinner_function<routine_t>) {
       network.push(flow::make_spinner(r));
     }
-    else if constexpr (routine<routine_t>) {
-      network.push(std::move(r));
-    }
   }));
 
   return cppcoro::sync_wait(network.spin());
-}
-
-/**
- * This function is called when user routines and functions are passed in directly
- * to the spin function without a compile time configuration passed in by the user.
- *
- * The default library configuration will be used.
- *See above for more
- * @param routines
- */
-auto spin(flow::not_is_network auto&&... routines)
-{
-  return spin<flow::configuration>(std::forward<decltype(routines)>(routines)...);
 }
 
 /**
