@@ -1,15 +1,11 @@
 #pragma once
 
-#include "flow/consumer.hpp"
-#include "flow/producer.hpp"
-#include "flow/spinner.hpp"
 #include "flow/transformer.hpp"
+#include "flow/producer.hpp"
+#include "flow/consumer.hpp"
+#include "flow/spinner.hpp"
 
 namespace flow {
-
-// TODO: Rename this once concepts are moved out from network.hpp
-template<typename routine_t>
-concept routine_concept = spinner_routine<routine_t> or producer_routine<routine_t> or consumer_routine<routine_t> or transformer_routine<routine_t>;
 
 /**
  * Preferred way to make a routine from functions
@@ -19,7 +15,7 @@ concept routine_concept = spinner_routine<routine_t> or producer_routine<routine
  * flow::make_consumer(function, "channel_name_to_subscribe")
  * flow::make_transformer(function, "subscriber_channel_name", "publisher_channel_name")
  */
-template<flow::routine_concept routine_t, typename... arguments_t>
+template<flow::routine routine_t, typename... arguments_t>
 auto make_routine(arguments_t&&... arguments)
 {
   if constexpr (flow::transformer_routine<routine_t>) {

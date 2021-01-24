@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace flow {
 struct options {
   std::string publish_to{};

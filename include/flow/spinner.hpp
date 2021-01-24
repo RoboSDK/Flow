@@ -2,8 +2,6 @@
 
 namespace flow {
 
-struct spinner {};
-
 namespace detail {
 class spinner_impl {
 public:
@@ -45,8 +43,4 @@ auto make_spinner(auto&& lambda)
   using callback_t = decltype(lambda);
   return make_spinner(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)));
 }
-
-
-template<typename spinner_t>
-concept spinner_routine = std::is_same_v<typename spinner_t::is_spinner, std::true_type>;
 }// namespace flow

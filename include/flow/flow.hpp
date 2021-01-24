@@ -22,7 +22,7 @@ namespace flow {
  * @tparam configuration_t A compile time configuration file. It may or may not be from the user.
  * @tparam routines_t A list of routines that will be linked to a global network
  */
-template<typename configuration_t = flow::configuration, flow::not_is_network... routines_t>
+template<typename configuration_t = flow::configuration, typename... routines_t>
 auto spin(routines_t&&... routines)
 {
   using network_t = flow::network<configuration_t>;

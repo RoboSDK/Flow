@@ -4,11 +4,6 @@
 
 namespace flow {
 
-/**
- * Tag to dispatch to the make_producer function from make_routine<routine_t>
- */
-struct producer {};
-
 namespace detail {
   template<typename message_t>
   class producer_impl {
@@ -69,8 +64,7 @@ auto make_producer(std::function<return_t()>&& callback, std::string channel_nam
 template<typename return_t>
 auto make_producer(return_t (*callback)(), std::string channel_name)
 {
-  using callback_t = decltype(callback);
-  return detail::producer_impl<return_t>(std::forward<callback_t>(callback), std::move(channel_name));
+  return detail::producer_impl<return_t>([callback=std::move(callback)]() -> return_t { return callback(); }, std::move(channel_name));
 }
 
 auto make_producer(auto&& lambda, std::string channel_name)
@@ -78,8 +72,5 @@ auto make_producer(auto&& lambda, std::string channel_name)
   using callback_t = decltype(lambda);
   return make_producer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(channel_name));
 }
-
-template<typename producer_t>
-concept producer_routine = std::is_same_v<typename producer_t::is_producer, std::true_type> or std::is_same_v<producer_t, flow::producer>;
 
 }// namespace flow

@@ -201,77 +201,41 @@ private:
 };
 
 
-
-template <typename network_t>
-concept is_network = std::is_same_v<typename network_t::is_network, std::true_type>;
-
-template <typename network_t>
-concept not_is_network = not std::is_same_v<typename network_t::is_network, std::true_type>;
-
-template<typename routine_t>
-concept routine = spinner_routine<routine_t> or producer_routine<routine_t> or consumer_routine<routine_t> or transformer_routine<routine_t>;
-
-template<typename... routines_t>
-concept routines = (routine<routines_t> and ...);
-
-template <typename callable_t>
-concept not_network_or_routine = not flow::is_network<callable_t> and not flow::are_user_routines<callable_t> and not flow::routine<callable_t>;
-
-template<typename... callables_t>
-concept not_network_or_user_routines = (not_network_or_routine<callables_t> and ...);
-
 template<typename configuration_t = flow::configuration>
-auto make_network(flow::routines auto&&... routines)
-{
-  using network_t = flow::network<configuration_t>;
-
-  network_t network{};
-
-  auto routines_array = detail::make_mixed_array(std::forward<decltype(routines)>(routines)...);
-  std::for_each(std::begin(routines_array), std::end(routines_array), detail::make_visitor([&](auto& routine) {
-    network.push(std::move(routine));
-  }));
-
-  return network;
-}
-
-template<typename configuration_t = flow::configuration>
-auto make_network(flow::not_network_or_user_routines auto&&... callables)
+auto make_network(auto&&... callables)
 {
   using network_t = flow::network<configuration_t>;
   network_t network{};
 
   auto callables_array = detail::make_mixed_array(std::forward<decltype(callables)>(callables)...);
-  std::for_each(std::begin(callables_array), std::end(callables_array), detail::make_visitor([&](auto& callable) {
-         using callable_t = decltype(callable);
+  std::for_each(std::begin(callables_array), std::end(callables_array), detail::make_visitor([&](auto& r) {
+         using callable_t = decltype(r);
 
-         if constexpr (flow::transformer_function<callable_t>) {
-           network.push(flow::make_transformer(callable, std::string(), std::string()));
-         } else if constexpr(flow::consumer_function<callable_t>) {
-           network.push(flow::make_consumer(callable));
-         } else if constexpr(flow::producer_function<callable_t>) {
-           network.push(flow::make_producer(callable));
-         } else {
-           network.push(flow::make_spinner(callable));
+         // TODO: Why does this work? Add test for concepts
+         if constexpr (routine<callable_t>) {
+           network.push(std::move(r));
          }
+         else if constexpr (is_user_routine<callable_t>) {
+           r.initialize(network);
+         }
+//         else if constexpr (transformer_function<callable_t>) {
+//           network.push(make_transformer(r));
+//         }
+//         else if constexpr (consumer_function<callable_t>) {
+//           network.push(flow::make_consumer(r));
+//         }
+//         else if constexpr (producer_function<callable_t>) {
+//           network.push(flow::make_producer(r));
+//         }
+//         else if constexpr (spinner_function<callable_t>) {
+//           network.push(flow::make_spinner(r));
+//         }
   }));
 
   return network;
 }
 
+template <typename network_t>
+concept is_network = std::is_same_v<typename network_t::is_network, std::true_type>;
 
-template<typename configuration_t = flow::configuration>
-auto make_network(flow::are_user_routines auto&&... routines)
-{
-  using network_t = flow::network<configuration_t>;
-
-  network_t network{};
-
-  auto routines_array = detail::make_mixed_array(std::forward<decltype(routines)>(routines)...);
-  std::for_each(std::begin(routines_array), std::end(routines_array), detail::make_visitor([&](auto& routine) {
-         routine.initialize(network);
-  }));
-
-  return network;
-}
 }// namespace flow

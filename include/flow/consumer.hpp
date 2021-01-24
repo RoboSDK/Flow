@@ -8,8 +8,6 @@
 
 namespace flow {
 
-struct consumer {};
-
 namespace detail {
   template<typename message_t>
   class consumer_impl {
@@ -70,8 +68,8 @@ auto make_consumer(std::function<void(argument_t&&)>&& callback, std::string cha
 template<typename argument_t>
 auto make_consumer(void (*callback)(argument_t&&), std::string channel_name)
 {
-  using callback_t = decltype(callback);
-  return detail::consumer_impl<argument_t>(std::forward<callback_t>(callback), std::move(channel_name));
+//  return detail::consumer_impl<argument_t>([callback=std::move(callback)](argument_t&& msg) { return callback(std::move(msg)); }, std::move(channel_name));
+  return detail::consumer_impl<argument_t>(std::move(callback), std::move(channel_name));
 }
 
 auto make_consumer(auto&& lambda, std::string channel_name)
@@ -79,6 +77,4 @@ auto make_consumer(auto&& lambda, std::string channel_name)
   using callback_t = decltype(lambda);
   return make_consumer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(channel_name));
 }
-template<typename consumer_t>
-concept consumer_routine = std::is_same_v<typename consumer_t::is_consumer, std::true_type> or std::is_same_v<consumer_t, flow::consumer>;
 }// namespace flow
