@@ -220,7 +220,7 @@ concept not_network_or_routine = not flow::is_network<callable_t> and not flow::
 template<typename... callables_t>
 concept not_network_or_user_routines = (not_network_or_routine<callables_t> and ...);
 
-template<typename configuration_t>
+template<typename configuration_t = flow::configuration>
 auto make_network(flow::routines auto&&... routines)
 {
   using network_t = flow::network<configuration_t>;
@@ -235,12 +235,7 @@ auto make_network(flow::routines auto&&... routines)
   return network;
 }
 
-auto make_network(flow::routines auto&&... routines)
-{
-  return make_network<flow::configuration>(std::forward<decltype(routines)>(routines)...);
-}
-
-template<typename configuration_t>
+template<typename configuration_t = flow::configuration>
 auto make_network(flow::not_network_or_user_routines auto&&... callables)
 {
   using network_t = flow::network<configuration_t>;
@@ -264,12 +259,8 @@ auto make_network(flow::not_network_or_user_routines auto&&... callables)
   return network;
 }
 
-auto make_network(flow::not_network_or_user_routines auto&&... callables)
-{
-  return make_network<flow::configuration>(std::forward<decltype(callables)>(callables)...);
-}
 
-template<typename configuration_t>
+template<typename configuration_t = flow::configuration>
 auto make_network(flow::are_user_routines auto&&... routines)
 {
   using network_t = flow::network<configuration_t>;
@@ -283,10 +274,4 @@ auto make_network(flow::are_user_routines auto&&... routines)
 
   return network;
 }
-
-auto make_network(flow::are_user_routines auto&&... routines)
-{
-  return make_network<flow::configuration>(std::forward<decltype(routines)>(routines)...);
-}
-
 }// namespace flow
