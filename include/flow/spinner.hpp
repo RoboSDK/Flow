@@ -34,19 +34,19 @@ namespace detail {
  * @param callback A spinner function
  * @return A spinner object used to retrieve data by the network
  */
-auto make_spinner(std::function<void()>&& callback)
+inline auto make_spinner(std::function<void()>&& callback)
 {
   using callback_t = decltype(callback);
   return detail::spinner_impl{ std::forward<callback_t>(callback) };
 }
 
-auto make_spinner(void (*callback)())
+inline auto make_spinner(void (*callback)())
 {
   using callback_t = decltype(callback);
   return detail::spinner_impl{ std::forward<callback_t>(callback) };
 }
 
-auto make_spinner(auto&& lambda)
+inline auto make_spinner(auto&& lambda)
 {
   using callback_t = decltype(lambda);
   return make_spinner(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)));
