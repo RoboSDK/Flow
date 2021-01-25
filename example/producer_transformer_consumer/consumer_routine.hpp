@@ -2,10 +2,9 @@
 
 #include <flow/consumer.hpp>
 #include <flow/logging.hpp>
-#include <flow/user_routine.hpp>
 
 namespace example {
-class consumer_routine : flow::user_routine {
+class consumer_routine {
 public:
   void initialize(auto& network)
   {

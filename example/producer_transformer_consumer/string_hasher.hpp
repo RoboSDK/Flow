@@ -2,10 +2,9 @@
 
 #include <flow/logging.hpp>
 #include <flow/transformer.hpp>
-#include <flow/user_routine.hpp>
 
 namespace example {
-class string_hasher : flow::user_routine {
+class string_hasher {
 public:
   void initialize(auto& network)
   {

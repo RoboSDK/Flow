@@ -209,7 +209,7 @@ private:
 };
 }// namespace
 
-TEST_CASE("Test raw producer function pointer", "[producer_function_pointer]")
+TEST_CASE("Test raw consumer function pointer", "[consumer_function_pointer]")
 {
   SECTION("consume int")
   {
@@ -332,7 +332,9 @@ TEST_CASE("Test spinner routine", "[spinner_routine]")
 }
 
 namespace {
-struct user_routine_impl : flow::user_routine {};
+struct user_routine_impl {
+  void initialize(flow::is_network auto& /*unused*/) {}
+};
 }
 
 TEST_CASE("Test user routine", "[user_routine]")
