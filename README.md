@@ -70,7 +70,7 @@ such as adding in a when_all to subscribe to multiple m_channels at once with a 
 ### Overview
 
 The philosophy behind this framework is dependency management by preventing cyclical dependencies and creating
-maximum flow in a network and thereby minimizing latency in the system (and probably increase throughput). This is 
+maximum flow in a network_impl and thereby minimizing latency in the system (and probably increase throughput). This is 
 meant to be used for closed feedback systems.
 
 <a name="1-1-functions"></a>
@@ -94,16 +94,16 @@ has.
     - Notation:  `(A)->R`
     - Example: In C++ this is a `(A&&... a)->R` function, or any other process that emulates the behavior
     
-The flow network is composed of these 4 types of functions, and any functions where the dependencies are not satisfied
-is an invalid network.
+The flow network_impl is composed of these 4 types of functions, and any functions where the dependencies are not satisfied
+is an invalid network_impl.
 
 <a name="1-2-communication"></a>
 ### Communication
 Each of these functions are connected to each other through a `multi_channel`. Each multi_channel needs to have
 at least one producer_impl and one receiver on the other end. A transformer_impl doubles as a producer_impl and receiver, 
-so a path through the network may look something like this
+so a path through the network_impl may look something like this
 
-`{()->A , (A)->B, (B)->C, (C)}` This network contains a producer_impl, two transformers, and a receiver. It is complete 
+`{()->A , (A)->B, (B)->C, (C)}` This network_impl contains a producer_impl, two transformers, and a receiver. It is complete 
 and and closed. There will be three m_channels in between; each with its own multi_channel name. If no multi_channel name is provided,
 then an empty string will be used; you can think of this as a *global multi_channel*. 
 
@@ -113,14 +113,14 @@ A global multi_channel is a multi_channel that is available globally for that sp
 **Not yet implemented**: At the moment m_channels use a multi-producer_impl scheme, so if only one producer_impl exists in that
 multi_channel, then it is inefficient due to synchronization of atomics. There will be a way to make m_channels that are
 single producer_impl single receiver in the future. These will be done by tightly linking multiple functions and generating
-private m_channels that are inaccessible through the main network. Think of it as creating a subnet within the network.
+private m_channels that are inaccessible through the main network_impl. Think of it as creating a subnet within the network_impl.
 
-Each of the functions in the network will begin and start to process data and eventually reach a frequency.
+Each of the functions in the network_impl will begin and start to process data and eventually reach a frequency.
 
 Looking at the original example: `{()->A , (A)->B, (B)->C, (C)}`
 
 At t0 the two transformers and receiver at the end will be waiting for messages and the producer_impl will begin to 
-produce data. This could be through a network socket that has no local dependencies (e.g. sensor data). 
+produce data. This could be through a network_impl socket that has no local dependencies (e.g. sensor data). 
 
 At t1 The first transformer_impl receives the first message and transforms it, and at the same time the producer_impl begins
 producing a second piece of data. 
@@ -131,11 +131,11 @@ frequency.
 <a name="1-3-Cancellation"></a>
 ### Cancellation
 
-Cancellation of coroutines is tricky, but there is a logical way to cancel this large network. 
+Cancellation of coroutines is tricky, but there is a logical way to cancel this large network_impl. 
 
 The producers begin the chain of functions, and the way to end the chain is by beginning with the receiver
 at the end of the chain. when a cancellation request is performed the consumers at the end of the
-network flow will begin by exiting their main loop. 
+network_impl flow will begin by exiting their main loop. 
 
 At this point, transformers and producers down the chain will be awaiting compute time for their coroutine. The receiver
 will then `flush` out the waiting transformer_impl or producer_impl that is next in line, once that transformer_impl is free the 
@@ -169,15 +169,15 @@ int main()
    * The producer_impl hello_world is going to be publishing to the global std::string multi_channel.
    * The receiver receive_message is going to subscribe to the global std::string multi_channel.
    */
-  auto network = flow::make_network(hello_world, receive_message);
+  auto network_impl = flow::network(hello_world, receive_message);
 
   /**
    * Note: cancellation begins in 2 seconds, but cancellation
    * is non-deterministic
    */
-  network.cancel_after(2s);
+  network_impl.cancel_after(2s);
 
-  flow::spin(std::move(network));
+  flow::spin(std::move(network_impl));
 }
 ```
 
@@ -219,18 +219,18 @@ int main()
   auto receiver = consumer(receive_hashed_message, "hashed");
 
 //   Order doesn't matter here
-  auto network = flow::network(std::move(hello_world),
+  auto network_impl = flow::network_impl(std::move(hello_world),
                                     std::move(reverser),
                                     std::move(hasher),
                                     std::move(receiver));
 
-  network.cancel_after(1ms);
+  network_impl.cancel_after(1ms);
 
   // Alternative (and preferred method)
-  // auto network_handle = network.handle();
+  // auto network_handle = network_impl.handle();
   // network_handle.request_cancellation();
 
-  flow::spin(std::move(network));
+  flow::spin(std::move(network_impl));
 }
 ```
 

@@ -23,7 +23,7 @@ namespace flow {
 template<typename configuration_t = flow::configuration, typename... routines_t>
 auto spin(routines_t&&... routines)
 {
-  auto network = flow::make_network(std::forward<routines_t>(routines)...);;
+  auto network = flow::network(std::forward<routines_t>(routines)...);;
   return cppcoro::sync_wait(network.spin());
 }
 

@@ -11,7 +11,7 @@ int main()
   using namespace std::literals;
 
   // order doesn't matter
-  auto network = flow::make_network(consumer_routine{}, string_reverser{}, string_hasher{}, producer_routine{});
+  auto network = flow::network(consumer_routine{}, string_reverser{}, string_hasher{}, producer_routine{});
   network.cancel_after(1ms);
   flow::spin(std::move(network));
 }

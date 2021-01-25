@@ -20,7 +20,7 @@ int main()
    * The producer_impl hello_world is going to be publishing to the global std::string multi_channel.
    * The consumer receive_message is going to subscribe to the global std::string multi_channel.
    */
-  auto network = flow::make_network(hello_world, receive_message);
+  auto network = flow::network(hello_world, receive_message);
 
   /**
    * Note: cancellation begins in 2 seconds, but cancellation

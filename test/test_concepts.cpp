@@ -330,7 +330,7 @@ TEST_CASE("Test spinner routine", "[spinner_routine]")
 
 TEST_CASE("Test network", "[network]")
 {
-  auto network = flow::make_network([]{});
+  auto network = flow::network([] {});
   using network_t = decltype(network);
   STATIC_REQUIRE(flow::is_network<network_t>);
   STATIC_REQUIRE(not flow::is_routine<network_t>);
