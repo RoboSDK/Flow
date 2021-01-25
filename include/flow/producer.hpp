@@ -18,22 +18,22 @@ namespace detail {
  * @return A producer object used to retrieve data by the network
  */
 template<typename return_t>
-auto make_producer(std::function<return_t()>&& callback, std::string publish_to)
+auto producer(std::function<return_t()>&& callback, std::string publish_to)
 {
   using callback_t = decltype(callback);
   return detail::producer_impl<return_t>(std::forward<callback_t>(callback), std::move(publish_to));
 }
 
 template<typename return_t>
-auto make_producer(return_t (*callback)(), std::string publish_to)
+auto producer(return_t (*callback)(), std::string publish_to)
 {
   return detail::producer_impl<return_t>([callback = std::move(callback)]() -> return_t { return callback(); }, std::move(publish_to));
 }
 
-auto make_producer(auto&& lambda, std::string publish_to)
+auto producer(auto&& lambda, std::string publish_to)
 {
   using callback_t = decltype(lambda);
-  return make_producer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(publish_to));
+  return producer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(publish_to));
 }
 
 

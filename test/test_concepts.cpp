@@ -1,7 +1,6 @@
 #include <catch2/catch.hpp>
 
 #include <flow/concepts.hpp>
-#include <flow/make_routine.hpp>
 #include <flow/network.hpp>
 
 namespace {
@@ -236,7 +235,7 @@ std::string transform_int(int&& /*unused*/) { return ""; }
 int transform_string(std::string&& /*unused*/) { return 0; }
 }// namespace
 
-TEST_CASE("test transformer", "[transformer]")
+TEST_CASE("test consumer", "[consumer]")
 {
   SECTION("transform int")
   {
@@ -267,25 +266,25 @@ TEST_CASE("Test producer routine", "[producer_routine]")
 {
   SECTION("raw function")
   {
-    auto producer_routine = flow::make_routine<flow::producer>(produce_int, "int");
+    auto producer_routine = flow::producer(produce_int, "int");
     STATIC_REQUIRE(flow::is_producer_routine<decltype(producer_routine)>);
   }
 
   SECTION("static function")
   {
-    auto producer_routine = flow::make_routine<flow::producer>(static_produce_int, "int");
+    auto producer_routine = flow::producer(static_produce_int, "int");
     STATIC_REQUIRE(flow::is_producer_routine<decltype(producer_routine)>);
   }
 
   SECTION("functor")
   {
-    auto producer_routine = flow::make_routine<flow::producer>(producer_functor<int>{}, "int");
+    auto producer_routine = flow::producer(producer_functor<int>{}, "int");
     STATIC_REQUIRE(flow::is_producer_routine<decltype(producer_routine)>);
   }
 
   SECTION("lambda")
   {
-    auto producer_routine = flow::make_routine<flow::producer>([] { return 0; }, "int");
+    auto producer_routine = flow::producer([] { return 0; }, "int");
     STATIC_REQUIRE(flow::is_producer_routine<decltype(producer_routine)>);
   }
 }
@@ -294,28 +293,28 @@ TEST_CASE("Test consumer routine", "[consumer_routine]")
 {
   SECTION("raw function")
   {
-    auto consumer_routine = flow::make_routine<flow::consumer>(consume_int, "int");
+    auto consumer_routine = flow::consumer(consume_int, "int");
     STATIC_REQUIRE(flow::is_consumer_routine<decltype(consumer_routine)>);
   }
 
   SECTION("functor")
   {
-    auto consumer_routine = flow::make_routine<flow::consumer>(consumer_functor<int>{}, "int");
+    auto consumer_routine = flow::consumer(consumer_functor<int>{}, "int");
     STATIC_REQUIRE(flow::is_consumer_routine<decltype(consumer_routine)>);
   }
 
   SECTION("lambda")
   {
-    auto consumer_routine = flow::make_routine<flow::consumer>([](int&& /*unused*/) {}, "int");
+    auto consumer_routine = flow::consumer([](int&& /*unused*/) {}, "int");
     STATIC_REQUIRE(flow::is_consumer_routine<decltype(consumer_routine)>);
   }
 }
 
-TEST_CASE("Test transformer routine", "[transformer_routine]")
+TEST_CASE("Test consumer routine", "[transformer_routine]")
 {
   SECTION("raw function")
   {
-    auto transformer_routine = flow::make_routine<flow::transformer>(transform_int, "int", "bar");
+    auto transformer_routine = flow::transformer(transform_int, "int", "bar");
     STATIC_REQUIRE(flow::is_transformer_routine<decltype(transformer_routine)>);
   }
 }
@@ -324,14 +323,14 @@ TEST_CASE("Test spinner routine", "[spinner_routine]")
 {
   SECTION("raw function")
   {
-    auto spinner_routine = flow::make_routine<flow::spinner>(spinny);
+    auto spinner_routine = flow::spinner(spinny);
     STATIC_REQUIRE(flow::is_spinner_routine<decltype(spinner_routine)>);
   }
 }
 
 TEST_CASE("Test network", "[network]")
 {
-  auto network = flow::make_network([]{});
+  auto network = flow::network([] {});
   using network_t = decltype(network);
   STATIC_REQUIRE(flow::is_network<network_t>);
   STATIC_REQUIRE(not flow::is_routine<network_t>);

@@ -63,154 +63,69 @@
  */
 
 namespace flow {
-template<typename configuration_t>
-class network {
-public:
-  using is_network = std::true_type;
+namespace detail {
+  template<typename configuration_t>
+  class network_impl;
 
-  /**
-   * Makes a multi_channel if it doesn't exist and returns a reference to it
-   * @tparam message_t The message type the multi_channel will communicate
-   * @param channel_name The name of the multi_channel (optional)
-   * @return A reference to the multi_channel
-   */
-  template<typename message_t>
-  auto& make_channel_if_not_exists(std::string channel_name)
-  {
-    if (m_channels.template contains<message_t>(channel_name)) {
-      return m_channels.template at<message_t>(channel_name);
+  /// Retrieve channel name this function is publishing to
+  template<flow::is_function function_t>
+  std::string get_publish_to(function_t& function);
+
+  /// Retrieve channel name this function is subscribing to to
+  template<flow::is_function function_t>
+  std::string get_subscribe_to(function_t& function);
+}// namespace detail
+
+/***
+ * Creates a network implementation from raw functions, lambdas, std::function, functors, and routine implementations in any order
+ * @tparam configuration_t The global compile time configuration for the project
+ * @param routines
+ * @return
+ */
+template<typename configuration_t = flow::configuration>
+auto network(auto&&... routines)
+{
+  using network_t = flow::detail::network_impl<configuration_t>;
+  network_t network{};
+
+  auto routines_array = detail::make_mixed_array(std::forward<decltype(routines)>(routines)...);
+  std::for_each(std::begin(routines_array), std::end(routines_array), detail::make_visitor([&](auto& r) {
+    using namespace flow::detail;
+
+    using routine_t = decltype(r);
+
+    if constexpr (is_transformer_function<routine_t>) {
+      network.push(transformer(r, get_subscribe_to(r), get_publish_to(r)));
     }
+    else if constexpr (is_consumer_function<routine_t>) {
+      network.push(flow::consumer(r, get_subscribe_to(r)));
+    }
+    else if constexpr (is_producer_function<routine_t>) {
+      network.push(flow::producer(r, get_publish_to(r)));
+    }
+    /**
+       * If you change this please be careful. The constexpr check for a spinner function seems to
+       * be broken and I'm not sure why. I need to explicitly check if it's not a routine, and remove the
+       * requirement from the spinner_impl constructor because otherwise the routines generates by make_routine
+       * will fail because they do not implement operator(). The operator() check is in metaprogramming.hpp
+       * with the function traits section at the bottom of the header.
+       */
+    else if constexpr (not is_routine<routine_t> and is_spinner_function<routine_t>) {
+      network.push(flow::spinner(r));
+    }
+    else {
+      network.push(std::move(r));
+    }
+  }));
 
-    using channel_t = detail::multi_channel<message_t, configuration_t>;
-
-    channel_t channel{
-      channel_name,
-      std::invoke(*m_resource_generator),
-      m_thread_pool.get()
-    };
-
-    m_channels.put(std::move(channel));
-    return m_channels.template at<message_t>(channel_name);
+  if (network.size() < routines_array.size()) {
+    std::cerr << "Network size: " << network.size() << "\n";
+    std::cerr << "Callables array size: " << routines_array.size() << "\n";
+    throw std::runtime_error("Network size is less than functions array. This is a developer error. Please submit an issue.");
   }
 
-  /**
-   * Pushes a callable_routine into the network
-   * @param spinner A callable_routine with no dependencies and nothing depends on it
-   */
-  void push(flow::is_spinner_routine auto&& routine)
-  {
-    m_handle.push(routine.callback().handle());
-    m_routines_to_spin.push_back(detail::spin_spinner(m_thread_pool, routine.callback()));
-    m_heap_storage.push_back(std::move(routine));
-  }
-
-  /**
-   * Pushes a producer_function into the network
-   * @param producer The producer_function callable_routine
-   * @param channel_name The multi_channel name the producer_function will publish to
-   */
-  template<typename message_t>
-  void push(flow::detail::producer_impl<message_t>&& routine)
-  {
-    auto& channel = make_channel_if_not_exists<message_t>(routine.publish_to());
-    m_routines_to_spin.push_back(detail::spin_producer<message_t>(channel, routine.callback()));
-    m_heap_storage.push_back(std::move(routine));
-  }
-
-  /**
-   *  Pushes a transformer_function into the network and creates any necessary m_channels it requires
-   * @param transformer A callable_routine that depends on another callable_routine and is depended on by a consumer_function or transformer_function
-   * @param producer_channel_name The multi_channel it depends on
-   * @param consumer_channel_name The multi_channel that it will publish to
-   */
-  template<typename return_t, typename... args_t>
-  void push(flow::detail::transformer_impl<return_t(args_t...)>&& routine)
-  {
-    auto& producer_channel = make_channel_if_not_exists<args_t...>(routine.subscribe_to());
-    auto& consumer_channel = make_channel_if_not_exists<return_t>(routine.publish_to());
-
-    m_routines_to_spin.push_back(detail::spin_transformer<return_t, args_t...>(producer_channel, consumer_channel, routine.callback()));
-    m_heap_storage.push_back(std::move(routine));
-  }
-
-  /**
-   * Pushes a consumer_function into the network
-   * @param callback A callable_routine no other callable_routine depends on and depends on at least a single callable_routine
-   * @param channel_name The multi_channel it will consume from
-   */
-  template<typename message_t>
-  void push(detail::consumer_impl<message_t>&& routine)
-  {
-    auto& channel = make_channel_if_not_exists<message_t>(routine.subscribing_to());
-
-    m_handle.push(routine.callback().handle());
-    m_routines_to_spin.push_back(detail::spin_consumer<message_t>(channel, routine.callback()));
-    m_heap_storage.push_back(std::move(routine));
-  }
-
-  /**
-   * Joins all the routines into a single coroutine
-   * @return a coroutine
-   */
-  cppcoro::task<void> spin()
-  {
-    co_await cppcoro::when_all_ready(std::move(m_routines_to_spin));
-  }
-
-  /**
-   * Makes a handle to this network that will allow whoever holds the handle to cancel
-   * the network
-   *
-   * The cancellation handle will trigger the consumer_function to cancel and trickel down all the way to the producer_function
-   * @return A cancellation handle
-   */
-  network_handle handle()
-  {
-    return m_handle;
-  }
-
-  bool empty() const
-  {
-    return m_routines_to_spin.empty();
-  }
-
-  std::size_t size() const
-  {
-    return m_routines_to_spin.size();
-  }
-
-  /**
-   * Cancel the network after the specified time
-   *
-   * This does not mean the network will be stopped after this amount of time! It takes a non-deterministic
-   * amount of time to fully shut the network down.
-   * @param any chrono time
-   */
-  void cancel_after(std::chrono::nanoseconds time)
-  {
-    // Needs to be heap allocated so coroutines can access the member data out of scope
-    auto timeout_routine = std::make_shared<detail::timeout_routine>(time, [&] {
-      handle().request_cancellation();
-    });
-
-    m_routines_to_spin.push_back(timeout_routine->spin());
-    m_heap_storage.push_back(std::move(timeout_routine));
-  }
-
-private:
-  using thread_pool_t = cppcoro::static_thread_pool;
-  using multi_channel_resource_generator = detail::channel_resource_generator<configuration_t, cppcoro::multi_producer_sequencer<std::size_t>>;
-
-  std::unique_ptr<thread_pool_t> m_thread_pool = std::make_unique<cppcoro::static_thread_pool>();
-  std::unique_ptr<multi_channel_resource_generator> m_resource_generator = std::make_unique<multi_channel_resource_generator>();
-
-  detail::channel_set<configuration_t> m_channels{};
-
-  std::vector<cppcoro::task<void>> m_routines_to_spin{};
-  std::vector<std::any> m_heap_storage{};
-
-  network_handle m_handle{};
-};
+  return network;
+}
 
 namespace detail {
   template<flow::is_function function_t>
@@ -234,51 +149,154 @@ namespace detail {
       return "";
     }
   }
-}// namespace detail
 
-template<typename configuration_t = flow::configuration>
-auto make_network(auto&&... callables)
-{
-  using network_t = flow::network<configuration_t>;
-  network_t network{};
+  template<typename configuration_t>
+  class network_impl {
+  public:
+    using is_network = std::true_type;
 
-  auto callables_array = detail::make_mixed_array(std::forward<decltype(callables)>(callables)...);
-  std::for_each(std::begin(callables_array), std::end(callables_array), detail::make_visitor([&](auto& r) {
-    using namespace flow::detail;
-
-    using routine_t = decltype(r);
-
-    if constexpr (is_transformer_function<routine_t>) {
-      network.push(make_transformer(r, get_subscribe_to(r), get_publish_to(r)));
-    }
-    else if constexpr (is_consumer_function<routine_t>) {
-      network.push(flow::make_consumer(r, get_subscribe_to(r)));
-    }
-    else if constexpr (is_producer_function<routine_t>) {
-      network.push(flow::make_producer(r, get_publish_to(r)));
-    }
     /**
-       * If you change this please be careful. The constexpr check for a spinner function seems to
-       * be broken and I'm not sure why. I need to explicitly check if it's not a routine, and remove the
-       * requirement from the spinner_impl constructor because otherwise the routines generates by make_routine
-       * will fail because they do not implement operator(). The operator() check is in metaprogramming.hpp
-       * with the function traits section at the bottom of the header.
-       */
-    else if constexpr (not is_routine<routine_t> and is_spinner_function<routine_t>) {
-      network.push(flow::make_spinner(r));
+   * Makes a multi_channel if it doesn't exist and returns a reference to it
+   * @tparam message_t The message type the multi_channel will communicate
+   * @param channel_name The name of the multi_channel (optional)
+   * @return A reference to the multi_channel
+   */
+    template<typename message_t>
+    auto& make_channel_if_not_exists(std::string channel_name)
+    {
+      if (m_channels.template contains<message_t>(channel_name)) {
+        return m_channels.template at<message_t>(channel_name);
+      }
+
+      using channel_t = detail::multi_channel<message_t, configuration_t>;
+
+      channel_t channel{
+        channel_name,
+        std::invoke(*m_resource_generator),
+        m_thread_pool.get()
+      };
+
+      m_channels.put(std::move(channel));
+      return m_channels.template at<message_t>(channel_name);
     }
-    else {
-      network.push(std::move(r));
+
+    /**
+   * Pushes a callable_routine into the network
+   * @param spinner A callable_routine with no dependencies and nothing depends on it
+   */
+    void push(flow::is_spinner_routine auto&& routine)
+    {
+      m_handle.push(routine.callback().handle());
+      m_routines_to_spin.push_back(detail::spin_spinner(m_thread_pool, routine.callback()));
+      m_heap_storage.push_back(std::move(routine));
     }
-  }));
 
-  if (network.size() < callables_array.size()) {
-    std::cerr << "Network size: " << network.size() << "\n";
-    std::cerr << "Callables array size: " << callables_array.size() << "\n";
-    throw std::runtime_error("Network size is less than callables array. This is a developer error. Please submit an issue.");
-  }
+    /**
+   * Pushes a producer_function into the network
+   * @param producer The producer_function callable_routine
+   * @param channel_name The multi_channel name the producer_function will publish to
+   */
+    template<typename message_t>
+    void push(flow::detail::producer_impl<message_t>&& routine)
+    {
+      auto& channel = make_channel_if_not_exists<message_t>(routine.publish_to());
+      m_routines_to_spin.push_back(detail::spin_producer<message_t>(channel, routine.callback()));
+      m_heap_storage.push_back(std::move(routine));
+    }
 
-  return network;
-}
+    /**
+   *  Pushes a transformer_function into the network and creates any necessary m_channels it requires
+   * @param transformer A callable_routine that depends on another callable_routine and is depended on by a consumer_function or transformer_function
+   * @param producer_channel_name The multi_channel it depends on
+   * @param consumer_channel_name The multi_channel that it will publish to
+   */
+    template<typename return_t, typename... args_t>
+    void push(flow::detail::transformer_impl<return_t(args_t...)>&& routine)
+    {
+      auto& producer_channel = make_channel_if_not_exists<args_t...>(routine.subscribe_to());
+      auto& consumer_channel = make_channel_if_not_exists<return_t>(routine.publish_to());
 
+      m_routines_to_spin.push_back(detail::spin_transformer<return_t, args_t...>(producer_channel, consumer_channel, routine.callback()));
+      m_heap_storage.push_back(std::move(routine));
+    }
+
+    /**
+   * Pushes a consumer_function into the network
+   * @param callback A callable_routine no other callable_routine depends on and depends on at least a single callable_routine
+   * @param channel_name The multi_channel it will consume from
+   */
+    template<typename message_t>
+    void push(detail::consumer_impl<message_t>&& routine)
+    {
+      auto& channel = make_channel_if_not_exists<message_t>(routine.subscribing_to());
+
+      m_handle.push(routine.callback().handle());
+      m_routines_to_spin.push_back(detail::spin_consumer<message_t>(channel, routine.callback()));
+      m_heap_storage.push_back(std::move(routine));
+    }
+
+    /**
+   * Joins all the routines into a single coroutine
+   * @return a coroutine
+   */
+    cppcoro::task<void> spin()
+    {
+      co_await cppcoro::when_all_ready(std::move(m_routines_to_spin));
+    }
+
+    /**
+   * Makes a handle to this network that will allow whoever holds the handle to cancel
+   * the network
+   *
+   * The cancellation handle will trigger the consumer_function to cancel and trickel down all the way to the producer_function
+   * @return A cancellation handle
+   */
+    network_handle handle()
+    {
+      return m_handle;
+    }
+
+    bool empty() const
+    {
+      return m_routines_to_spin.empty();
+    }
+
+    std::size_t size() const
+    {
+      return m_routines_to_spin.size();
+    }
+
+    /**
+   * Cancel the network after the specified time
+   *
+   * This does not mean the network will be stopped after this amount of time! It takes a non-deterministic
+   * amount of time to fully shut the network down.
+   * @param any chrono time
+   */
+    void cancel_after(std::chrono::nanoseconds time)
+    {
+      // Needs to be heap allocated so coroutines can access the member data out of scope
+      auto timeout_routine = std::make_shared<detail::timeout_routine>(time, [&] {
+        handle().request_cancellation();
+      });
+
+      m_routines_to_spin.push_back(timeout_routine->spin());
+      m_heap_storage.push_back(std::move(timeout_routine));
+    }
+
+  private:
+    using thread_pool_t = cppcoro::static_thread_pool;
+    using multi_channel_resource_generator = detail::channel_resource_generator<configuration_t, cppcoro::multi_producer_sequencer<std::size_t>>;
+
+    std::unique_ptr<thread_pool_t> m_thread_pool = std::make_unique<cppcoro::static_thread_pool>();
+    std::unique_ptr<multi_channel_resource_generator> m_resource_generator = std::make_unique<multi_channel_resource_generator>();
+
+    detail::channel_set<configuration_t> m_channels{};
+
+    std::vector<cppcoro::task<void>> m_routines_to_spin{};
+    std::vector<std::any> m_heap_storage{};
+
+    network_handle m_handle{};
+  };
+}// namespace detail
 }// namespace flow

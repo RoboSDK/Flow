@@ -9,7 +9,7 @@
  * #include <my_configuration.hpp>
  *
  * int main() {
- *  auto network = flow::make_network<my::configuration>(...);
+ *  auto network = flow::network<my::configuration>(...);
  * }
  */
 namespace flow {
