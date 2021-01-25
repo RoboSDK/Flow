@@ -1,7 +1,5 @@
 #pragma once
 
-#include "flow/options.hpp"
-
 namespace flow {
 
 namespace detail {
@@ -23,7 +21,7 @@ namespace detail {
       : m_callback(detail::make_shared_cancellable_function(std::forward<decltype(callback)>(callback))),
         m_channel_name(std::move(channel_name)) {}
 
-    auto channel_name() { return m_channel_name; }
+    auto publish_to() { return m_channel_name; }
     auto& callback() { return *m_callback; }
 
   private:
@@ -33,26 +31,6 @@ namespace detail {
     std::string m_channel_name{};
   };
 }// namespace detail
-
-template<typename return_t>
-auto make_producer(std::function<return_t()>&& callback, flow::options options = flow::options{})
-{
-  using callback_t = decltype(callback);
-  return detail::producer_impl<return_t>(std::forward<callback_t>(callback), std::move(options.publish_to));
-}
-
-template<typename return_t>
-auto make_producer(return_t (*callback)(), flow::options options = flow::options{})
-{
-  using callback_t = decltype(callback);
-  return detail::producer_impl<return_t>(std::forward<callback_t>(callback), std::move(options.publish_to));
-}
-
-auto make_producer(auto&& lambda, flow::options&& options = flow::options{})
-{
-  using callback_t = decltype(lambda);
-  return make_producer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(options.publish_to));
-}
 
 template<typename return_t>
 auto make_producer(std::function<return_t()>&& callback, std::string channel_name)

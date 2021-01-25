@@ -28,8 +28,8 @@ cppcoro::task<void> spin_spinner(
   cancellable_function<void()>& spinner)
 {
   while (not spinner.is_cancellation_requested()) {
-    co_await scheduler.schedule();
-    co_await spinner();
+    co_await scheduler->schedule();
+    co_await [&]() -> cppcoro::task<void> { spinner(); co_return; }();
   }
 }
 

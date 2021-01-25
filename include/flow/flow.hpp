@@ -25,33 +25,7 @@ namespace flow {
 template<typename configuration_t = flow::configuration, typename... routines_t>
 auto spin(routines_t&&... routines)
 {
-  using network_t = flow::network<configuration_t>;
-  network_t network{};
-
-  auto routines_array = detail::make_mixed_array(std::forward<decltype(routines)>(routines)...);
-  std::for_each(std::begin(routines_array), std::end(routines_array), detail::make_visitor([&](auto& r) {
-    using routine_t = decltype(r);
-
-    if constexpr (is_routine<routine_t>) {
-      network.push(std::move(r));
-    }
-    else if constexpr (is_user_routine<routine_t>) {
-      r.initialize(network);
-    }
-    else if constexpr (is_transformer_function<routine_t>) {
-      network.push(make_transformer(r, std::string(), std::string()));
-    }
-    else if constexpr (is_consumer_function<routine_t>) {
-      network.push(flow::make_consumer(r));
-    }
-    else if constexpr (is_producer_function<routine_t>) {
-      network.push(flow::make_producer(r));
-    }
-    else if constexpr (is_spinner_function<routine_t>) {
-      network.push(flow::make_spinner(r));
-    }
-  }));
-
+  auto network = flow::make_network(std::forward<routines_t>(routines)...);;
   return cppcoro::sync_wait(network.spin());
 }
 

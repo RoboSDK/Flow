@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include <cppcoro/on_scope_exit.hpp>
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all_ready.hpp>
@@ -110,7 +112,7 @@ public:
   template<typename message_t>
   void push(flow::detail::producer_impl<message_t>&& routine)
   {
-    auto& channel = make_channel_if_not_exists<message_t>(routine.channel_name());
+    auto& channel = make_channel_if_not_exists<message_t>(routine.publish_to());
     m_routines_to_spin.push_back(detail::spin_producer<message_t>(channel, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
   }
@@ -124,8 +126,8 @@ public:
   template<typename return_t, typename... args_t>
   void push(flow::detail::transformer_impl<return_t(args_t...)>&& routine)
   {
-    auto& producer_channel = make_channel_if_not_exists<args_t...>(routine.producer_channel_name());
-    auto& consumer_channel = make_channel_if_not_exists<return_t>(routine.consumer_channel_name());
+    auto& producer_channel = make_channel_if_not_exists<args_t...>(routine.subscribe_to());
+    auto& consumer_channel = make_channel_if_not_exists<return_t>(routine.publish_to());
 
     m_routines_to_spin.push_back(detail::spin_transformer<return_t, args_t...>(producer_channel, consumer_channel, routine.callback()));
     m_heap_storage.push_back(std::move(routine));
@@ -139,7 +141,7 @@ public:
   template<typename message_t>
   void push(detail::consumer_impl<message_t>&& routine)
   {
-    auto& channel = make_channel_if_not_exists<message_t>(routine.channel_name());
+    auto& channel = make_channel_if_not_exists<message_t>(routine.subscribing_to());
 
     m_handle.push(routine.callback().handle());
     m_routines_to_spin.push_back(detail::spin_consumer<message_t>(channel, routine.callback()));
@@ -165,6 +167,16 @@ public:
   network_handle handle()
   {
     return m_handle;
+  }
+
+  bool empty() const
+  {
+    return m_routines_to_spin.empty();
+  }
+
+  std::size_t size() const
+  {
+    return m_routines_to_spin.size();
   }
 
   /**
@@ -200,6 +212,29 @@ private:
   network_handle m_handle{};
 };
 
+namespace detail {
+  template<flow::is_function function_t>
+  std::string get_publish_to(function_t& function)
+  {
+    if constexpr (flow::has_publisher_channel<function_t>) {
+      return function.publish_to();
+    }
+    else {
+      return "";
+    }
+  }
+
+  template<flow::is_function function_t>
+  std::string get_subscribe_to(function_t& function)
+  {
+    if constexpr (flow::has_subscription_channel<function_t>) {
+      return function.subscribe_to();
+    }
+    else {
+      return "";
+    }
+  }
+}// namespace detail
 
 template<typename configuration_t = flow::configuration>
 auto make_network(auto&&... callables)
@@ -209,28 +244,39 @@ auto make_network(auto&&... callables)
 
   auto callables_array = detail::make_mixed_array(std::forward<decltype(callables)>(callables)...);
   std::for_each(std::begin(callables_array), std::end(callables_array), detail::make_visitor([&](auto& r) {
-         using callable_t = decltype(r);
+    using namespace flow::detail;
 
-         // TODO: Why does this work? Add test for concepts
-         if constexpr (is_routine<callable_t>) {
-           network.push(std::move(r));
-         }
-         else if constexpr (is_user_routine<callable_t>) {
-           r.initialize(network);
-         }
-//         else if constexpr (transformer_function<callable_t>) {
-//           network.push(make_transformer(r));
-//         }
-//         else if constexpr (consumer_function<callable_t>) {
-//           network.push(flow::make_consumer(r));
-//         }
-//         else if constexpr (producer_function<callable_t>) {
-//           network.push(flow::make_producer(r));
-//         }
-//         else if constexpr (spinner_function<callable_t>) {
-//           network.push(flow::make_spinner(r));
-//         }
+    using routine_t = decltype(r);
+
+    if constexpr (is_transformer_function<routine_t>) {
+      network.push(make_transformer(r, get_subscribe_to(r), get_publish_to(r)));
+    }
+    else if constexpr (is_consumer_function<routine_t>) {
+      network.push(flow::make_consumer(r, get_subscribe_to(r)));
+    }
+    else if constexpr (is_producer_function<routine_t>) {
+      network.push(flow::make_producer(r, get_publish_to(r)));
+    }
+    /**
+       * If you change this please be careful. The constexpr check for a spinner function seems to
+       * be broken and I'm not sure why. I need to explicitly check if it's not a routine, and remove the
+       * requirement from the spinner_impl constructor because otherwise the routines generates by make_routine
+       * will fail because they do not implement operator(). The operator() check is in metaprogramming.hpp
+       * with the function traits section at the bottom of the header.
+       */
+    else if constexpr (not is_routine<routine_t> and is_spinner_function<routine_t>) {
+      network.push(flow::make_spinner(r));
+    }
+    else {
+      network.push(std::move(r));
+    }
   }));
+
+  if (network.size() < callables_array.size()) {
+    std::cerr << "Network size: " << network.size() << "\n";
+    std::cerr << "Callables array size: " << callables_array.size() << "\n";
+    throw std::runtime_error("Network size is less than callables array. This is a developer error. Please submit an issue.");
+  }
 
   return network;
 }

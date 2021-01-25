@@ -21,9 +21,14 @@ using traits = detail::metaprogramming::function_traits<std::decay_t<callable_t>
 template <typename configuration_t>
 class network;
 
-template<typename routine_t, typename network_t = flow::network<flow::configuration>>
-concept is_user_routine = requires(routine_t routine, network_t network){
-  routine.initialize(network);
+template<typename routine_t>
+concept has_publisher_channel = requires(routine_t routine){
+  routine.publish_to();
+};
+
+template<typename routine_t>
+concept has_subscription_channel = requires(routine_t routine){
+  routine.subscribe_to();
 };
 
 struct consumer {};
@@ -43,8 +48,16 @@ concept is_producer_routine = std::is_same_v<typename producer_t::is_producer, s
 template<typename consumer_t>
 concept is_consumer_routine = std::is_same_v<typename consumer_t::is_consumer, std::true_type> or std::is_same_v<consumer_t, flow::consumer>;
 
+template <typename routine_t>
+concept has_callback_function = requires(routine_t routine) {
+  routine.callback();
+};
+
+template <typename tag_t>
+concept is_routine_tag = std::is_same_v<flow::producer, tag_t> or std::is_same_v<flow::consumer, tag_t> or std::is_same_v<flow::transformer, tag_t> or std::is_same_v<flow::spinner, tag_t>;
+
 template<typename routine_t>
-concept is_routine = is_spinner_routine<routine_t> or is_producer_routine<routine_t> or is_consumer_routine<routine_t> or is_transformer_routine<routine_t>;
+concept is_routine = has_callback_function<routine_t> and (is_spinner_routine<routine_t> or is_producer_routine<routine_t> or is_consumer_routine<routine_t> or is_transformer_routine<routine_t>);
 
 template <typename network_t>
 concept is_network = std::is_same_v<typename network_t::is_network, std::true_type>;
@@ -54,28 +67,28 @@ concept is_network = std::is_same_v<typename network_t::is_network, std::true_ty
  * @tparam callable_t Any callable type
  */
 template<typename callable_t>
-concept is_spinner_function = not is_network<callable_t> and not is_routine<callable_t> and not is_user_routine<callable_t> and detail::traits<callable_t>::arity == 0 and std::is_void_v<typename detail::traits<callable_t>::return_type>;
+concept is_spinner_function = not has_callback_function<callable_t> and not is_network<callable_t> and not is_routine<callable_t> and detail::traits<callable_t>::arity == 0 and std::is_void_v<typename detail::traits<callable_t>::return_type>;
 
 /**
  * A producer_function is a callable which has a return type and requires no arguments
  * @tparam callable_t Any callable type
  */
 template<typename callable_t>
-concept is_producer_function = not is_network<callable_t> and not is_routine<callable_t> and not is_user_routine<callable_t> and detail::traits<callable_t>::arity == 0 and not std::is_void_v<typename detail::traits<callable_t>::return_type>;
+concept is_producer_function = not has_callback_function<callable_t> and not is_network<callable_t> and not is_routine<callable_t> and detail::traits<callable_t>::arity == 0 and not std::is_void_v<typename detail::traits<callable_t>::return_type>;
 
 /**
  * A consumer_function is a callable which has no return type and requires at least one argument
  * @tparam callable_t Any callable type
  */
 template<typename callable_t>
-concept is_consumer_function = not is_network<callable_t> and not is_routine<callable_t> and not is_user_routine<callable_t> and detail::traits<callable_t>::arity >= 1 and std::is_void_v<typename detail::traits<callable_t>::return_type>;
+concept is_consumer_function = not has_callback_function<callable_t> and not is_network<callable_t> and not is_routine<callable_t> and detail::traits<callable_t>::arity >= 1 and std::is_void_v<typename detail::traits<callable_t>::return_type>;
 
 /**
  * A transformer_function is a callable which has a return type and requires at least one argument
  * @tparam callable_t Any callable type
  */
 template<typename callable_t>
-concept is_transformer_function = not is_network<callable_t> and not is_routine<callable_t> and not is_user_routine<callable_t> and detail::traits<callable_t>::arity >= 1 and not std::is_void_v<typename detail::traits<callable_t>::return_type>;
+concept is_transformer_function = not has_callback_function<callable_t> and not is_network<callable_t> and not is_routine<callable_t> and detail::traits<callable_t>::arity >= 1 and not std::is_void_v<typename detail::traits<callable_t>::return_type>;
 
 template<typename callable_t>
 concept is_function = is_spinner_function<callable_t> or is_producer_function<callable_t> or is_consumer_function<callable_t> or is_transformer_function<callable_t>;

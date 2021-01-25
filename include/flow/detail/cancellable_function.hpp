@@ -93,7 +93,7 @@ template<typename return_t, typename... args_t>
 
 auto make_shared_cancellable_function(auto&& lambda)
 {
-  return make_shared_cancellable_function(detail::metaprogramming::to_function(lambda));
+  return make_shared_cancellable_function(detail::metaprogramming::to_function(std::move(lambda)));
 }
 
 }// namespace flow::detail

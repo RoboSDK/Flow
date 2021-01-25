@@ -6,21 +6,12 @@
 namespace example {
 class producer_routine {
 public:
-  void initialize(auto& network)
-  {
-    network.push(std::move(hello_world_producer));
-  }
-
-private:
-  std::string hello_world()
+  std::string operator()()
   {
     flow::logging::info("Producing Hello World string!");
     return "Hello World!";
   }
 
-  flow::detail::producer_impl<std::string> hello_world_producer{
-    [this] { return hello_world(); },
-    "hello_world"
-  };
+  std::string publish_to() { return "hello_world"; };
 };
 }// namespace example

@@ -4,17 +4,12 @@
 #include <flow/logging.hpp>
 
 namespace example {
-class consumer_routine {
-public:
-  void initialize(auto& network)
-  {
-    network.push(flow::make_consumer(receive_hello, "hello_world"));
-  }
-
-private:
-  static void receive_hello(std::string&& message)
+struct consumer_routine {
+  void operator()(std::string&& message)
   {
     flow::logging::info("Received Message: {}", message);
   }
+
+  std::string subscribe_to() { return "hello_world"; }
 };
 }// namespace example

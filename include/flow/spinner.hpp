@@ -16,7 +16,7 @@ public:
   spinner_impl& operator=(spinner_impl&&) noexcept = default;
   spinner_impl& operator=(spinner_impl const&) = default;
 
-  spinner_impl(flow::is_spinner_function auto&& callback)
+  spinner_impl(auto&& callback)
     : m_callback(detail::make_shared_cancellable_function(std::forward<decltype(callback)>(callback))) {}
 
   auto& callback() { return *m_callback; }

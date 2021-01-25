@@ -4,17 +4,12 @@
 #include <flow/producer.hpp>
 
 namespace example {
-class producer_routine {
-public:
-  void initialize(auto& network)
-  {
-    network.push(flow::make_producer(hello_world, "hello_world"));
-  }
-
-private:
-  static std::string hello_world()
+struct producer_routine {
+  std::string operator()()
   {
     return "Hello World!";
   }
+
+  std::string publish_to() { return "hello_world"; }
 };
 }// namespace example

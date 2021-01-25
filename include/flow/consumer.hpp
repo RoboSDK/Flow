@@ -2,7 +2,6 @@
 
 #include "flow/detail/cancellable_function.hpp"
 #include "flow/detail/metaprogramming.hpp"
-#include "flow/options.hpp"
 #include "flow/routine_concepts.hpp"
 #include <string>
 
@@ -27,7 +26,7 @@ namespace detail {
       : m_callback(detail::make_shared_cancellable_function(std::forward<decltype(callback)>(callback))),
         m_channel_name(std::move(channel_name)) {}
 
-    auto channel_name() { return m_channel_name; }
+    auto subscribing_to() { return m_channel_name; }
     auto& callback() { return *m_callback; }
 
   private:
@@ -37,26 +36,6 @@ namespace detail {
     std::string m_channel_name{};
   };
 }// namespace detail
-
-template<typename argument_t>
-auto make_consumer(std::function<void(argument_t&&)>&& callback, flow::options options = flow::options{})
-{
-  using callback_t = decltype(callback);
-  return detail::consumer_impl<argument_t>(std::forward<callback_t>(callback), std::move(options.subscribe_to));
-}
-
-template<typename argument_t>
-auto make_consumer(void (*callback)(argument_t&&), flow::options options = flow::options{})
-{
-  using callback_t = decltype(callback);
-  return detail::consumer_impl<argument_t>(std::forward<callback_t>(callback), std::move(options.subscribe_to));
-}
-
-auto make_consumer(auto&& lambda, flow::options options = flow::options{})
-{
-  using callback_t = decltype(lambda);
-  return make_consumer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(options.subscribe_to));
-}
 
 template<typename argument_t>
 auto make_consumer(std::function<void(argument_t&&)>&& callback, std::string channel_name)

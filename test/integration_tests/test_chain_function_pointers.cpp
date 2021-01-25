@@ -13,14 +13,14 @@
 namespace local {
 int producer()
 {
-  //  flow::logging::error("producer_function");
+//    flow::logging::error("producer_function");
   static int val = 0;
   return val++;
 }
 
 int transformer(int&& val)
 {
-  //  flow::logging::error("transformer_function");
+//    flow::logging::error("transformer_function");
   return val * 2;
 }
 
@@ -38,10 +38,10 @@ int main()
   using network_t = flow::network<flow::configuration>;
 
   network_t network = make_network(
-    make_producer(local::producer, options{ .publish_to = "producer_impl" }),
-    make_transformer(local::transformer, options{  .publish_to = "consumer" , .subscribe_to = "producer_impl"}),
-    make_consumer(local::consumer, options{ .subscribe_to = "consumer" }));
+    make_producer(local::producer, "publish_to"),
+    make_transformer(local::transformer, "publish_to", "subscribe_to"),
+    make_consumer(local::consumer, "subscribe_to"));
 
-  network.cancel_after(0s);
+  network.cancel_after(1s);
   flow::spin(std::move(network));
 }
