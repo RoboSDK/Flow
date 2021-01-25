@@ -108,7 +108,7 @@ public:
   void publish_messages(producer_token<message_t>& token)
   {
     for (auto& sequence_number : token.sequences) {
-      m_buffer[sequence_number & m_index_mask] = token.messages.top();
+      m_buffer[sequence_number & m_index_mask] = token.messages.front();
       token.messages.pop();
     }
 
