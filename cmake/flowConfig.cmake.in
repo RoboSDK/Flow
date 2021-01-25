@@ -1,0 +1,16 @@
+# - Config file for the flow package
+# It defines the following variables
+#  FLOW_INCLUDE_DIRS - include directories for flow
+#  FLOW_LIBRARIES    - libraries to link against
+
+# Compute paths
+get_filename_component(FLOW_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set(FLOW_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
+
+# Our library dependencies (contains definitions for IMPORTED targets)
+if(NOT TARGET flow)
+    include("${FLOW_CMAKE_DIR}/flowTargets.cmake")
+endif()
+
+# These are IMPORTED targets created by flowTargets.cmake
+set(FLOW_LIBRARIES flow)

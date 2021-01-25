@@ -28,6 +28,7 @@ double transform_data(int&& data) {
   return 2 * static_cast<double>(std::move(data));
 }
 
+
 void consume_data(double&& data) {
   spdlog::info("consuming data");
   confirm_functions_called[2] = true;

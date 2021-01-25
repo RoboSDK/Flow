@@ -5,22 +5,6 @@ macro(git_submodule_update submodule)
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endmacro()
 
-git_submodule_update(frozen)
-git_submodule_update(pipes)
-git_submodule_update(sml)
-
-add_library(header_only_libs INTERFACE)
-target_include_directories(header_only_libs SYSTEM INTERFACE
-        frozen/include
-        pipes/include
-        sml/include
-        wyhash/include
-        sole/include
-        cppitertools/include
-        NamedType/include
-        static_vector/include
-        atomic_queue/include
-        variant/include
-        farbot/include
-        )
+#add_library(header_only_libs INTERFACE)
+#target_include_directories(header_only_libs SYSTEM INTERFACE )
 
