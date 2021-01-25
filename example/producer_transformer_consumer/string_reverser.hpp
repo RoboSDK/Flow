@@ -1,7 +1,7 @@
 #pragma once
 
-#include <flow/logging.hpp>
 #include <flow/transformer.hpp>
+#include <spdlog/spdlog.h>
 
 namespace example {
 class string_reverser {
@@ -9,7 +9,7 @@ public:
   std::string operator()(std::string&& message)
   {
     std::reverse(std::begin(message), std::end(message));
-    flow::logging::info("Received Hello World Message! Reversed: {}", message);
+    spdlog::info("Received Hello World Message! Reversed: {}", message);
     return std::move(message);
   }
 
