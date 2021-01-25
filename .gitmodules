@@ -1,12 +1,3 @@
-[submodule "external/frozen"]
-	path = external/frozen
-	url = https://github.com/serge-sans-paille/frozen.git
-[submodule "external/pipes"]
-	path = external/pipes
-	url = https://github.com/joboccara/pipes.git
-[submodule "external/sml"]
-	path = external/sml
-	url = https://github.com/boost-ext/sml.git
 [submodule "external/--force"]
 	path = external/--force
 	url = https://github.com/wangyi-fudan/wyhash.git
@@ -16,27 +7,6 @@
 [submodule "external/wyhash/wyhash"]
 	path = external/wyhash/include/wyhash
 	url = https://github.com/wangyi-fudan/wyhash.git
-[submodule "external/wyhash/include/wyhash"]
-	path = external/wyhash/include/wyhash
-	url = https://github.com/wangyi-fudan/wyhash.git
-[submodule "external/static_vector"]
-	path = external/static_vector
-	url = https://github.com/gnzlbg/static_vector.git
-[submodule "external/atomic_queue"]
-	path = external/atomic_queue
-	url = https://github.com/max0x7ba/atomic_queue.git
-[submodule "external/variant"]
-	path = external/variant
-	url = https://github.com/mpark/variant.git
 [submodule "external/farbot"]
 	path = external/tmp/farbot
 	url = https://github.com/hogliux/farbot.git
-[submodule "external/cppitertools/include/cppitertools"]
-	path = external/cppitertools/include/cppitertools
-	url = https://github.com/ryanhaining/cppitertools.git
-[submodule "external/NamedType"]
-	path = external/NamedType
-	url = https://github.com/joboccara/NamedType.git
-[submodule "external/sole"]
-	path = external/sole
-	url = https://github.com/r-lyeh-archived/sole.git
