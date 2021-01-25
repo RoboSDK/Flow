@@ -7,7 +7,7 @@ TEST_CASE("Test timeout_routine behavior", "[timeout_routine]")
   using namespace std::chrono;
   using namespace std::chrono_literals;
 
-  static constexpr auto time_limit = 1000ms;
+  static constexpr auto time_limit = 1ms;
 
   bool called = false;
   auto timeout_routine = std::make_shared<flow::detail::timeout_routine>(time_limit, [&] {
