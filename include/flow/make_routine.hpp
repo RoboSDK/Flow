@@ -15,19 +15,19 @@ namespace flow {
  * flow::make_consumer(function, "channel_name_to_subscribe")
  * flow::make_transformer(function, "subscriber_channel_name", "publisher_channel_name")
  */
-template<flow::routine routine_t, typename... arguments_t>
+template<flow::is_routine routine_t, typename... arguments_t>
 auto make_routine(arguments_t&&... arguments)
 {
-  if constexpr (flow::transformer_routine<routine_t>) {
+  if constexpr (flow::is_transformer_routine<routine_t>) {
     return flow::make_transformer(std::forward<arguments_t>(arguments)...);
   }
-  else if constexpr (flow::consumer_routine<routine_t>) {
+  else if constexpr (flow::is_consumer_routine<routine_t>) {
     return flow::make_consumer(std::forward<arguments_t>(arguments)...);
   }
-  else if constexpr (flow::producer_routine<routine_t>) {
+  else if constexpr (flow::is_producer_routine<routine_t>) {
     return flow::make_producer(std::forward<arguments_t>(arguments)...);
   }
-  else if constexpr (flow::spinner_routine<routine_t>) {
+  else if constexpr (flow::is_spinner_routine<routine_t>) {
     return flow::make_spinner(std::forward<arguments_t>(arguments)...);
   }
 }

@@ -24,7 +24,7 @@ namespace detail {
     transformer_impl& operator=(transformer_impl&&) noexcept = default;
     transformer_impl& operator=(transformer_impl const&) = default;
 
-    transformer_impl(flow::transformer_function auto&& callback, std::string producer_channel_name, std::string consumer_channel_name)
+    transformer_impl(flow::is_transformer_function auto&& callback, std::string producer_channel_name, std::string consumer_channel_name)
       : m_callback(detail::make_shared_cancellable_function(std::forward<decltype(callback)>(callback))),
         m_producer_channel_name(std::move(producer_channel_name)),
         m_consumer_channel_name(std::move(consumer_channel_name))

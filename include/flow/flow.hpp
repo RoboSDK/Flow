@@ -32,22 +32,22 @@ auto spin(routines_t&&... routines)
   std::for_each(std::begin(routines_array), std::end(routines_array), detail::make_visitor([&](auto& r) {
     using routine_t = decltype(r);
 
-    if constexpr (routine<routine_t>) {
+    if constexpr (is_routine<routine_t>) {
       network.push(std::move(r));
     }
     else if constexpr (is_user_routine<routine_t>) {
       r.initialize(network);
     }
-    else if constexpr (transformer_function<routine_t>) {
+    else if constexpr (is_transformer_function<routine_t>) {
       network.push(make_transformer(r, std::string(), std::string()));
     }
-    else if constexpr (consumer_function<routine_t>) {
+    else if constexpr (is_consumer_function<routine_t>) {
       network.push(flow::make_consumer(r));
     }
-    else if constexpr (producer_function<routine_t>) {
+    else if constexpr (is_producer_function<routine_t>) {
       network.push(flow::make_producer(r));
     }
-    else if constexpr (spinner_function<routine_t>) {
+    else if constexpr (is_spinner_function<routine_t>) {
       network.push(flow::make_spinner(r));
     }
   }));

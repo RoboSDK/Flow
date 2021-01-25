@@ -95,7 +95,7 @@ public:
    * Pushes a callable_routine into the network
    * @param spinner A callable_routine with no dependencies and nothing depends on it
    */
-  void push(flow::spinner_routine auto&& routine)
+  void push(flow::is_spinner_routine auto&& routine)
   {
     m_handle.push(routine.callback().handle());
     m_routines_to_spin.push_back(detail::spin_spinner(m_thread_pool, routine.callback()));
@@ -212,7 +212,7 @@ auto make_network(auto&&... callables)
          using callable_t = decltype(r);
 
          // TODO: Why does this work? Add test for concepts
-         if constexpr (routine<callable_t>) {
+         if constexpr (is_routine<callable_t>) {
            network.push(std::move(r));
          }
          else if constexpr (is_user_routine<callable_t>) {

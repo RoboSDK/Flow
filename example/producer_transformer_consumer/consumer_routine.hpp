@@ -6,7 +6,7 @@
 namespace example {
 class consumer_routine {
 public:
-  void initialize(auto& network)
+  void initialize(flow::is_network auto& network)
   {
     network.push(std::move(consumer));
   }

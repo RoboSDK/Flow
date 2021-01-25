@@ -9,7 +9,7 @@ template<typename function_t>
 void not_user_routine_or_routine_network()
 {
   STATIC_REQUIRE(not flow::is_user_routine<function_t>);
-  STATIC_REQUIRE(not flow::routine<function_t>);
+  STATIC_REQUIRE(not flow::is_routine<function_t>);
   STATIC_REQUIRE(not flow::is_network<function_t>);
 }
 
@@ -18,18 +18,18 @@ void not_user_routine_or_network_or_function()
 {
   STATIC_REQUIRE(not flow::is_user_routine<function_t>);
   STATIC_REQUIRE(not flow::is_network<function_t>);
-  STATIC_REQUIRE(not flow::function<function_t>);
+  STATIC_REQUIRE(not flow::is_function<function_t>);
 }
 
 template<typename routine_t>
 void test_producer_routine()
 {
-  STATIC_REQUIRE(flow::routine<routine_t>);
-  STATIC_REQUIRE(flow::producer_routine<routine_t>);
+  STATIC_REQUIRE(flow::is_routine<routine_t>);
+  STATIC_REQUIRE(flow::is_producer_routine<routine_t>);
 
-  STATIC_REQUIRE(not flow::consumer_routine<routine_t>);
-  STATIC_REQUIRE(not flow::transformer_routine<routine_t>);
-  STATIC_REQUIRE(not flow::spinner_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_consumer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_transformer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_spinner_routine<routine_t>);
 
   not_user_routine_or_network_or_function<routine_t>();
 }
@@ -37,12 +37,12 @@ void test_producer_routine()
 template<typename routine_t>
 void test_consumer_routine()
 {
-  STATIC_REQUIRE(flow::routine<routine_t>);
-  STATIC_REQUIRE(flow::consumer_routine<routine_t>);
+  STATIC_REQUIRE(flow::is_routine<routine_t>);
+  STATIC_REQUIRE(flow::is_consumer_routine<routine_t>);
 
-  STATIC_REQUIRE(not flow::producer_routine<routine_t>);
-  STATIC_REQUIRE(not flow::transformer_routine<routine_t>);
-  STATIC_REQUIRE(not flow::spinner_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_producer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_transformer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_spinner_routine<routine_t>);
 
   not_user_routine_or_network_or_function<routine_t>();
 }
@@ -50,12 +50,12 @@ void test_consumer_routine()
 template<typename routine_t>
 void test_transformer_routine()
 {
-  STATIC_REQUIRE(flow::routine<routine_t>);
-  STATIC_REQUIRE(flow::transformer_routine<routine_t>);
+  STATIC_REQUIRE(flow::is_routine<routine_t>);
+  STATIC_REQUIRE(flow::is_transformer_routine<routine_t>);
 
-  STATIC_REQUIRE(not flow::producer_routine<routine_t>);
-  STATIC_REQUIRE(not flow::consumer_routine<routine_t>);
-  STATIC_REQUIRE(not flow::spinner_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_producer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_consumer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_spinner_routine<routine_t>);
 
   not_user_routine_or_network_or_function<routine_t>();
 }
@@ -63,12 +63,12 @@ void test_transformer_routine()
 template<typename routine_t>
 void test_spinner_routine()
 {
-  STATIC_REQUIRE(flow::routine<routine_t>);
-  STATIC_REQUIRE(flow::spinner_routine<routine_t>);
+  STATIC_REQUIRE(flow::is_routine<routine_t>);
+  STATIC_REQUIRE(flow::is_spinner_routine<routine_t>);
 
-  STATIC_REQUIRE(not flow::producer_routine<routine_t>);
-  STATIC_REQUIRE(not flow::consumer_routine<routine_t>);
-  STATIC_REQUIRE(not flow::transformer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_producer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_consumer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_transformer_routine<routine_t>);
 
   not_user_routine_or_network_or_function<routine_t>();
 }
@@ -76,11 +76,11 @@ void test_spinner_routine()
 template<typename producer_t>
 void test_producer()
 {
-  STATIC_REQUIRE(flow::producer_function<producer_t>);
-  STATIC_REQUIRE(flow::function<producer_t>);
-  STATIC_REQUIRE(not flow::consumer_function<producer_t>);
-  STATIC_REQUIRE(not flow::transformer_function<producer_t>);
-  STATIC_REQUIRE(not flow::spinner_function<producer_t>);
+  STATIC_REQUIRE(flow::is_producer_function<producer_t>);
+  STATIC_REQUIRE(flow::is_function<producer_t>);
+  STATIC_REQUIRE(not flow::is_consumer_function<producer_t>);
+  STATIC_REQUIRE(not flow::is_transformer_function<producer_t>);
+  STATIC_REQUIRE(not flow::is_spinner_function<producer_t>);
 
   not_user_routine_or_routine_network<producer_t>();
 }
@@ -88,11 +88,11 @@ void test_producer()
 template<typename consumer_t>
 void test_consumer()
 {
-  STATIC_REQUIRE(flow::consumer_function<consumer_t>);
-  STATIC_REQUIRE(flow::function<consumer_t>);
-  STATIC_REQUIRE(not flow::producer_function<consumer_t>);
-  STATIC_REQUIRE(not flow::transformer_function<consumer_t>);
-  STATIC_REQUIRE(not flow::spinner_function<consumer_t>);
+  STATIC_REQUIRE(flow::is_consumer_function<consumer_t>);
+  STATIC_REQUIRE(flow::is_function<consumer_t>);
+  STATIC_REQUIRE(not flow::is_producer_function<consumer_t>);
+  STATIC_REQUIRE(not flow::is_transformer_function<consumer_t>);
+  STATIC_REQUIRE(not flow::is_spinner_function<consumer_t>);
 
   not_user_routine_or_routine_network<consumer_t>();
 }
@@ -100,11 +100,11 @@ void test_consumer()
 template<typename transformer_t>
 void test_transformer()
 {
-  STATIC_REQUIRE(flow::transformer_function<transformer_t>);
-  STATIC_REQUIRE(flow::function<transformer_t>);
-  STATIC_REQUIRE(not flow::producer_function<transformer_t>);
-  STATIC_REQUIRE(not flow::consumer_function<transformer_t>);
-  STATIC_REQUIRE(not flow::spinner_function<transformer_t>);
+  STATIC_REQUIRE(flow::is_transformer_function<transformer_t>);
+  STATIC_REQUIRE(flow::is_function<transformer_t>);
+  STATIC_REQUIRE(not flow::is_producer_function<transformer_t>);
+  STATIC_REQUIRE(not flow::is_consumer_function<transformer_t>);
+  STATIC_REQUIRE(not flow::is_spinner_function<transformer_t>);
 
   not_user_routine_or_routine_network<transformer_t>();
 }
@@ -112,11 +112,11 @@ void test_transformer()
 template<typename spinner_t>
 void test_spinner()
 {
-  STATIC_REQUIRE(flow::spinner_function<spinner_t>);
-  STATIC_REQUIRE(flow::function<spinner_t>);
-  STATIC_REQUIRE(not flow::producer_function<spinner_t>);
-  STATIC_REQUIRE(not flow::consumer_function<spinner_t>);
-  STATIC_REQUIRE(not flow::transformer_function<spinner_t>);
+  STATIC_REQUIRE(flow::is_spinner_function<spinner_t>);
+  STATIC_REQUIRE(flow::is_function<spinner_t>);
+  STATIC_REQUIRE(not flow::is_producer_function<spinner_t>);
+  STATIC_REQUIRE(not flow::is_consumer_function<spinner_t>);
+  STATIC_REQUIRE(not flow::is_transformer_function<spinner_t>);
 
   not_user_routine_or_routine_network<spinner_t>();
 }
@@ -270,25 +270,25 @@ TEST_CASE("Test producer routine", "[producer_routine]")
   SECTION("raw function")
   {
     auto producer_routine = flow::make_routine<flow::producer>(produce_int, "int");
-    STATIC_REQUIRE(flow::producer_routine<decltype(producer_routine)>);
+    STATIC_REQUIRE(flow::is_producer_routine<decltype(producer_routine)>);
   }
 
   SECTION("static function")
   {
     auto producer_routine = flow::make_routine<flow::producer>(static_produce_int, "int");
-    STATIC_REQUIRE(flow::producer_routine<decltype(producer_routine)>);
+    STATIC_REQUIRE(flow::is_producer_routine<decltype(producer_routine)>);
   }
 
   SECTION("functor")
   {
     auto producer_routine = flow::make_routine<flow::producer>(producer_functor<int>{}, "int");
-    STATIC_REQUIRE(flow::producer_routine<decltype(producer_routine)>);
+    STATIC_REQUIRE(flow::is_producer_routine<decltype(producer_routine)>);
   }
 
   SECTION("lambda")
   {
     auto producer_routine = flow::make_routine<flow::producer>([] { return 0; }, "int");
-    STATIC_REQUIRE(flow::producer_routine<decltype(producer_routine)>);
+    STATIC_REQUIRE(flow::is_producer_routine<decltype(producer_routine)>);
   }
 }
 
@@ -297,19 +297,19 @@ TEST_CASE("Test consumer routine", "[consumer_routine]")
   SECTION("raw function")
   {
     auto consumer_routine = flow::make_routine<flow::consumer>(consume_int, "int");
-    STATIC_REQUIRE(flow::consumer_routine<decltype(consumer_routine)>);
+    STATIC_REQUIRE(flow::is_consumer_routine<decltype(consumer_routine)>);
   }
 
   SECTION("functor")
   {
     auto consumer_routine = flow::make_routine<flow::consumer>(consumer_functor<int>{}, "int");
-    STATIC_REQUIRE(flow::consumer_routine<decltype(consumer_routine)>);
+    STATIC_REQUIRE(flow::is_consumer_routine<decltype(consumer_routine)>);
   }
 
   SECTION("lambda")
   {
     auto consumer_routine = flow::make_routine<flow::consumer>([](int&& /*unused*/) {}, "int");
-    STATIC_REQUIRE(flow::consumer_routine<decltype(consumer_routine)>);
+    STATIC_REQUIRE(flow::is_consumer_routine<decltype(consumer_routine)>);
   }
 }
 
@@ -318,7 +318,7 @@ TEST_CASE("Test transformer routine", "[transformer_routine]")
   SECTION("raw function")
   {
     auto transformer_routine = flow::make_routine<flow::transformer>(transform_int, "int", "bar");
-    STATIC_REQUIRE(flow::transformer_routine<decltype(transformer_routine)>);
+    STATIC_REQUIRE(flow::is_transformer_routine<decltype(transformer_routine)>);
   }
 }
 
@@ -327,7 +327,7 @@ TEST_CASE("Test spinner routine", "[spinner_routine]")
   SECTION("raw function")
   {
     auto spinner_routine = flow::make_routine<flow::spinner>(spinny);
-    STATIC_REQUIRE(flow::spinner_routine<decltype(spinner_routine)>);
+    STATIC_REQUIRE(flow::is_spinner_routine<decltype(spinner_routine)>);
   }
 }
 
@@ -340,9 +340,9 @@ struct user_routine_impl {
 TEST_CASE("Test user routine", "[user_routine]")
 {
   STATIC_REQUIRE(flow::is_user_routine<user_routine_impl>);
-  STATIC_REQUIRE(not flow::routine<user_routine_impl>);
+  STATIC_REQUIRE(not flow::is_routine<user_routine_impl>);
   STATIC_REQUIRE(not flow::is_network<user_routine_impl>);
-  STATIC_REQUIRE(not flow::function<user_routine_impl>);
+  STATIC_REQUIRE(not flow::is_function<user_routine_impl>);
 }
 
 TEST_CASE("Test network", "[network]")
@@ -350,7 +350,7 @@ TEST_CASE("Test network", "[network]")
   auto network = flow::make_network([]{});
   using network_t = decltype(network);
   STATIC_REQUIRE(flow::is_network<network_t>);
-  STATIC_REQUIRE(not flow::routine<network_t>);
-  STATIC_REQUIRE(not flow::function<network_t>);
+  STATIC_REQUIRE(not flow::is_routine<network_t>);
+  STATIC_REQUIRE(not flow::is_function<network_t>);
   STATIC_REQUIRE(not flow::is_user_routine<network_t>);
 }

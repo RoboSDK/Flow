@@ -19,7 +19,7 @@ namespace detail {
     producer_impl& operator=(producer_impl&&) noexcept = default;
     producer_impl& operator=(producer_impl const&) = default;
 
-    producer_impl(flow::producer_function auto&& callback, std::string channel_name)
+    producer_impl(flow::is_producer_function auto&& callback, std::string channel_name)
       : m_callback(detail::make_shared_cancellable_function(std::forward<decltype(callback)>(callback))),
         m_channel_name(std::move(channel_name)) {}
 

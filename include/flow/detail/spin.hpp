@@ -176,8 +176,8 @@ cppcoro::task<void> spin_transformer(
  * @param routine A consumer_function or transformer_function function
  * @return A coroutine
  */
-template<typename return_t, flow::function routine_t>
-  cppcoro::task<void> flush(auto& channel, routine_t& routine, auto& consumer_token) requires flow::consumer_function<routine_t> or flow::transformer_function<routine_t>
+template<typename return_t, flow::is_function routine_t>
+  cppcoro::task<void> flush(auto& channel, routine_t& routine, auto& consumer_token) requires flow::is_consumer_function<routine_t> or flow::is_transformer_function<routine_t>
 {
   while (channel.is_waiting()) {
     auto next_message = channel.message_generator(consumer_token);

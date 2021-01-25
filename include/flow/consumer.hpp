@@ -23,7 +23,7 @@ namespace detail {
     consumer_impl& operator=(consumer_impl&&) noexcept = default;
     consumer_impl& operator=(consumer_impl const&) = default;
 
-    consumer_impl(flow::consumer_function auto&& callback, std::string channel_name)
+    consumer_impl(flow::is_consumer_function auto&& callback, std::string channel_name)
       : m_callback(detail::make_shared_cancellable_function(std::forward<decltype(callback)>(callback))),
         m_channel_name(std::move(channel_name)) {}
 
