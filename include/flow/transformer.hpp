@@ -1,6 +1,6 @@
 #pragma once
 
-#include "flow/routine_concepts.hpp"
+#include "flow/concepts.hpp"
 
 #include "flow/detail/cancellable_function.hpp"
 

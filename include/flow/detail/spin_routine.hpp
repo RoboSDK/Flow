@@ -3,8 +3,8 @@
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>
 
+#include "flow/concepts.hpp"
 #include "flow/network.hpp"
-#include "flow/routine_concepts.hpp"
 
 #include "cancellable_function.hpp"
 #include "multi_channel.hpp"

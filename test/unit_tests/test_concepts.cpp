@@ -1,8 +1,8 @@
 #include <catch2/catch.hpp>
 
+#include <flow/concepts.hpp>
 #include <flow/make_routine.hpp>
 #include <flow/network.hpp>
-#include <flow/routine_concepts.hpp>
 
 namespace {
 template<typename function_t>

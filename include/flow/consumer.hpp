@@ -1,8 +1,8 @@
 #pragma once
 
+#include "flow/concepts.hpp"
 #include "flow/detail/cancellable_function.hpp"
 #include "flow/detail/metaprogramming.hpp"
-#include "flow/routine_concepts.hpp"
 #include <string>
 
 namespace flow {
