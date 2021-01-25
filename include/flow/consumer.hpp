@@ -21,23 +21,23 @@ namespace detail {
  * @return A consumer object used to retrieve data by the network
  */
 template<typename argument_t>
-auto make_consumer(std::function<void(argument_t&&)>&& callback, std::string channel_name)
+auto consumer(std::function<void(argument_t&&)>&& callback, std::string channel_name)
 {
   using callback_t = decltype(callback);
   return detail::consumer_impl<argument_t>(std::forward<callback_t>(callback), std::move(channel_name));
 }
 
 template<typename argument_t>
-auto make_consumer(void (*callback)(argument_t&&), std::string channel_name)
+auto consumer(void (*callback)(argument_t&&), std::string channel_name)
 {
   //  return detail::consumer_impl<argument_t>([callback=std::move(callback)](argument_t&& msg) { return callback(std::move(msg)); }, std::move(channel_name));
   return detail::consumer_impl<argument_t>(std::move(callback), std::move(channel_name));
 }
 
-auto make_consumer(auto&& lambda, std::string channel_name)
+auto consumer(auto&& lambda, std::string channel_name)
 {
   using callback_t = decltype(lambda);
-  return make_consumer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(channel_name));
+  return consumer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(channel_name));
 }
 
 namespace detail {

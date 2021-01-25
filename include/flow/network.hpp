@@ -249,13 +249,13 @@ auto make_network(auto&&... callables)
     using routine_t = decltype(r);
 
     if constexpr (is_transformer_function<routine_t>) {
-      network.push(make_transformer(r, get_subscribe_to(r), get_publish_to(r)));
+      network.push(transformer(r, get_subscribe_to(r), get_publish_to(r)));
     }
     else if constexpr (is_consumer_function<routine_t>) {
-      network.push(flow::make_consumer(r, get_subscribe_to(r)));
+      network.push(flow::consumer(r, get_subscribe_to(r)));
     }
     else if constexpr (is_producer_function<routine_t>) {
-      network.push(flow::make_producer(r, get_publish_to(r)));
+      network.push(flow::producer(r, get_publish_to(r)));
     }
     /**
        * If you change this please be careful. The constexpr check for a spinner function seems to
@@ -265,7 +265,7 @@ auto make_network(auto&&... callables)
        * with the function traits section at the bottom of the header.
        */
     else if constexpr (not is_routine<routine_t> and is_spinner_function<routine_t>) {
-      network.push(flow::make_spinner(r));
+      network.push(flow::spinner(r));
     }
     else {
       network.push(std::move(r));

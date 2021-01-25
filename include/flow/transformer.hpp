@@ -14,34 +14,34 @@ namespace detail {
 }
 
 /**
- * May be called directly instead of make_routine<flow::transformer>(args);
+ * May be called directly instead of make_routine<flow::consumer>(args);
  *
  * These objects created are passed in to the network to spin up the routines
  *
- * @tparam argument_t The transformer tag
- * @param callback A transformer function
+ * @tparam argument_t The consumer tag
+ * @param callback A consumer function
  * @param publish_to The channel to publish to
  * @param subscribe_to The channel to subscribe to
- * @return A transformer object used to retrieve data by the network
+ * @return A consumer object used to retrieve data by the network
  */
 template<typename return_t, typename argument_t>
-auto make_transformer(std::function<return_t(argument_t&&)>&& callback, std::string subscribe_to, std::string publish_to)
+auto transformer(std::function<return_t(argument_t&&)>&& callback, std::string subscribe_to, std::string publish_to)
 {
   using callback_t = decltype(callback);
   return detail::transformer_impl<return_t(argument_t)>(std::forward<callback_t>(callback), std::move(subscribe_to), std::move(publish_to));
 }
 
 template<typename return_t, typename argument_t>
-auto make_transformer(return_t (*callback)(argument_t&&), std::string subscribe_to, std::string publish_to)
+auto transformer(return_t (*callback)(argument_t&&), std::string subscribe_to, std::string publish_to)
 {
   using callback_t = decltype(callback);
   return detail::transformer_impl<return_t(argument_t)>(std::forward<callback_t>(callback), std::move(subscribe_to), std::move(publish_to));
 }
 
-auto make_transformer(auto&& lambda, std::string subscribe_to, std::string publish_to)
+auto transformer(auto&& lambda, std::string subscribe_to, std::string publish_to)
 {
   using callback_t = decltype(lambda);
-  return make_transformer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(subscribe_to), std::move(publish_to));
+  return transformer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(subscribe_to), std::move(publish_to));
 }
 
 namespace detail {
