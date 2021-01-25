@@ -19,8 +19,7 @@ run_conan()
 
 find_package(cppcoro REQUIRED)
 find_package(Threads REQUIRED)
-include(geturing)
-
+find_package(liburing REQUIRED)
 add_subdirectory(src)
 
 if (ENABLE_PCH)
