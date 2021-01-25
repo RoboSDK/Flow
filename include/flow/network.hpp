@@ -235,7 +235,4 @@ auto make_network(auto&&... callables)
   return network;
 }
 
-template <typename network_t>
-concept is_network = std::is_same_v<typename network_t::is_network, std::true_type>;
-
 }// namespace flow

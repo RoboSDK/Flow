@@ -330,3 +330,25 @@ TEST_CASE("Test spinner routine", "[spinner_routine]")
     STATIC_REQUIRE(flow::spinner_routine<decltype(spinner_routine)>);
   }
 }
+
+namespace {
+struct user_routine_impl : flow::user_routine {};
+}
+
+TEST_CASE("Test user routine", "[user_routine]")
+{
+  STATIC_REQUIRE(flow::is_user_routine<user_routine_impl>);
+  STATIC_REQUIRE(not flow::routine<user_routine_impl>);
+  STATIC_REQUIRE(not flow::is_network<user_routine_impl>);
+  STATIC_REQUIRE(not flow::function<user_routine_impl>);
+}
+
+TEST_CASE("Test network", "[network]")
+{
+  auto network = flow::make_network([]{});
+  using network_t = decltype(network);
+  STATIC_REQUIRE(flow::is_network<network_t>);
+  STATIC_REQUIRE(not flow::routine<network_t>);
+  STATIC_REQUIRE(not flow::function<network_t>);
+  STATIC_REQUIRE(not flow::is_user_routine<network_t>);
+}
