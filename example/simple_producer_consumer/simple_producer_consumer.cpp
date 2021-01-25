@@ -1,5 +1,5 @@
 #include <flow/flow.hpp>
-#include <flow/logging.hpp>
+#include <spdlog/spdlog.h>
 
 std::string make_hello_world()
 {
@@ -20,7 +20,7 @@ std::size_t hash_string(std::string&& message)
 // For now all messages are passed in by r-value
 void receive_hashed_message(std::size_t&& message)
 {
-  flow::logging::info("Received Message: {}", message);
+  spdlog::info("Received Message: {}", message);
 }
 
 int main()

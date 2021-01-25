@@ -1,7 +1,8 @@
 #pragma once
 
-#include <flow/logging.hpp>
 #include <flow/transformer.hpp>
+
+#include <spdlog/spdlog.h>
 
 namespace example {
 class string_hasher {
@@ -9,7 +10,7 @@ public:
   std::size_t operator()(std::string&& message)
   {
     const auto hashed =  std::hash<std::string>{}(std::move(message));
-    flow::logging::info("Received Reversed String: {} Hashed: {}", message, hashed);
+    spdlog::info("Received Reversed String: {} Hashed: {}", message, hashed);
     return hashed;
   }
 

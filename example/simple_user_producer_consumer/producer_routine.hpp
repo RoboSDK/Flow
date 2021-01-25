@@ -1,6 +1,5 @@
 #pragma once
 
-#include <flow/logging.hpp>
 #include <flow/producer.hpp>
 
 namespace example {

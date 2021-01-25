@@ -7,12 +7,8 @@ endif()
 
 list(APPEND libraries
         CONAN_PKG::catch2
-        project_options
-        project_warnings
-        header_only_libs
         flow::flow
-        flow::logging cppcoro
-        liburing::liburing
+
         CONAN_PKG::spdlog)
 
 add_library(catch_main STATIC catch_main.cpp)
@@ -50,22 +46,6 @@ macro(add_constexpr_catch_test test_name)
           --out=constexpr.xml)
 endmacro()
 
-macro(add_relaxed_constexpr_catch_test test_name)
-  set(relaxed_name "relaxed_${test_name}")
-  add_executable(${relaxed_name} ${test_name}.cpp)
-  target_link_libraries(${relaxed_name} PRIVATE catch_main)
-  target_compile_definitions(${relaxed_name} PRIVATE -DCATCH_CONFIG_RUNTIME_STATIC_REQUIRE)
-  catch_discover_tests(
-          ${relaxed_name}
-          TEST_PREFIX
-          "relaxed_constexpr."
-          EXTRA_ARGS
-          -s
-          --reporter=xml
-          --out=relaxed_constexpr.xml)
-endmacro()
-
-
 add_catch_test(test_mixed_array)
 add_catch_test(test_cancellation)
 add_catch_test(test_timeout_function)
@@ -73,6 +53,4 @@ add_catch_test(test_network)
 
 add_constexpr_catch_test(test_metaprogramming)
 add_constexpr_catch_test(test_concepts)
-
-add_relaxed_constexpr_catch_test(test_metaprogramming)
 
