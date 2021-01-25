@@ -17,24 +17,25 @@ aims to provide this framework.
       1. [Functions](#1-1-functions)
       2. [Communication](#1-2-communication)
    2. [Examples](#2-examples)
-2. [Dependencies](#dependencies)
+2. [Milestones](#miletones)
+3. [Dependencies](#dependencies)
     1. [Necessary Dependencies ](#1-necessary-dependencies)
     2. [Library Dependencies ](#2-library-dependencies)
     3. [Optional Dependencies ](#3-optional-dependencies)
        1. [Tools](#3-1-tools")
-3. [Build Instructions](#build-instructions)
+4. [Build Instructions](#build-instructions)
     1. [Build Directory](#1-build-directory)
     2. [Environment Variables](#2-environment-variables)
     3. [Configure](#3-configure)
         1. [Via GUI](#3-1-configure-via-gui)
         2. [Via CCmake](#3-2-configure-via-ccmake)
     4. [Build](#4-build)
-4. [Troubleshooting](#troubleshooting)
+5. [Troubleshooting](#troubleshooting)
     1. [Update Conan](#1-update-conan)
     2. [Clear Conan Cache](#2-clear-conan-cache)
     3. [Misconfiguration](#2-misconfiguration)
-5. [Testing](#testing)
-6. [Fuzz Testing](#fuzz-testing)
+6. [Testing](#testing)
+
 
 
 <a name="core-concepts"></a>
@@ -233,6 +234,19 @@ int main()
   flow::spin(std::move(network));
 }
 ```
+
+<a name="milestones"></a>
+## Milestones
+
+| Version | Description                                                                  | ETA                |
+|---------|------------------------------------------------------------------------------|--------------------|
+| 0.1     | Ability to create in-memory network, send messages, and shut down reliably.  | 1/25/2021          |
+| 0.2     | TCP, UDP, ICP, etc support to send receive messages efficiently              | Mid-February 20201 |
+| 0.3     | Can generate custom messages                                                 | March 2021         |
+| 0.4     | Collect performance metrics and show in documentation                        | Mid-March 2021     |
+| 0.5     | Create tools to tweak performance                                            | April 2021         |
+| 0.6     | Optimization of implementation and add memory pool/allocator options         | May 2021           |
+| 1.0     | All Major features complete                                                  | June 2021          |
 
 <a name="dependencies"></a>
 ## Dependencies
@@ -616,7 +630,3 @@ version of `fmt`.
 See [Catch2 tutorial](https://github.com/catchorg/Catch2/blob/master/docs/tutorial.md)
 
 To run the tests execute the `ctest` command from within the `build` directory
-
-<a name="fuzz-testing"></a>
-## Fuzz testing (Not yet implemented)
-See [libFuzzer Tutorial](https://github.com/google/fuzzing/blob/master/tutorial/libFuzzerTutorial.md)
