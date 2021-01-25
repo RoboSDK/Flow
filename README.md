@@ -17,7 +17,7 @@ aims to provide this framework.
       1. [Functions](#1-1-functions)
       2. [Communication](#1-2-communication)
    2. [Examples](#2-examples)
-2. [Milestones](#miletones)
+2. [Milestones](#milestones)
 3. [Dependencies](#dependencies)
     1. [Necessary Dependencies ](#1-necessary-dependencies)
     2. [Library Dependencies ](#2-library-dependencies)
