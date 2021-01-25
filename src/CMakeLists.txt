@@ -16,8 +16,7 @@ target_link_libraries(flow
         project_options
 
         PRIVATE
-        project_warnings
-        header_only_libs)
+        project_warnings)
 
 target_include_directories(flow
         PUBLIC
@@ -26,6 +25,27 @@ target_include_directories(flow
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         )
+
+install(TARGETS project_options
+        EXPORT flowTargets
+        RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin
+        LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
+        PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}"
+        COMPONENT dev)
+
+install(TARGETS project_warnings
+        EXPORT flowTargets
+        RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin
+        LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
+        PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}"
+        COMPONENT dev)
+
+#install(TARGETS header_only_libs
+#        EXPORT flowTargets
+#        RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin
+#        LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
+#        PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}"
+#        COMPONENT dev)
 
 install(TARGETS flow
         EXPORT flowTargets

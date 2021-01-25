@@ -48,3 +48,6 @@ if(ENABLE_UNITY)
   # Add for any project you want to apply unity builds for
   set_target_properties(intro PROPERTIES UNITY_BUILD ON)
 endif()
+
+include(cmake/ExportLibrary.cmake)
+
