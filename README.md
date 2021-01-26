@@ -237,18 +237,18 @@ int main()
 
 <a name="milestones"></a>
 ## Milestones
-
 | Version | Description                                                                  | ETA                |
-|---------|----------
---------------------------------------------------------------------|--------------------|
-| 0.1     | Ability to create in-memory network, send messages, and shut down reliably.  | 1/25/2021          |
-| 0.2     | TCP, UDP, ICP, etc support to send receive messages efficiently              | Mid-February 20201 |
-| 0.3     | Can generate custom messages                                                 | March 2021         |
-| 0.4     | Collect performance metrics and show in documentation                        | Mid-March 2021     |
-| 0.5     | Create tools to tweak performance                                            | April 2021         |
-| 0.6     | Optimization of implementation and add memory pool/allocator options         | May 2021           |
-| 1.0     | All Major features complete                                                  | June 2021          |
-| 1.1     | Compose functions, when_all, when_any                                        | June 2021          |
+|---------|------------------------------------------------------------------------------|--------------------|
+| 0.1.0   | Ability to create in-memory network, send messages, and shut down reliably.  | 1/25/2021          |
+| 0.1.1   | Ability to set frequency of routines.                                        |                    |
+| 0.1.2   | TCP, UDP, ICP, etc support to send receive messages efficiently.             | Mid-February 20201 |
+| 0.1.3   | Can generate custom messages. Single producer single consumer channels.      | March 2021         |
+| 0.1.4   | Collect performance metrics and show in documentation                        | Mid-March 2021     |
+| 0.1.5   | Create tools to tweak performance                                            | April 2021         |
+| 0.1.6   | Optimization of implementation and add memory pool/allocator options         | May 2021           |
+| 0.2     | All Major features complete                                                  | June 2021          |
+| 0.2.1   | Compose functions, when_all, when_any                                        | Mid-June 2021      |
+| 1.0.0   | Embedded support (single-threaded, no heap allocatinons), security           | Mid 2022           |
 
 <a name="dependencies"></a>
 ## Dependencies
