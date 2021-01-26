@@ -28,7 +28,6 @@ if (ENABLE_PCH)
             configuration
             consumer
             flow
-            make_routine
             network_handle
             network
             producer
