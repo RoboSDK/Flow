@@ -10,6 +10,32 @@ the moment of actuation must be as close to instantaneous as possible. The trans
 perception data to execution should be performed without overhead, while being correct. Flow 
 aims to provide this framework.
 
+#### Quick Start
+
+Requires Ubuntu 20.04 for GCC >= 10.2 to install. 
+
+```
+# Install GCC >= 10.2 and make it the default
+sudo apt install build-essential gcc-10 g++-10 
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
+
+# install conan
+sudo apt install python-pip 
+pip install --user conan
+
+# install Flow
+git clone https://github.com/ManuelMeraz/Flow.git
+cd Flow
+sudo ./scripts/install_liburing.sh
+sudo ./scripts/install_cppcoro.sh
+mkdir build
+cd build
+cmake -DENABLE_TESTING -DENABLE_EXAMPLES -DCMAKE_BUILD_TYPE=Release ..
+make -j8 # number of hardware threads in your system you want to use
+ctest -j8
+sudo make install 
+```
+
 ## Table of Contents
 
 1. [Core Concepts](#core-concepts)
@@ -269,6 +295,7 @@ The following compilers should work:
     - Ubuntu 20.04:
 
         sudo apt install build-essential gcc-10 g++-10
+        
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
       
     </details>
