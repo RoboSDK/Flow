@@ -30,7 +30,7 @@ sudo ./scripts/install_liburing.sh
 sudo ./scripts/install_cppcoro.sh
 mkdir build
 cd build
-cmake -DENABLE_TESTING -DENABLE_EXAMPLES -DCMAKE_BUILD_TYPE=Release ..
+cmake -DENABLE_TESTING=ON -DENABLE_EXAMPLES=ON -DCMAKE_BUILD_TYPE=Release ..
 make -j8 # number of hardware threads in your system you want to use
 ctest -j8
 sudo make install 
