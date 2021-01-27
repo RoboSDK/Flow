@@ -267,7 +267,7 @@ int main()
 | Version | Description                                                                  | ETA                |
 |---------|------------------------------------------------------------------------------|--------------------|
 | 0.1.0   | Ability to create in-memory network, send messages, and shut down reliably.  | 1/25/2021          |
-| 0.1.1   | Ability to set frequency of routines.                                        |                    |
+| 0.1.1   | Ability to set frequency of routines. Use fflat buffers as messages          |                    |
 | 0.1.2   | TCP, UDP, ICP, etc support to send receive messages efficiently.             | Mid-February 20201 |
 | 0.1.3   | Can generate custom messages. Single producer single consumer channels.      | March 2021         |
 | 0.1.4   | Collect performance metrics and show in documentation                        | Mid-March 2021     |
