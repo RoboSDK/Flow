@@ -176,7 +176,7 @@ and then the producer coroutines will end and exit their scope.
 `example/minimal_producer_consumer`
 ```
 #include <flow/flow.hpp>
-#include <flow/logging.hpp>
+#include <spdlog/spdlog.h>
 
 std::string hello_world()
 {
@@ -185,7 +185,7 @@ std::string hello_world()
 
 void receive_message(std::string&& message)
 {
-  flow::logging::info("Received Message: {}", message);
+  spdlog::info("Received Message: {}", message);
 }
 
 int main()
@@ -212,7 +212,7 @@ int main()
 Example with transformers
 ```
 #include <flow/flow.hpp>
-#include <flow/logging.hpp>
+#include <spdlog/spdlog.h>
 
 std::string make_hello_world()
 {
@@ -233,7 +233,7 @@ std::size_t hash_string(std::string&& message)
 // For now all messages are passed in by r-value
 void receive_hashed_message(std::size_t&& message)
 {
-  flow::logging::info("Received Message: {}", message);
+  spdlog::info("Received Message: {}", message);
 }
 
 int main()
