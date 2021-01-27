@@ -242,7 +242,7 @@ int main()
   using namespace std::literals;
   
   auto hello_world = producer(make_hello_world, "hello_world");
-  auto reverser = transformer(reverse_string, "hello_world", "reversed"); // subscribe to "hello_world", publish to "reversed"
+  auto reverser = transformer(reverse_string, "hello_world", "reversed");
   auto hasher = transformer(hash_string, "reversed", "hashed");
   auto receiver = consumer(receive_hashed_message, "hashed");
 
