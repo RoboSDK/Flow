@@ -10,43 +10,29 @@ add_library(flow::flow ALIAS flow)
 
 target_link_libraries(flow
         PUBLIC
-        Threads::Threads
-        liburing::liburing
-        cppcoro
-
         project_options
+        liburing::liburing
+
+        cppcoro
+        Threads::Threads
+
         header_only_libs
 
-        PRIVATE
         flatbuffers
         project_warnings)
 
 target_include_directories(flow
         PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include/OdroidGPIO>
+        $<INSTALL_INTERFACE:include/flow>
 
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/messages>
-        $<INSTALL_INTERFACE:include/OdroidGPIO>
+        $<INSTALL_INTERFACE:include/flow>
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         )
 
-install(TARGETS project_options
-        EXPORT flowTargets
-        RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin
-        LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
-        PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}"
-        COMPONENT dev)
-
-install(TARGETS project_warnings
-        EXPORT flowTargets
-        RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin
-        LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
-        PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}"
-        COMPONENT dev)
-
-install(TARGETS flow
+install(TARGETS flow project_options header_only_libs project_warnings flatbuffers
         EXPORT flowTargets
         RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin
         LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
