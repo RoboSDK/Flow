@@ -10,6 +10,32 @@ the moment of actuation must be as close to instantaneous as possible. The trans
 perception data to execution should be performed without overhead, while being correct. Flow 
 aims to provide this framework.
 
+#### Quick Start
+
+Requires Ubuntu 20.04 for GCC >= 10.2 to install. 
+
+```
+# Install GCC >= 10.2 and make it the default
+sudo apt install build-essential gcc-10 g++-10 
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
+
+# install conan
+sudo apt install python-pip 
+pip install --user conan
+
+# install Flow
+git clone https://github.com/ManuelMeraz/Flow.git
+cd Flow
+sudo ./scripts/install_liburing.sh
+sudo ./scripts/install_cppcoro.sh
+mkdir build
+cd build
+cmake -DENABLE_TESTING=ON -DENABLE_EXAMPLES=ON -DCMAKE_BUILD_TYPE=Release ..
+make -j8 # number of hardware threads in your system you want to use
+ctest -j8
+sudo make install 
+```
+
 ## Table of Contents
 
 1. [Core Concepts](#core-concepts)
@@ -65,13 +91,13 @@ over the last few months. I've had to make a couple of redesigns, but I think th
 as a base.
 
 I have many more additions I want to add, such as support for TCP/IP and UDP, performance optimizations, and ergonomics
-such as adding in a when_all to subscribe to multiple m_channels at once with a receiver or transformer_impl.
+such as adding in a when_all to subscribe to multiple channels at once with a receiver or transformer.
 
 <a name="1-overview"></a>
 ### Overview
 
 The philosophy behind this framework is dependency management by preventing cyclical dependencies and creating
-maximum flow in a network_impl and thereby minimizing latency in the system (and probably increase throughput). This is 
+maximum flow in a network and thereby minimizing latency in the system (and probably increase throughput). This is 
 meant to be used for closed feedback systems.
 
 <a name="1-1-functions"></a>
@@ -79,11 +105,11 @@ meant to be used for closed feedback systems.
 Each node in this graph represents an function, and the specific type of function is defined by the dependencies it
 has.
 
-1. *Spinner* - A spinner_impl is an function with no dependencies and nothing depends on it. it's a closed system. 
+1. *Spinner* - A spinner is an function with no dependencies and nothing depends on it. it's a closed system. 
     - Notation:  `()`
     - Example: In C++ this is a `()->void` function, or any other process that 
     
-2. *Producer* - A producer_impl is an function with no dependencies and some other function must depend on it. 
+2. *Producer* - A producer is an function with no dependencies and some other function must depend on it. 
     - Notation:  `()->R`
     - Example: In C++ this is a `()->R` function, or any other process that emulates the behavior
     
@@ -91,39 +117,39 @@ has.
     - Notation:  `(A)`
     - Example: In C++ this is a `(A&&... a)->void` function, or any other process that emulates the behavior
     
-3. *Transformer* - A transformer_impl is an function with at least one dependency and at least one function depends on it.
+3. *Transformer* - A transformer is an function with at least one dependency and at least one function depends on it.
     - Notation:  `(A)->R`
     - Example: In C++ this is a `(A&&... a)->R` function, or any other process that emulates the behavior
     
-The flow network_impl is composed of these 4 types of functions, and any functions where the dependencies are not satisfied
-is an invalid network_impl.
+The flow network is composed of these 4 types of functions, and any functions where the dependencies are not satisfied
+is an invalid network.
 
 <a name="1-2-communication"></a>
 ### Communication
-Each of these functions are connected to each other through a `multi_channel`. Each multi_channel needs to have
-at least one producer_impl and one receiver on the other end. A transformer_impl doubles as a producer_impl and receiver, 
-so a path through the network_impl may look something like this
+Each of these functions are connected to each other through a `channel`. Each channel needs to have
+at least one producer and one receiver on the other end. A transformer doubles as a producer and receiver, 
+so a path through the network may look something like this
 
-`{()->A , (A)->B, (B)->C, (C)}` This network_impl contains a producer_impl, two transformers, and a receiver. It is complete 
-and and closed. There will be three m_channels in between; each with its own multi_channel name. If no multi_channel name is provided,
-then an empty string will be used; you can think of this as a *global multi_channel*. 
+`{()->A , (A)->B, (B)->C, (C)}` This network contains a producer, two transformers, and a receiver. It is complete 
+and and closed. There will be three channels in between; each with its own channel name. If no channel name is provided,
+then an empty string will be used; you can think of this as a *global channel*. 
 
-A global multi_channel is a multi_channel that is available globally for that specific message type. Publishing an
-`int` without a multi_channel name will publish to the global `int` multi_channel.
+A global channel is a channel that is available globally for that specific message type. Publishing an
+`int` without a channel name will publish to the global `int` channel.
 
-**Not yet implemented**: At the moment m_channels use a multi-producer_impl scheme, so if only one producer_impl exists in that
-multi_channel, then it is inefficient due to synchronization of atomics. There will be a way to make m_channels that are
-single producer_impl single receiver in the future. These will be done by tightly linking multiple functions and generating
-private m_channels that are inaccessible through the main network_impl. Think of it as creating a subnet within the network_impl.
+**Not yet implemented**: At the moment channels use a multi-producer scheme, so if only one producer exists in that
+channel, then it is inefficient due to synchronization of atomics. There will be a way to make channels that are
+single producer single receiver in the future. These will be done by tightly linking multiple functions and generating
+private channels that are inaccessible through the main network. Think of it as creating a subnet within the network.
 
-Each of the functions in the network_impl will begin and start to process data and eventually reach a frequency.
+Each of the functions in the network will begin and start to process data and eventually reach a frequency.
 
 Looking at the original example: `{()->A , (A)->B, (B)->C, (C)}`
 
-At t0 the two transformers and receiver at the end will be waiting for messages and the producer_impl will begin to 
-produce data. This could be through a network_impl socket that has no local dependencies (e.g. sensor data). 
+At t0 the two transformers and receiver at the end will be waiting for messages and the producer will begin to 
+produce data. This could be through a network socket that has no local dependencies (e.g. sensor data). 
 
-At t1 The first transformer_impl receives the first message and transforms it, and at the same time the producer_impl begins
+At t1 The first transformer receives the first message and transforms it, and at the same time the producer begins
 producing a second piece of data. 
 
 This keeps going until all 4 functions are constantly communicating information to the final receiver with some
@@ -132,16 +158,16 @@ frequency.
 <a name="1-3-Cancellation"></a>
 ### Cancellation
 
-Cancellation of coroutines is tricky, but there is a logical way to cancel this large network_impl. 
+Cancellation of coroutines is tricky, but there is a logical way to cancel this large network. 
 
 The producers begin the chain of functions, and the way to end the chain is by beginning with the receiver
 at the end of the chain. when a cancellation request is performed the consumers at the end of the
-network_impl flow will begin by exiting their main loop. 
+network flow will begin by exiting their main loop. 
 
 At this point, transformers and producers down the chain will be awaiting compute time for their coroutine. The receiver
-will then `flush` out the waiting transformer_impl or producer_impl that is next in line, once that transformer_impl is free the 
-receiver will end. Then the transformer_impl will repeat this until the producer_impl is reached at the beginning of the chain 
-and then the producer_impl coroutines will end and exit their scope.
+will then `flush` out the waiting transformer or producer that is next in line, once that transformer is free the 
+receiver will end. Then the transformer will repeat this until the producer is reached at the beginning of the chain 
+and then the producer coroutines will end and exit their scope.
 
 
 <a name="2-examples"></a>
@@ -150,7 +176,7 @@ and then the producer_impl coroutines will end and exit their scope.
 `example/minimal_producer_consumer`
 ```
 #include <flow/flow.hpp>
-#include <flow/logging.hpp>
+#include <spdlog/spdlog.h>
 
 std::string hello_world()
 {
@@ -159,7 +185,7 @@ std::string hello_world()
 
 void receive_message(std::string&& message)
 {
-  flow::logging::info("Received Message: {}", message);
+  spdlog::info("Received Message: {}", message);
 }
 
 int main()
@@ -167,18 +193,18 @@ int main()
   using namespace std::literals;
 
   /**
-   * The producer_impl hello_world is going to be publishing to the global std::string multi_channel.
-   * The receiver receive_message is going to subscribe to the global std::string multi_channel.
+   * The producer hello_world is going to be publishing to the global std::string channel.
+   * The receiver receive_message is going to subscribe to the global std::string channel.
    */
-  auto network_impl = flow::network(hello_world, receive_message);
+  auto network = flow::network(hello_world, receive_message);
 
   /**
    * Note: cancellation begins in 2 seconds, but cancellation
    * is non-deterministic
    */
-  network_impl.cancel_after(2s);
+  network.cancel_after(2s);
 
-  flow::spin(std::move(network_impl));
+  flow::spin(std::move(network));
 }
 ```
 
@@ -186,7 +212,7 @@ int main()
 Example with transformers
 ```
 #include <flow/flow.hpp>
-#include <flow/logging.hpp>
+#include <spdlog/spdlog.h>
 
 std::string make_hello_world()
 {
@@ -207,48 +233,49 @@ std::size_t hash_string(std::string&& message)
 // For now all messages are passed in by r-value
 void receive_hashed_message(std::size_t&& message)
 {
-  flow::logging::info("Received Message: {}", message);
+  spdlog::info("Received Message: {}", message);
 }
 
 int main()
 {
   using namespace flow;
   using namespace std::literals;
+  
   auto hello_world = producer(make_hello_world, "hello_world");
   auto reverser = transformer(reverse_string, "hello_world", "reversed");
   auto hasher = transformer(hash_string, "reversed", "hashed");
   auto receiver = consumer(receive_hashed_message, "hashed");
 
 //   Order doesn't matter here
-  auto network_impl = flow::network_impl(std::move(hello_world),
+  auto network = flow::network(std::move(hello_world),
                                     std::move(reverser),
                                     std::move(hasher),
                                     std::move(receiver));
 
-  network_impl.cancel_after(1ms);
+  network.cancel_after(1ms);
 
   // Alternative (and preferred method)
-  // auto network_handle = network_impl.handle();
+  // auto network_handle = network.handle();
   // network_handle.request_cancellation();
 
-  flow::spin(std::move(network_impl));
+  flow::spin(std::move(network));
 }
 ```
 
 <a name="milestones"></a>
 ## Milestones
-
 | Version | Description                                                                  | ETA                |
-|---------|----------
---------------------------------------------------------------------|--------------------|
-| 0.1     | Ability to create in-memory network, send messages, and shut down reliably.  | 1/25/2021          |
-| 0.2     | TCP, UDP, ICP, etc support to send receive messages efficiently              | Mid-February 20201 |
-| 0.3     | Can generate custom messages                                                 | March 2021         |
-| 0.4     | Collect performance metrics and show in documentation                        | Mid-March 2021     |
-| 0.5     | Create tools to tweak performance                                            | April 2021         |
-| 0.6     | Optimization of implementation and add memory pool/allocator options         | May 2021           |
-| 1.0     | All Major features complete                                                  | June 2021          |
-| 1.1     | Compose functions, when_all, when_any                                        | June 2021          |
+|---------|------------------------------------------------------------------------------|--------------------|
+| 0.1.0   | Ability to create in-memory network, send messages, and shut down reliably.  | 1/25/2021          |
+| 0.1.1   | Ability to set frequency of routines. Use fflat buffers as messages          |                    |
+| 0.1.2   | TCP, UDP, ICP, etc support to send receive messages efficiently.             | Mid-February 20201 |
+| 0.1.3   | Can generate custom messages. Single producer single consumer channels.      | March 2021         |
+| 0.1.4   | Collect performance metrics and show in documentation                        | Mid-March 2021     |
+| 0.1.5   | Create tools to tweak performance                                            | April 2021         |
+| 0.1.6   | Optimization of implementation and add memory pool/allocator options         | May 2021           |
+| 0.2     | All Major features complete                                                  | June 2021          |
+| 0.2.1   | Compose functions, when_all, when_any                                        | Mid-June 2021      |
+| 1.0.0   | Embedded support (single-threaded, no heap allocatinons), security           | Mid 2022           |
 
 <a name="dependencies"></a>
 ## Dependencies
@@ -269,6 +296,7 @@ The following compilers should work:
     - Ubuntu 20.04:
 
         sudo apt install build-essential gcc-10 g++-10
+        
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
       
     </details>
