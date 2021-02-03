@@ -5,6 +5,14 @@ macro(git_submodule_update submodule)
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endmacro()
 
-#add_library(header_only_libs INTERFACE)
-#target_include_directories(header_only_libs SYSTEM INTERFACE )
+add_library(header_only_libs INTERFACE)
+target_include_directories(header_only_libs SYSTEM INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/external>
+        $<INSTALL_INTERFACE:external>)
 
+install(TARGETS header_only_libs
+        EXPORT flowTargets
+        RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin
+        LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
+        PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}"
+        COMPONENT dev)

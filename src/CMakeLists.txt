@@ -13,7 +13,9 @@ target_link_libraries(flow
         Threads::Threads
         liburing::liburing
         cppcoro
+
         project_options
+        header_only_libs
 
         PRIVATE
         project_warnings)
@@ -21,6 +23,9 @@ target_link_libraries(flow
 target_include_directories(flow
         PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include/OdroidGPIO>
+
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/messages>
         $<INSTALL_INTERFACE:include/OdroidGPIO>
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -39,13 +44,6 @@ install(TARGETS project_warnings
         LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
         PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}"
         COMPONENT dev)
-
-#install(TARGETS header_only_libs
-#        EXPORT flowTargets
-#        RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin
-#        LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
-#        PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}"
-#        COMPONENT dev)
 
 install(TARGETS flow
         EXPORT flowTargets
