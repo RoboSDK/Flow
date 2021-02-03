@@ -18,6 +18,7 @@ target_link_libraries(flow
         header_only_libs
 
         PRIVATE
+        flatbuffers
         project_warnings)
 
 target_include_directories(flow
