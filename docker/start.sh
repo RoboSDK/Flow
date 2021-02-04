@@ -19,3 +19,4 @@ docker run --privileged -d \
     --name ${DOCKER_NAME} ${DOCKER_NAME}:${TAG}
 
 docker exec -u root ${DOCKER_NAME} sh -c "echo 127.0.0.1 ${DOCKER_NAME} >> /etc/hosts"
+./bash.sh
