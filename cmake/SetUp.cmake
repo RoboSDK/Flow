@@ -44,3 +44,5 @@ enable_doxygen()
 # allow for static analysis options
 include(cmake/StaticAnalyzers.cmake)
 
+configure_file(cmake/Findcppcoro.cmake lib/cmake/cppcoro/cppcoroConfig.cmake)
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib/cmake DESTINATION lib)
