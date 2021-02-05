@@ -13,7 +13,7 @@ target_link_libraries(flow
         project_options
         liburing::liburing
 
-        cppcoro
+        cppcoro::cppcoro
         Threads::Threads
 
         header_only_libs
