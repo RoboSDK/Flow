@@ -46,3 +46,6 @@ include(cmake/StaticAnalyzers.cmake)
 
 configure_file(cmake/Findcppcoro.cmake lib/cmake/cppcoro/cppcoroConfig.cmake)
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib/cmake DESTINATION lib)
+
+configure_file(cmake/Findliburing.cmake lib/cmake/liburing/liburingConfig.cmake)
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib/cmake DESTINATION lib)
