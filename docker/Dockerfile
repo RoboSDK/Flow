@@ -20,8 +20,8 @@ RUN userdel "user" | true
 RUN groupdel "user" | true
 
 # Add the user
-RUN if [ -z "$(getent group  ${DOCKER_GID})" ] ; then addgroup --gid ${DOCKER_GID} ${DOCKER_USERNAME}; fi
-RUN if [ -z "$(getent passwd ${DOCKER_UID})" ] ; then adduser --uid ${DOCKER_UID} --gid ${DOCKER_GID} --disabled-password --gecos '' ${DOCKER_USERNAME}; fi
+RUN addgroup --gid ${DOCKER_GID} ${DOCKER_USERNAME}
+RUN adduser --uid ${DOCKER_UID} --gid ${DOCKER_GID} --disabled-password --gecos '' ${DOCKER_USERNAME}
 
 # Turn off passwords for our user
 RUN echo "$DOCKER_USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers

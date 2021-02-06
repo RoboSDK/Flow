@@ -11,13 +11,13 @@ TAG="latest"
 
 # Name of the user we will add inside the docker container. You generally want your username
 # inside the container to match the username you will deploy with.
-DOCKER_USERNAME=$(whoami)
+DOCKER_USERNAME="$(whoami)"
 
 # The UID we will use for the user we add to the container.
-DOCKER_UID=$(id -u)
+DOCKER_UID="$(id -u)"
 
 # The GID we will use for the user we add to the container.
-DOCKER_GID=$(id -g)
+DOCKER_GID="$(id -g)"
 
 # The name we will use for both the docker image and container. We append the username so multiple
 # users can develop on a shared server, if desired.

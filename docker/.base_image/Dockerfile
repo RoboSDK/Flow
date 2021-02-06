@@ -10,12 +10,12 @@ ENV LC_ALL C.UTF-8
 
 # Check to ensure that the container does not already contain
 # the UID or GID (a common issue when using custom docker images).
-ENV DOCKER_UID ${DOCKER_UID}
-ENV DOCKER_GID ${DOCKER_GID}
-ENV DOCKER_USERNAME ${DOCKER_USERNAME} 
+ARG DOCKER_UID ${DOCKER_UID}
+ARG DOCKER_GID ${DOCKER_GID}
+ARG DOCKER_USERNAME ${DOCKER_USERNAME} 
 
-RUN if [ -z "$(getent group  ${DOCKER_GID})" ] ; then addgroup --gid ${DOCKER_GID} ${DOCKER_USERNAME}; fi
-RUN if [ -z "$(getent passwd ${DOCKER_UID})" ] ; then adduser --uid ${DOCKER_UID} --gid ${DOCKER_GID} --disabled-password --gecos '' ${DOCKER_USERNAME}; fi
+ARG addgroup --gid ${DOCKER_GID} ${DOCKER_USERNAME}
+ARG adduser --uid ${DOCKER_UID} --gid ${DOCKER_GID} --disabled-password --gecos '' ${DOCKER_USERNAME}
 
 # Turn off passwords for our user
 RUN echo "$DOCKER_USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
