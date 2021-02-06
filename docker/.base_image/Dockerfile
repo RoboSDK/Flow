@@ -40,7 +40,7 @@ WORKDIR /tmp/cppcoro/
 RUN mkdir build
 WORKDIR /tmp/cppcoro/build
 RUN cmake -DCMAKE_BUILD_TYPE=Release ..
-RUN make -j8
+RUN make -j
 
 RUN cp ./lib/libcppcoro.a /usr/local/lib
 RUN cp -r ../include/* /usr/local/include
@@ -49,7 +49,7 @@ WORKDIR /tmp
 RUN git clone https://github.com/axboe/liburing.git
 WORKDIR /tmp/liburing
 RUN ./configure
-RUN make -j8
+RUN make -j
 RUN make install
 
 WORKDIR /opt
@@ -58,8 +58,8 @@ WORKDIR /opt/Flow
 RUN mkdir build
 WORKDIR /opt/Flow/build
 RUN cmake -DENABLE_TESTING=ON -DENABLE_EXAMPLES=ON -DCMAKE_BUILD_TYPE=Release ..
-RUN make -j8 # number of hardware threads in your system you want to use
-RUN ctest -j8
+RUN make -j 
+RUN ctest -j
 RUN make install 
 
 WORKDIR /opt
@@ -68,7 +68,7 @@ WORKDIR /opt/FlowExample
 RUN mkdir build
 WORKDIR /opt/FlowExample/build
 RUN cmake --DCMAKE_BUILD_TYPE=Release ..
-RUN make -j8 # number of hardware threads in your system you want to use
+RUN make -j 
 
 ################################# End ##############################
 
