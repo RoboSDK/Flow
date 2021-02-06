@@ -19,7 +19,10 @@ target_link_libraries(flow
         header_only_libs
 
         flatbuffers
-        project_warnings)
+        project_warnings
+        PRIVATE
+        CONAN_PKG::spdlog
+        )
 
 target_include_directories(flow
         PUBLIC

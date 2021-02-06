@@ -1,5 +1,7 @@
 #pragma once
 
+#include <spdlog/spdlog.h>
+
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>
 
@@ -52,8 +54,9 @@ cppcoro::task<void> spin_producer(
   cancellable_function<return_t()>& producer)
 {
   producer_token<return_t> producer_token{};
+  using channel_t = std::decay_t<decltype(channel)>;
 
-  while (not channel.is_terminated()) {
+  while (channel.state() < channel_t::termination_state::consumer_initialized) {
     co_await channel.request_permission_to_publish(producer_token);
 
     for (std::size_t i = 0; i < producer_token.sequences.size(); ++i) {
@@ -63,6 +66,21 @@ cppcoro::task<void> spin_producer(
 
     channel.publish_messages(producer_token);
   }
+
+  channel.confirm_termination();
+  spdlog::info("producer reverse flushing transformer");
+
+  while (channel.state() < channel_t::termination_state::consumer_finalized) {
+    co_await channel.request_permission_to_publish(producer_token);
+
+    for (std::size_t i = 0; i < producer_token.sequences.size(); ++i) {
+      return_t message = co_await [&]() -> cppcoro::task<return_t> { co_return std::invoke(producer); }();
+      producer_token.messages.push(std::move(message));
+    }
+
+    channel.publish_messages(producer_token);
+  }
+  spdlog::info("producer done reverse flushing transformer");
 }
 
 /**
@@ -92,6 +110,7 @@ cppcoro::task<void> spin_consumer(
   cancellable_function<void(argument_t&&)>& consumer)
 {
   consumer_token<argument_t> consumer_token{};
+  using channel_t = std::decay_t<decltype(channel)>;
 
   while (not consumer.is_cancellation_requested()) {
     auto next_message = channel.message_generator(consumer_token);
@@ -106,8 +125,15 @@ cppcoro::task<void> spin_consumer(
     }
   }
 
-  channel.terminate();
-  co_await flush<void>(channel, consumer, consumer_token);
+  channel.initialize_termination();
+  spdlog::info("consumer about to flush");
+
+  while (channel.state() < channel_t::termination_state::producer_received) {
+    co_await flush<void>(channel, consumer, consumer_token);
+  }
+
+  channel.finalize_termination();
+  spdlog::info("consumer done flushing");
 }
 
 /**
@@ -138,10 +164,12 @@ cppcoro::task<void> spin_transformer(
 {
   producer_token<return_t> producer_token{};
   consumer_token<argument_t> consumer_token{};
+  using consumer_channel_t = std::decay_t<decltype(consumer_channel)>;
+  using producer_channel_t = std::decay_t<decltype(producer_channel)>;
 
   co_await consumer_channel.request_permission_to_publish(producer_token);
 
-  while (not consumer_channel.is_terminated()) {
+  while (consumer_channel.state() < consumer_channel_t::termination_state::consumer_initialized) {
     auto next_message = producer_channel.message_generator(consumer_token);
     auto current_message = co_await next_message.begin();
 
@@ -164,7 +192,43 @@ cppcoro::task<void> spin_transformer(
     }
   }
 
-  producer_channel.terminate();
+  consumer_channel.confirm_termination();
+  spdlog::info("transformer about to reverse flush");
+  bool published_all_messages_to_consume = false;
+  while (not published_all_messages_to_consume and consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
+    auto next_message = producer_channel.message_generator(consumer_token);
+    auto current_message = co_await next_message.begin();
+
+    while (current_message != next_message.end()) {
+      auto& message_to_consume = *current_message;
+
+      auto message_to_produce = co_await [&]() -> cppcoro::task<return_t> {
+        co_return std::invoke(transformer, std::move(message_to_consume));
+      }();
+
+      producer_token.messages.push(std::move(message_to_produce));
+      producer_channel.notify_message_consumed(consumer_token);
+
+      if (producer_token.messages.size() == producer_token.sequences.size()) {
+        consumer_channel.publish_messages(producer_token);
+        published_all_messages_to_consume = true;
+        break;
+      }
+      co_await ++current_message;
+    }
+  }
+
+  producer_channel.initialize_termination();
+
+  spdlog::info("transformer about to flush");
+  while (producer_channel.state() < producer_channel_t::termination_state::producer_received or producer_channel.is_waiting()) {
+    co_await flush<return_t>(producer_channel, transformer, consumer_token);
+  }
+
+  producer_channel.finalize_termination();
+  spdlog::info("transformer done flushing");
+
+  // producer needs one final flush
   co_await flush<return_t>(producer_channel, transformer, consumer_token);
 }
 

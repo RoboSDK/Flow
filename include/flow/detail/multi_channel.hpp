@@ -36,6 +36,13 @@ class multi_channel {
   using scheduler_t = cppcoro::static_thread_pool;/// The static thread pool is used to schedule threads
 
 public:
+  enum class termination_state {
+    uninitialised,
+    consumer_initialized,
+    producer_received,
+    consumer_finalized
+  };
+
   /**
    * @param name Name of the multi_channel
    * @param resource A generated multi_channel channel_resource
@@ -115,6 +122,11 @@ public:
     m_resource->sequencer.publish(std::move(token.sequences));
   }
 
+  void confirm_termination()
+  {
+    m_state = termination_state::producer_received;
+  }
+
   /*******************************************************
    ****************** CONSUMER INTERFACE *****************
    ******************************************************/
@@ -146,28 +158,14 @@ public:
     }
   }
 
-  /**
-   * Disable the multi_channel
-   *
-   * When cancelling a network the beginning of the cancellation happens
-   * with the consumer_function end of the network. This trickles down all the way to the
-   * beginning end of the network with the first producer_function.
-   *
-   * The consumer_function cancels itself, terminates the multi_channel, and then flushes out any
-   * producers waiting for permission to publish.
-   */
-  void terminate()
+  void initialize_termination()
   {
-    std::atomic_ref(m_is_terminated).store(true);
+    m_state = termination_state::consumer_initialized;
   }
 
-  /**
-   * Used by the producer_function ends of the m_channels to keep looping or not
-   * @return if the multi_channel has been cancelled by the consumer_function end of the multi_channel
-   */
-  bool is_terminated()
+  void finalize_termination()
   {
-    return std::atomic_ref(m_is_terminated).load();
+    m_state = termination_state::consumer_finalized;
   }
 
   /**
@@ -178,8 +176,19 @@ public:
     return std::atomic_ref(m_num_publishers_waiting).load() > 0;
   }
 
+
+  /*******************************************************
+   ****************** END CONSUMER INTERFACE *****************
+   ******************************************************/
+
+  termination_state state()
+  {
+    return m_state;
+  }
+
+
 private:
-  bool m_is_terminated{};
+  termination_state m_state{ termination_state::uninitialised };
 
   std::size_t m_num_publishers_waiting{};
 
