@@ -20,8 +20,6 @@ target_link_libraries(flow
 
         flatbuffers
         project_warnings
-        PRIVATE
-        CONAN_PKG::spdlog
         )
 
 target_include_directories(flow

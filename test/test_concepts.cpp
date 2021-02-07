@@ -310,7 +310,7 @@ TEST_CASE("Test consumer routine", "[consumer_routine]")
   }
 }
 
-TEST_CASE("Test consumer routine", "[transformer_routine]")
+TEST_CASE("Test transformer routine", "[transformer_routine]")
 {
   SECTION("raw function")
   {

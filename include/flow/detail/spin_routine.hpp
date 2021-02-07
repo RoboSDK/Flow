@@ -1,7 +1,5 @@
 #pragma once
 
-#include <spdlog/spdlog.h>
-
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>
 
@@ -68,7 +66,6 @@ cppcoro::task<void> spin_producer(
   }
 
   channel.confirm_termination();
-  spdlog::info("producer reverse flushing transformer");
 
   while (channel.state() < channel_t::termination_state::consumer_finalized) {
     co_await channel.request_permission_to_publish(producer_token);
@@ -80,7 +77,6 @@ cppcoro::task<void> spin_producer(
 
     channel.publish_messages(producer_token);
   }
-  spdlog::info("producer done reverse flushing transformer");
 }
 
 /**
@@ -126,14 +122,12 @@ cppcoro::task<void> spin_consumer(
   }
 
   channel.initialize_termination();
-  spdlog::info("consumer about to flush");
 
   while (channel.state() < channel_t::termination_state::producer_received) {
     co_await flush<void>(channel, consumer, consumer_token);
   }
 
   channel.finalize_termination();
-  spdlog::info("consumer done flushing");
 }
 
 /**
@@ -193,7 +187,6 @@ cppcoro::task<void> spin_transformer(
   }
 
   consumer_channel.confirm_termination();
-  spdlog::info("transformer about to reverse flush");
   bool published_all_messages_to_consume = false;
   while (not published_all_messages_to_consume and consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
     auto next_message = producer_channel.message_generator(consumer_token);
@@ -220,13 +213,11 @@ cppcoro::task<void> spin_transformer(
 
   producer_channel.initialize_termination();
 
-  spdlog::info("transformer about to flush");
   while (producer_channel.state() < producer_channel_t::termination_state::producer_received or producer_channel.is_waiting()) {
     co_await flush<return_t>(producer_channel, transformer, consumer_token);
   }
 
   producer_channel.finalize_termination();
-  spdlog::info("transformer done flushing");
 
   // producer needs one final flush
   co_await flush<return_t>(producer_channel, transformer, consumer_token);
