@@ -67,10 +67,12 @@ cppcoro::task<void> spin_producer(
 
   channel.confirm_termination();
 
-  while (channel.state() < channel_t::termination_state::consumer_finalized) {
+  const auto is_finalized = [&] { return channel.state() == channel_t::termination_state::consumer_finalized; };
+
+  while (is_finalized()) {
     co_await channel.request_permission_to_publish(producer_token);
 
-    for (std::size_t i = 0; i < producer_token.sequences.size(); ++i) {
+    for (std::size_t i = 0; not is_finalized() and i < producer_token.sequences.size(); ++i) {
       return_t message = co_await [&]() -> cppcoro::task<return_t> { co_return std::invoke(producer); }();
       producer_token.messages.push(std::move(message));
     }
@@ -128,6 +130,7 @@ cppcoro::task<void> spin_consumer(
   }
 
   channel.finalize_termination();
+  //co_await flush<void>(channel, consumer, consumer_token);
 }
 
 /**
