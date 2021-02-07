@@ -23,8 +23,8 @@ int main()
   auto network = flow::network(hello_world, receive_message);
 
   /**
-   * Note: cancellation begins in 2 seconds, but cancellation
-   * is non-deterministic
+   * Note: cancellation begins in 1 ms, but cancellation
+   * is non-deterministic. 
    */
   network.cancel_after(1ms);
 
