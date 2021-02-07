@@ -22,11 +22,14 @@ ENV USER ${DOCKER_USERNAME}
 RUN addgroup --gid ${DOCKER_GID} ${DOCKER_USERNAME}
 RUN adduser --uid ${DOCKER_UID} --gid ${DOCKER_GID} --disabled-password --gecos '' ${DOCKER_USERNAME}
 
+RUN apt update
+RUN apt install -y sudo
+RUN usermod -aG sudo ${DOCKER_USERNAME}
+
 # Turn off passwords for our user
 RUN echo "$DOCKER_USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 ################################# Start ##############################
-RUN apt update
 RUN apt install -y "vim" "tmux" "silversearcher-ag" "git" "htop" \
           "tree" "openssh-server" "openssh-client" \
           "geany" "bash-completion" "cmake" "gcc-10" "g++-10" \
