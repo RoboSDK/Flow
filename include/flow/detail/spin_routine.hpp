@@ -130,7 +130,7 @@ cppcoro::task<void> spin_consumer(
   }
 
   channel.finalize_termination();
-  //co_await flush<void>(channel, consumer, consumer_token);
+  co_await flush<void>(channel, consumer, consumer_token);
 }
 
 /**
