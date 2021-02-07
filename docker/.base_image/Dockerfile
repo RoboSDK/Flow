@@ -18,13 +18,6 @@ ARG DOCKER_USERNAME="user"
 ENV DOCKER_USERNAME ${DOCKER_USERNAME}
 ENV USER ${DOCKER_USERNAME}
 
-# Delete any custom user/group from the base image,
-# as they likely have the wrong uid/gid.
-RUN userdel ${DOCKER_USERNAME} | true
-RUN groupdel ${DOCKER_USERNAME} | true
-RUN userdel "manny" | true
-RUN groupdel "manny" | true
-
 # Add the user
 RUN addgroup --gid ${DOCKER_GID} ${DOCKER_USERNAME}
 RUN adduser --uid ${DOCKER_UID} --gid ${DOCKER_GID} --disabled-password --gecos '' ${DOCKER_USERNAME}
