@@ -22,44 +22,44 @@
 #include "flow/transformer.hpp"
 
 /**
- * A network is a sequence of routines connected by single producer_function single consumer_function m_channels.
+ * A network is a sequence of routines connected by single producer single consumer channels.
  * The end of the network depends on the data flow from the beginning of the network. The beginning
  * of the network has no dependencies.
  *
- * An empty network is a network which has no routines and can take a spinner_function or a producer_function.
+ * An empty network is a network which has no routines and can take a spinner or a producer.
  *
- * The minimal network s a network with a spinner_function, because it depends on nothing and nothing depends on it.
+ * The minimal network s a network with a spinner, because it depends on nothing and nothing depends on it.
  *
- * When a network is begun with a producer_function, transformers may be inserted into the network until it is capped
- * with a consumer_function.
+ * When a network is begun with a producer, transformers may be inserted into the network until it is capped
+ * with a consumer.
  *
  * Each network is considered independent from another network and may not communicate with each other.
  *
- * producer_function -> transfomer -> ... -> consumer_function
+ * producer -> transfomer -> ... -> consumer
  *
- * Each multi_channel in the network uses contiguous memory to pass data to the multi_channel waiting on the other way. All
- * data must flow from producer_function to consumer_function; no cyclical dependencies.
+ * Each channel in the network uses contiguous memory to pass data to the channel waiting on the other way. All
+ * data must flow from producer to consumer; no cyclical dependencies.
  *
  * Cancellation
  * Cancelling the network of coroutines is a bit tricky because if you stop them all at once, some of them will hang
  * with no way to have them leave the awaiting state.
  *
  * When starting the network reaction all routines will begin to wait and the first callable_routine that is given priority is the
- * producer_function at the beginning of the network, and the last will be the end of the network, or consumer_function.
+ * producer at the beginning of the network, and the last will be the end of the network, or consumer.
  *
- * The consumer_function then has to be the one that initializes the cancellation. The algorithm is as follows:
+ * The consumer then has to be the one that initializes the cancellation. The algorithm is as follows:
  *
  * Consumer receives cancellation request from the cancellation handle
- * consumer_function terminates the multi_channel it is communicating with
- * consumer_function flushes out any awaiting producers/transformers on the producing end of the multi_channel
+ * consumer terminates the channel it is communicating with
+ * consumer flushes out any awaiting producers/transformers on the producing end of the channel
  * end callable_routine
  *
- * The transformer_function or producer_function that is next in the network will then receiving multi_channel termination notification
- * from the consumer_function at the end of the network and break out of its loop
- * It well then notify terminate the producer_function multi_channel it receives data from and flush it out
+ * The transformer or producer that is next in the network will then receiving channel termination notification
+ * from the consumer at the end of the network and break out of its loop
+ * It well then notify terminate the producer channel it receives data from and flush it out
  *
- * rinse repeat until the beginning of the network, which is a producer_function
- * The producer_function simply breaks out of its loop and exits the scope
+ * rinse repeat until the beginning of the network, which is a producer
+ * The producer simply breaks out of its loop and exits the scope
  */
 
 namespace flow {

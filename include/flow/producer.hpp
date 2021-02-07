@@ -8,7 +8,7 @@ namespace detail {
 }
 
 /**
- * May be called directly instead of make_routine<flow::producer>(args);
+ * Create a producer from a callback and channel name to publish on
  *
  * These objects created are passed in to the network to spin up the routines
  *

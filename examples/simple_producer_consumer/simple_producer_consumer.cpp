@@ -9,7 +9,7 @@ std::string make_hello_world()
 std::string reverse_string(std::string&& message)
 {
   std::ranges::reverse(message);
-  return std::move(message); // no RVO here
+  return std::move(message);// no RVO here
 }
 
 std::size_t hash_string(std::string&& message)
@@ -33,11 +33,11 @@ int main()
   auto hasher = transformer(hash_string, "reversed", "hashed");
   auto receiver = consumer(receive_hashed_message, "hashed");
 
-//   Order doesn't matter here
+  //   Order doesn't matter here
   auto network = flow::network(std::move(hello_world),
-    std::move(reverser),
-    std::move(hasher),
-    std::move(receiver));
+                               std::move(reverser),
+                               std::move(hasher),
+                               std::move(receiver));
 
   network.cancel_after(1ms);
 

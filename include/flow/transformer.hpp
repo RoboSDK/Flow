@@ -14,7 +14,7 @@ namespace detail {
 }
 
 /**
- * May be called directly instead of make_routine<flow::consumer>(args);
+ * Create a transformer
  *
  * These objects created are passed in to the network to spin up the routines
  *

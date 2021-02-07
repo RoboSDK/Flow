@@ -6,9 +6,9 @@
 #include <concepts>
 
 /**
- * A callable_routine is a core concept of this framework; a building block of a network.
+ * A routine is a core concept of this framework; a building block of a network.
  *
- * A callable_routine is a callable where it's dependencies (arguments) and return type define its category
+ * A routine is a callable where it's dependencies (arguments) and return type define its category
  */
 
 namespace flow {
