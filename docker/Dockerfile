@@ -16,8 +16,8 @@ ENV USER ${DOCKER_USERNAME}
 # as they likely have the wrong uid/gid.
 RUN userdel ${DOCKER_USERNAME} | true
 RUN groupdel ${DOCKER_USERNAME} | true
-RUN userdel "user" | true
-RUN groupdel "user" | true
+RUN userdel "manny" | true
+RUN groupdel "manny" | true
 
 # Add the user
 RUN addgroup --gid ${DOCKER_GID} ${DOCKER_USERNAME}
