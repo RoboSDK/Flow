@@ -6,3 +6,4 @@ cd liburing || exit 1
 ./configure
 make -j4
 make install
+rm -rf /tmp/liburing
