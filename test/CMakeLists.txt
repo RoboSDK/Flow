@@ -54,3 +54,10 @@ add_catch_test(test_network)
 add_constexpr_catch_test(test_metaprogramming)
 add_constexpr_catch_test(test_concepts)
 
+if (ENABLE_EXAMPLES)
+    add_test(NAME minimal_producer_consumer COMMAND minimal_producer_consumer)
+    add_test(NAME producer_transformer_consumer COMMAND producer_transformer_consumer)
+    add_test(NAME simple_producer_consumer COMMAND simple_producer_consumer)
+    add_test(NAME simple_user_producer_consumer COMMAND simple_user_producer_consumer)
+endif()
+

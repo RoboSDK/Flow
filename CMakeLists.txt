@@ -73,7 +73,6 @@ endif ()
 
 if (ENABLE_TESTING)
     enable_testing()
-    message("Building Tests. Be sure to check out test/constexpr_tests for constexpr testing")
     add_subdirectory(test)
 endif ()
 
