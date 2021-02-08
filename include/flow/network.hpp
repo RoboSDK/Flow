@@ -4,7 +4,7 @@
 
 #include <cppcoro/on_scope_exit.hpp>
 #include <cppcoro/task.hpp>
-#include <cppcoro/when_all_ready.hpp>
+#include <cppcoro/when_all.hpp>
 
 #include "flow/configuration.hpp"
 #include "flow/detail/cancellable_function.hpp"
@@ -241,7 +241,7 @@ namespace detail {
    */
     cppcoro::task<void> spin()
     {
-      co_await cppcoro::when_all_ready(std::move(m_routines_to_spin));
+      co_await cppcoro::when_all(std::move(m_routines_to_spin));
     }
 
     /**
