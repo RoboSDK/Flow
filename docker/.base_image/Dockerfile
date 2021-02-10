@@ -35,12 +35,21 @@ RUN apt install -y "vim" "tmux" "silversearcher-ag" "git" "htop" \
           "geany" "bash-completion" "cmake" "gcc-10" "g++-10" \
           "python3-dev" "python-dev" "python3-pip" \
           "build-essential" "clang" "clang-tidy" "clang-format" \
-          "clang-tools" "gdb" 
+          "clang-tools" "gdb" "flex" "libmpc-dev" "libgmp-dev" \
+          "libmpfr-dev" 
 
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
 
 # install conan
 RUN pip3 install conan
+
+WORKDIR /tmp
+RUN git clone https://github.com/gcc-mirror/gcc.git
+RUN mkdir /tmp/gcc-build
+WORKDIR /tmp/gcc-build
+RUN /tmp/gcc/configure --disable-multilib
+RUN make -j6
+RUN make install
 
 WORKDIR /tmp
 RUN git clone https://github.com/Garcia6l20/cppcoro.git

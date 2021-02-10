@@ -5,15 +5,7 @@ macro(git_submodule_update submodule)
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endmacro()
 
-git_submodule_update(flatbuffers)
-
 add_library(header_only_libs INTERFACE)
 target_include_directories(header_only_libs SYSTEM INTERFACE
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/external>
         $<INSTALL_INTERFACE:external>)
-
-add_subdirectory(flatbuffers
-        ${CMAKE_CURRENT_BINARY_DIR}/flatbuffers-build
-        EXCLUDE_FROM_ALL)
-
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} DESTINATION ${INSTALL_EXTERNAL_DIR})

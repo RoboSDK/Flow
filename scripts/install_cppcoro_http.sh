@@ -6,5 +6,5 @@ cd cppcoro-http || exit 1
 mkdir build
 cd build
 cmake -CMAKE_BUILD_TYPE=Release ..
-make install -j8
-rm -rf /tmp/cppcoro-http
+#make install -j8
+#rm -rf /tmp/cppcoro-http

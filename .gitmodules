@@ -10,6 +10,3 @@
 [submodule "external/farbot"]
 	path = external/tmp/farbot
 	url = https://github.com/hogliux/farbot.git
-[submodule "external/flatbuffers"]
-	path = external/flatbuffers
-	url = https://github.com/google/flatbuffers
