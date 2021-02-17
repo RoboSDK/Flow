@@ -12,6 +12,23 @@ aims to provide this framework.
 
 #### Quick Start
 
+##### Docker
+
+The recommended to play with the library is to use the docker image. It will mount your home directory to the image.
+
+The image will have all dependencies installed for this library. 
+
+```
+./docker/build.sh # pull the image and make a user
+./docker/start.sh # run the container and attach to it
+```
+
+The `bash.sh` script may be used to re-attach to the container if you have exited. 
+
+You may now build the library within the docker container and install it if you'd like. 
+
+##### Building
+
 Requires Ubuntu 20.04 for GCC >= 10.2 to install. 
 
 ```
@@ -24,15 +41,12 @@ sudo apt install python-pip
 pip install --user conan
 
 # install Flow
-git clone https://github.com/ManuelMeraz/Flow.git
-cd Flow
-sudo ./scripts/install_liburing.sh
-sudo ./scripts/install_cppcoro.sh
-mkdir build
-cd build
+git clone https://github.com/ManuelMeraz/Flow.git && cd Flow
+sudo ./scripts/install_libraries.sh
+mkdir build && cd build
 cmake -DENABLE_TESTING=ON -DENABLE_EXAMPLES=ON -DCMAKE_BUILD_TYPE=Release ..
-make -j8 # number of hardware threads in your system you want to use
-ctest -j8
+make -j
+ctest -j
 sudo make install 
 ```
 
