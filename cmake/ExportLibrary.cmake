@@ -1,5 +1,5 @@
 # Add all targets to the build-tree export set
-export(TARGETS flow project_options header_only_libs project_warnings FILE "${PROJECT_BINARY_DIR}/flowTargets.cmake")
+export(TARGETS flow project_options project_warnings FILE "${PROJECT_BINARY_DIR}/flowTargets.cmake")
 
 # Export the package for use from the build-tree
 # (this registers the build-tree with a global CMake-registry)

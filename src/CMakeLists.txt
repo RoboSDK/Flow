@@ -16,8 +16,6 @@ target_link_libraries(flow
         cppcoro::cppcoro
         Threads::Threads
 
-        header_only_libs
-
         project_warnings
         )
 
@@ -32,7 +30,7 @@ target_include_directories(flow
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         )
 
-install(TARGETS flow project_options header_only_libs project_warnings
+install(TARGETS flow project_options project_warnings
         EXPORT flowTargets
         RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin
         LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
