@@ -197,7 +197,7 @@ std::string hello_world()
   return "Hello World";
 }
 
-void receive_message(std::string&& message)
+void subscribe_hello(std::string&& message)
 {
   spdlog::info("Received Message: {}", message);
 }
@@ -208,9 +208,9 @@ int main()
 
   /**
    * The producer hello_world is going to be publishing to the global std::string channel.
-   * The receiver receive_message is going to subscribe to the global std::string channel.
+   * The receiver subscribe_hello is going to subscribe to the global std::string channel.
    */
-  auto network = flow::network(hello_world, receive_message);
+  auto network = flow::network(hello_world, subscribe_hello);
 
   /**
    * Note: cancellation begins in 2 seconds, but cancellation
@@ -410,7 +410,7 @@ The following compilers should work:
     </details>
 
 
-  * [Cppcheck](http://cppcheck.sourceforge.net/)
+  * [Cppcheck](http://cppcheck.sourceforge.net_impl/)
     <details>
     <summary>Install Command</summary>
 

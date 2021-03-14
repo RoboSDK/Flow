@@ -54,6 +54,7 @@ auto operator|(flow::is_net auto&& net, flow::is_function auto&& f) {
 int main()
 {
   using namespace std::literals;
+
   /**
    * The producer hello_world is going to be publishing to the global std::string multi_channel.
    * The consumer subscribe_hello is going to subscribe to the global std::string multi_channel.
