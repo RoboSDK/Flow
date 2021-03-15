@@ -1,8 +1,8 @@
 #include <flow/flow.hpp>
 
-#include "consumer_routine.hpp"
-#include "producer_routine.hpp"
+#include "hashed_string_subscriber.hpp"
 #include "string_hasher.hpp"
+#include "string_publisher.hpp"
 #include "string_reverser.hpp"
 
 int main()
@@ -11,7 +11,7 @@ int main()
   using namespace std::literals;
 
   // order doesn't matter
-  auto network = flow::network(consumer_routine{}, string_reverser{}, string_hasher{}, producer_routine{});
+  auto network = flow::network(flow::chain() | string_publisher{}| string_reverser{} | string_hasher{} | hashed_string_subscriber{});
   network.cancel_after(1ms);
   flow::spin(std::move(network));
 }

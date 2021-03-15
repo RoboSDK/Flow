@@ -41,7 +41,7 @@ TEST_CASE("Test network", "[network]")
 {
   using namespace std::literals;
 
-  auto network = flow::network(Sensor{}, transform_data, consume_data);
+  auto network = flow::network(flow::chain () | Sensor{} | transform_data | consume_data);
   network.cancel_after(1ms);
   flow::spin(std::move(network));
   REQUIRE(confirm_functions_called.all());

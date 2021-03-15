@@ -5,7 +5,7 @@
 #include <spdlog/spdlog.h>
 
 namespace example {
-class producer_routine {
+class string_publisher {
 public:
   std::string operator()()
   {

@@ -21,6 +21,8 @@
 #include "flow/spinner.hpp"
 #include "flow/transformer.hpp"
 
+#include "flow/chain.hpp"
+
 /**
  * A network is a sequence of routines connected by single producer single consumer channels.
  * The end of the network depends on the data flow from the beginning of the network. The beginning
@@ -76,6 +78,36 @@ namespace detail {
   std::string get_subscribe_to(function_t& function);
 }// namespace detail
 
+auto push_routine(is_network auto& network, auto&& routine)
+{
+  using namespace flow::detail;
+
+  using routine_t = decltype(routine);
+  if constexpr (is_transformer_function<routine_t>) {
+    network.push(transformer(routine, get_subscribe_to(routine), get_publish_to(routine)));
+  }
+  else if constexpr (is_consumer_function<routine_t>) {
+    network.push(flow::consumer(routine, get_subscribe_to(routine)));
+  }
+  else if constexpr (is_producer_function<routine_t>) {
+    network.push(flow::producer(routine, get_publish_to(routine)));
+  }
+  /**
+       * If you change this please be careful. The constexpr check for a spinner function seems to
+       * be broken and I'm not sure why. I need to explicitly check if it's not a routine, and remove the
+       * requirement from the spinner_impl constructor because otherwise the routines generates by make_routine
+       * will fail because they do not implement operator(). The operator() check is in metaprogramming.hpp
+       * with the function traits section at the bottom of the header.
+       */
+  else if constexpr (not is_routine<routine_t> and is_spinner_function<routine_t>) {
+    network.push(flow::spinner(routine));
+  }
+  else {
+    network.push(forward(routine));
+  }
+}
+
+
 /***
  * Creates a network implementation from raw functions, lambdas, std::function, functors, and routine implementations in any order
  * @tparam configuration_t The global compile time configuration for the project
@@ -88,39 +120,27 @@ auto network(auto&&... routines)
   using network_t = flow::detail::network_impl<configuration_t>;
   network_t network{};
 
-  auto routines_array = detail::make_mixed_array(std::forward<decltype(routines)>(routines)...);
-  std::for_each(std::begin(routines_array), std::end(routines_array), detail::make_visitor([&](auto& r) {
-    using namespace flow::detail;
+  std::tuple routines_tuple{ std::forward<decltype(routines)>(routines)... };
 
+  std::apply([&](auto&& r) {
     using routine_t = decltype(r);
 
-    if constexpr (is_transformer_function<routine_t>) {
-      network.push(transformer(r, get_subscribe_to(r), get_publish_to(r)));
+    if constexpr (is_chain<routine_t>) {
+      // push each function in the tuple of functions in the chain
+      std::apply([&](is_function auto&&... function) {
+        (push_routine(network, forward(function)), ...);
+      },
+        r.functions);
+    } else if constexpr (not is_chain<routine_t>){
+      push_routine(network, forward(r));
     }
-    else if constexpr (is_consumer_function<routine_t>) {
-      network.push(flow::consumer(r, get_subscribe_to(r)));
-    }
-    else if constexpr (is_producer_function<routine_t>) {
-      network.push(flow::producer(r, get_publish_to(r)));
-    }
-    /**
-       * If you change this please be careful. The constexpr check for a spinner function seems to
-       * be broken and I'm not sure why. I need to explicitly check if it's not a routine, and remove the
-       * requirement from the spinner_impl constructor because otherwise the routines generates by make_routine
-       * will fail because they do not implement operator(). The operator() check is in metaprogramming.hpp
-       * with the function traits section at the bottom of the header.
-       */
-    else if constexpr (not is_routine<routine_t> and is_spinner_function<routine_t>) {
-      network.push(flow::spinner(r));
-    }
-    else {
-      network.push(std::move(r));
-    }
-  }));
+  },
+    routines_tuple);
 
-  if (network.size() < routines_array.size()) {
+  constexpr std::size_t num_routines = std::tuple_size_v<decltype(routines_tuple)>;
+  if (network.size() < num_routines) {
     std::cerr << "Network size: " << network.size() << "\n";
-    std::cerr << "Callables array size: " << routines_array.size() << "\n";
+    std::cerr << "Callables array size: " << num_routines << "\n";
     throw std::runtime_error("Network size is less than functions array. This is a developer error. Please submit an issue.");
   }
 

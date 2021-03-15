@@ -228,7 +228,7 @@ Example with transformers
 #include <flow/flow.hpp>
 #include <spdlog/spdlog.h>
 
-std::string make_hello_world()
+std::string publish_hello_world()
 {
   return "Hello World";
 }
@@ -255,7 +255,7 @@ int main()
   using namespace flow;
   using namespace std::literals;
   
-  auto hello_world = producer(make_hello_world, "hello_world");
+  auto hello_world = producer(publish_hello_world, "hello_world");
   auto reverser = transformer(reverse_string, "hello_world", "reversed");
   auto hasher = transformer(hash_string, "reversed", "hashed");
   auto receiver = consumer(receive_hashed_message, "hashed");

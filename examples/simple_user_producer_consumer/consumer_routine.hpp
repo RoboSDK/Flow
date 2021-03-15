@@ -4,7 +4,7 @@
 #include <spdlog/spdlog.h>
 
 namespace example {
-struct consumer_routine {
+struct hashed_string_subscriber {
   void operator()(std::string&& message)
   {
     spdlog::info("Received Message: {}", message);

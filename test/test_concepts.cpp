@@ -262,7 +262,7 @@ TEST_CASE("Test spinner", "[spinner]")
   }
 }
 
-TEST_CASE("Test producer routine", "[producer_routine]")
+TEST_CASE("Test producer routine", "[string_publisher]")
 {
   SECTION("raw function")
   {
@@ -289,7 +289,7 @@ TEST_CASE("Test producer routine", "[producer_routine]")
   }
 }
 
-TEST_CASE("Test consumer routine", "[consumer_routine]")
+TEST_CASE("Test consumer routine", "[hashed_string_subscriber]")
 {
   SECTION("raw function")
   {

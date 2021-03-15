@@ -5,7 +5,7 @@
 #include <spdlog/spdlog.h>
 
 namespace example {
-class consumer_routine {
+class hashed_string_subscriber {
 public:
   void operator()(std::size_t&& message)
   {
