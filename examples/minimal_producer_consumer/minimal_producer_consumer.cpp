@@ -1,8 +1,6 @@
 #include <flow/flow.hpp>
 #include <spdlog/spdlog.h>
 
-#define forward(value) std::forward<decltype(value)>(value)
-
 std::string hello_world()
 {
   return "Hello World";

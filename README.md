@@ -207,18 +207,20 @@ int main()
   using namespace std::literals;
 
   /**
-   * The producer hello_world is going to be publishing to the global std::string channel.
-   * The receiver subscribe_hello is going to subscribe to the global std::string channel.
+   * The producer hello_world is going to be publishing to the global std::string multi_channel.
+   * The consumer subscribe_hello is going to subscribe to the global std::string multi_channel.
+   *
+   * TODO: Take frequency as argument to chain()
    */
-  auto network = flow::network(hello_world, subscribe_hello);
+  auto net = flow::network(flow::chain() | hello_world | subscribe_hello);
 
   /**
-   * Note: cancellation begins in 2 seconds, but cancellation
-   * is non-deterministic
+   * Note: cancellation begins in 1 ms, but cancellation
+   * is non-deterministic. 
    */
-  network.cancel_after(2s);
+  net.cancel_after(1ms);
 
-  flow::spin(std::move(network));
+  flow::spin(std::move(net));
 }
 ```
 
@@ -228,7 +230,7 @@ Example with transformers
 #include <flow/flow.hpp>
 #include <spdlog/spdlog.h>
 
-std::string publish_hello_world()
+std::string make_hello_world()
 {
   return "Hello World";
 }
@@ -236,7 +238,7 @@ std::string publish_hello_world()
 std::string reverse_string(std::string&& message)
 {
   std::ranges::reverse(message);
-  return std::move(message); // no RVO here
+  return std::move(message);// no RVO here
 }
 
 std::size_t hash_string(std::string&& message)
@@ -254,17 +256,9 @@ int main()
 {
   using namespace flow;
   using namespace std::literals;
-  
-  auto hello_world = producer(publish_hello_world, "hello_world");
-  auto reverser = transformer(reverse_string, "hello_world", "reversed");
-  auto hasher = transformer(hash_string, "reversed", "hashed");
-  auto receiver = consumer(receive_hashed_message, "hashed");
 
-//   Order doesn't matter here
-  auto network = flow::network(std::move(hello_world),
-                                    std::move(reverser),
-                                    std::move(hasher),
-                                    std::move(receiver));
+  //   Order doesn't matter here
+  auto network = flow::network(flow::chain() | make_hello_world | reverse_string | hash_string | receive_hashed_message);
 
   network.cancel_after(1ms);
 
@@ -283,7 +277,7 @@ int main()
 | 0.1.0   | Ability to create in-memory network, send messages, and shut down reliably.  | 1/25/2021          |
 | 0.1.1   | Ability to set frequency of routines. Use fflat buffers as messages          |                    |
 | 0.1.2   | TCP, UDP, ICP, etc support to send receive messages efficiently.             | Mid-February 20201 |
-| 0.1.3   | Can generate custom messages. Single producer single consumer channels.      | March 2021         |
+| 0.1.3   | Can generate custom messages. Single producer single consumer channels.      | 2/12/2021          |
 | 0.1.4   | Collect performance metrics and show in documentation                        | Mid-March 2021     |
 | 0.1.5   | Create tools to tweak performance                                            | April 2021         |
 | 0.1.6   | Optimization of implementation and add memory pool/allocator options         | May 2021           |
