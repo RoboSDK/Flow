@@ -144,7 +144,7 @@ template<typename return_t, typename argument_t>
 cppcoro::task<void> spin_transformer(
   auto& producer_channel,
   auto& consumer_channel,
-  cancellable_function<return_t(argument_t&&)> transformer)
+  cancellable_function<return_t(argument_t&&)>& transformer)
 {
   producer_token<return_t> producer_token{};
   consumer_token<argument_t> consumer_token{};

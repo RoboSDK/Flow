@@ -311,19 +311,22 @@ namespace detail {
     {
       // up to second to last
       if constexpr (tuple_index == tuple_size - 1) return channel;
-      using namespace detail::channel;
+      else {
+        using namespace detail::channel;
 
-      auto& next_function = std::get<tuple_index>(functions);
+        auto next_function = std::get<tuple_index>(functions);
 
-      using arg_t = typename decltype(channel.message_type())::type;
+        using arg_t = typename decltype(channel.message_type())::type;
 
-      using return_t = typename detail::traits<decltype(next_function)>::return_type;
-      auto& next_channel = make_channel<return_t, policy::SINGLE>();
+        using return_t = typename detail::traits<decltype(next_function)>::return_type;
+        auto& next_channel = make_channel<return_t, policy::SINGLE>();
 
-      m_routines_to_spin.push_back(detail::spin_transformer<return_t, arg_t>(channel, next_channel, next_function));
-      m_heap_storage.push_back(std::move(next_function));
+        auto next_routine = to_routine(std::move(next_function));
+        m_routines_to_spin.push_back(detail::spin_transformer<return_t, arg_t>(channel, next_channel, next_routine.callback()));
+        m_heap_storage.push_back(std::move(next_routine));
 
-      return push_tightly_linked_functions<tuple_index + 1, tuple_size>(next_channel, functions);
+        return push_tightly_linked_functions<tuple_index + 1, tuple_size>(next_channel, functions);
+      }
     }
 
     constexpr void push_chain(is_chain auto&& chain)

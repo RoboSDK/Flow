@@ -51,7 +51,7 @@ constexpr std::size_t size()
 }
 
 template<typename... items_t>
-constexpr std::size_t size([[maybe_unused]] std::tuple<items_t...>& list)
+constexpr std::size_t size([[maybe_unused]] std::tuple<items_t...> list)
 {
   return sizeof...(items_t);
 }

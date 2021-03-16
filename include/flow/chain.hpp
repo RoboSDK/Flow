@@ -40,7 +40,7 @@ namespace detail {
   };
 }// namespace detail
 
-template<is_chain_state state = init_chain, are_routines... routines_t>
+template<is_chain_state state = init_chain, typename... routines_t>
 constexpr auto chain(std::tuple<routines_t...>&& routines = std::tuple<>{})
 {
   return detail::chain_impl<state, routines_t...>(std::move(routines));
