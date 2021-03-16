@@ -115,7 +115,7 @@ cppcoro::task<void> spin_consumer(
     co_await flush<void>(channel, consumer, consumer_token);
   }
 
-  channel.finalize_termination();
+  co_await channel.finalize_termination();
   co_await flush<void>(channel, consumer, consumer_token);
 }
 
@@ -206,7 +206,7 @@ cppcoro::task<void> spin_transformer(
     co_await flush<return_t>(producer_channel, transformer, consumer_token);
   }
 
-  producer_channel.finalize_termination();
+  co_await producer_channel.finalize_termination();
 
   // producer needs one final flush
   co_await flush<return_t>(producer_channel, transformer, consumer_token);
