@@ -7,14 +7,14 @@
 #include "producer_token.hpp"
 
 #include <cppcoro/async_generator.hpp>
-#include <cppcoro/multi_producer_sequencer.hpp>
+#include <cppcoro/single_producer_sequencer.hpp>
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
 
 /**
  * The link between routines in a network are m_channels.
  *
- * A multi multi_channel in this framework is a multi producer_impl multi consumer multi_channel that are linked
+ * A multi single_channel in this framework is a multi producer_impl multi consumer single_channel that are linked
  * to two corresponding neighbors in a network.
  */
 
@@ -30,9 +30,9 @@ namespace flow::detail {
  * @tparam configuration_t The global compile time configuration
  */
 template<typename raw_message_t, typename configuration_t>
-class multi_channel {
+class single_channel {
   using message_t = std::decay_t<raw_message_t>;/// Remove references
-  using resource_t = channel_resource<configuration_t, cppcoro::multi_producer_sequencer<std::size_t>>;
+  using resource_t = channel_resource<configuration_t, cppcoro::single_producer_sequencer<std::size_t>>;
   using scheduler_t = cppcoro::static_thread_pool;/// The static thread pool is used to schedule threads
 
 public:
@@ -49,18 +49,18 @@ public:
   };
 
   /**
-   * @param name Name of the multi_channel
-   * @param resource A generated multi_channel channel_resource
+   * @param name Name of the single_channel
+   * @param resource A generated single_channel channel_resource
    * @param scheduler The global scheduler
    */
-  multi_channel(std::string name, resource_t* resource, scheduler_t* scheduler)
+  single_channel(std::string name, resource_t* resource, scheduler_t* scheduler)
     : m_name{ std::move(name) },
       m_resource{ resource },
       m_scheduler{ scheduler }
   {
   }
 
-  multi_channel& operator=(multi_channel const& other)
+  single_channel& operator=(single_channel const& other)
   {
     m_resource = other.m_resource;
     m_scheduler = other.m_scheduler;
@@ -68,14 +68,14 @@ public:
     return *this;
   }
 
-  multi_channel(multi_channel const& other)
+  single_channel(single_channel const& other)
   {
     m_resource = other.m_resource;
     m_scheduler = other.m_scheduler;
     std::copy(std::begin(other.m_buffer), std::end(other.m_buffer), std::begin(m_buffer));
   }
 
-  multi_channel& operator=(multi_channel&& other) noexcept
+  single_channel& operator=(single_channel&& other) noexcept
   {
     m_resource = other.m_resource;
     m_scheduler = other.m_scheduler;
@@ -83,14 +83,14 @@ public:
     return *this;
   }
 
-  multi_channel(multi_channel&& other) noexcept : m_resource(other.m_resource)
+  single_channel(single_channel&& other) noexcept : m_resource(other.m_resource)
   {
     *this = std::move(other);
   }
 
   /**
-   * Used to store the multi_channel into a multi_channel set
-   * @return The hash of the message and multi_channel name
+   * Used to store the single_channel into a single_channel set
+   * @return The hash of the message and single_channel name
    */
   std::size_t hash() { return typeid(message_t).hash_code() ^ std::hash<std::string>{}(m_name); }
 
@@ -115,7 +115,7 @@ public:
 
   /**
    * Publish the produced message
-   * @param message The message type the multi_channel communicates
+   * @param message The message type the single_channel communicates
    */
   void publish_messages(producer_token<message_t>& token)
   {
@@ -144,7 +144,7 @@ public:
   cppcoro::async_generator<message_t> message_generator(consumer_token<message_t>& token)
   {
     token.end_sequence = co_await m_resource->sequencer.wait_until_published(
-      token.sequence, token.last_sequence_published, *m_scheduler);
+      token.sequence, *m_scheduler);
 
     do {
       co_yield m_buffer[token.sequence & m_index_mask];
@@ -159,7 +159,6 @@ public:
   {
     if (token.sequence == token.end_sequence) {
       m_resource->barrier.publish(token.end_sequence);
-      token.last_sequence_published = token.end_sequence;
     }
   }
 

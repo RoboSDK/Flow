@@ -11,8 +11,10 @@
 #include "flow/detail/channel_set.hpp"
 #include "flow/detail/mixed_array.hpp"
 #include "flow/detail/multi_channel.hpp"
+#include "flow/detail/single_channel.hpp"
 #include "flow/detail/spin_routine.hpp"
 #include "flow/detail/timeout_routine.hpp"
+#include "flow/detail/routine.hpp"
 
 #include "flow/concepts.hpp"
 #include "flow/consumer.hpp"
@@ -66,6 +68,14 @@
 
 namespace flow {
 namespace detail {
+
+  namespace channel {
+    enum class policy {
+      SINGLE,
+      MULTI
+    };
+  }
+
   template<typename configuration_t>
   class network_impl;
 
@@ -126,12 +136,9 @@ auto network(auto&&... routines)
     using routine_t = decltype(r);
 
     if constexpr (is_chain<routine_t>) {
-      // push each function in the tuple of functions in the chain
-      std::apply([&](is_function auto&&... function) {
-        (push_routine(network, forward(function)), ...);
-      },
-        r.functions);
-    } else if constexpr (not is_chain<routine_t>){
+      network.push_chain(forward(r));
+    }
+    else if constexpr (not is_chain<routine_t>) {
       push_routine(network, forward(r));
     }
   },
@@ -148,28 +155,6 @@ auto network(auto&&... routines)
 }
 
 namespace detail {
-  template<flow::is_function function_t>
-  std::string get_publish_to(function_t& function)
-  {
-    if constexpr (flow::has_publisher_channel<function_t>) {
-      return function.publish_to();
-    }
-    else {
-      return "";
-    }
-  }
-
-  template<flow::is_function function_t>
-  std::string get_subscribe_to(function_t& function)
-  {
-    if constexpr (flow::has_subscription_channel<function_t>) {
-      return function.subscribe_to();
-    }
-    else {
-      return "";
-    }
-  }
-
   template<typename configuration_t>
   class network_impl {
   public:
@@ -181,23 +166,38 @@ namespace detail {
    * @param channel_name The name of the multi_channel (optional)
    * @return A reference to the multi_channel
    */
-    template<typename message_t>
-    auto& make_channel_if_not_exists(std::string channel_name)
+    template<typename message_t, detail::channel::policy policy = detail::channel::policy::MULTI>
+    auto& make_channel(std::string channel_name = "")
     {
-      if (m_channels.template contains<message_t>(channel_name)) {
+
+      if constexpr (policy == detail::channel::policy::MULTI) {
+        if (m_channels.template contains<message_t>(channel_name)) {
+          return m_channels.template at<message_t>(channel_name);
+        }
+
+        using channel_t = detail::multi_channel<message_t, configuration_t>;
+
+        channel_t channel{
+          channel_name,
+          std::invoke(*m_multi_channel_resource_generator),
+          m_thread_pool.get()
+        };
+
+        m_channels.put(std::move(channel));
         return m_channels.template at<message_t>(channel_name);
       }
+      else if constexpr (policy == detail::channel::policy::SINGLE) {
+        using channel_t = detail::single_channel<message_t, configuration_t>;
 
-      using channel_t = detail::multi_channel<message_t, configuration_t>;
+        channel_t channel{
+          channel_name,
+          std::invoke(*m_single_channel_resource_generator),
+          m_thread_pool.get()
+        };
 
-      channel_t channel{
-        channel_name,
-        std::invoke(*m_resource_generator),
-        m_thread_pool.get()
-      };
-
-      m_channels.put(std::move(channel));
-      return m_channels.template at<message_t>(channel_name);
+        m_heap_storage.push_back(std::move(channel));
+        return std::any_cast<channel_t&>(m_heap_storage.back());
+      }
     }
 
     /**
@@ -216,12 +216,15 @@ namespace detail {
    * @param producer The producer_function callable_routine
    * @param channel_name The multi_channel name the producer_function will publish to
    */
-    template<typename message_t>
-    void push(flow::detail::producer_impl<message_t>&& routine)
+    template<
+      detail::channel::policy producer_channel_policy = detail::channel::policy::MULTI,
+      typename message_t>
+    auto& push(flow::detail::producer_impl<message_t>&& routine)
     {
-      auto& channel = make_channel_if_not_exists<message_t>(routine.publish_to());
+      auto& channel = make_channel<message_t, producer_channel_policy>(routine.publish_to());
       m_routines_to_spin.push_back(detail::spin_producer<message_t>(channel, routine.callback()));
       m_heap_storage.push_back(std::move(routine));
+      return channel;
     }
 
     /**
@@ -230,14 +233,20 @@ namespace detail {
    * @param producer_channel_name The multi_channel it depends on
    * @param consumer_channel_name The multi_channel that it will publish to
    */
-    template<typename return_t, typename... args_t>
+    template<
+      detail::channel::policy producer_channel_policy = detail::channel::policy::MULTI,
+      detail::channel::policy consumer_channel_policy = detail::channel::policy::MULTI,
+      typename return_t,
+      typename... args_t>
     void push(flow::detail::transformer_impl<return_t(args_t...)>&& routine)
     {
-      auto& producer_channel = make_channel_if_not_exists<args_t...>(routine.subscribe_to());
-      auto& consumer_channel = make_channel_if_not_exists<return_t>(routine.publish_to());
+      auto& producer_channel = make_channel<args_t..., producer_channel_policy>(routine.subscribe_to());
+      auto& consumer_channel = make_channel<return_t, consumer_channel_policy>(routine.publish_to());
 
       m_routines_to_spin.push_back(detail::spin_transformer<return_t, args_t...>(producer_channel, consumer_channel, routine.callback()));
       m_heap_storage.push_back(std::move(routine));
+
+      return std::make_pair(std::ref(producer_channel), std::ref(consumer_channel));
     }
 
     /**
@@ -248,11 +257,92 @@ namespace detail {
     template<typename message_t>
     void push(detail::consumer_impl<message_t>&& routine)
     {
-      auto& channel = make_channel_if_not_exists<message_t>(routine.subscribing_to());
+      auto& channel = make_channel<message_t>(routine.subscribing_to());
 
       m_handle.push(routine.callback().handle());
       m_routines_to_spin.push_back(detail::spin_consumer<message_t>(channel, routine.callback()));
       m_heap_storage.push_back(std::move(routine));
+    }
+
+    auto& push_chain_begin(auto&& begin)
+    {
+      using namespace detail::channel;
+      using begin_t = decltype(begin);
+
+      static_assert(not is_consumer_routine<begin_t> and not is_spinner_routine<begin_t>,
+        "network.hpp:push_chain_begin only takes in transformer or producer routines implementations.");
+
+      if constexpr (is_transformer_routine<begin_t>) {
+        return push<policy::MULTI, policy::SINGLE>(std::move(begin)).second.get();
+      }
+      else {
+        return push<policy::SINGLE>(std::move(begin));
+      }
+    }
+
+    void push_chain_end(auto&& end, auto& channel)
+    {
+      using namespace detail::channel;
+      using end_t = decltype(end);
+
+      static_assert(not is_producer_routine<end_t> and not is_spinner_routine<end_t>,
+                    "network.hpp:push_chain_end only takes in transformer or consumer routines implementations.");
+
+      if constexpr (is_transformer_routine<end_t>) {
+        using arg_t = typename decltype(channel.message_type())::type;
+
+        using return_t = typename detail::traits<decltype(end.callback())>::return_type;
+        auto& next_channel = make_channel<return_t, policy::SINGLE>();
+
+        m_routines_to_spin.push_back(detail::spin_transformer<return_t, arg_t>(channel, next_channel, end.callback()));
+        m_heap_storage.push_back(std::move(end.callback()));
+      }
+      else {
+        using message_t = typename decltype(channel.message_type())::type;
+
+        m_handle.push(end.callback().handle());
+        m_routines_to_spin.push_back(detail::spin_consumer<message_t>(channel, end.callback()));
+        m_heap_storage.push_back(std::move(end));
+      }
+    }
+
+    template<std::size_t tuple_index, std::size_t tuple_size>
+    auto& push_tightly_linked_functions(auto& channel, auto& functions)
+    {
+      // up to second to last
+      if constexpr (tuple_index == tuple_size - 1) return channel;
+      using namespace detail::channel;
+
+      auto& next_function = std::get<tuple_index>(functions);
+
+      using arg_t = typename decltype(channel.message_type())::type;
+
+      using return_t = typename detail::traits<decltype(next_function)>::return_type;
+      auto& next_channel = make_channel<return_t, policy::SINGLE>();
+
+      m_routines_to_spin.push_back(detail::spin_transformer<return_t, arg_t>(channel, next_channel, next_function));
+      m_heap_storage.push_back(std::move(next_function));
+
+      return push_tightly_linked_functions<tuple_index + 1, tuple_size>(next_channel, functions);
+    }
+
+    constexpr void push_chain(is_chain auto&& chain)
+    {
+      constexpr std::size_t tuple_size = std::tuple_size<decltype(chain.routines)>();
+      constexpr std::size_t start_index = 0;
+
+      if constexpr (tuple_size == 1) {
+        push(std::move(std::get<start_index>(chain.routines)));
+      }
+      else if constexpr (tuple_size == 2) {
+        auto& channel = push_chain_begin(std::move(std::get<start_index>(chain.routines)));
+        push_chain_end(std::move(std::get<tuple_size - 1>(chain.routines)), channel);
+      }
+      else if constexpr (tuple_size > 2) {
+        auto& channel = push_chain_begin(std::move(std::get<start_index>(chain.routines)));
+        auto& last_channel = push_tightly_linked_functions<start_index + 1, tuple_size>(channel, chain.routines);
+        push_chain_end(std::move(std::get<tuple_size - 1>(chain.routines)), last_channel);
+      }
     }
 
     /**
@@ -307,9 +397,12 @@ namespace detail {
   private:
     using thread_pool_t = cppcoro::static_thread_pool;
     using multi_channel_resource_generator = detail::channel_resource_generator<configuration_t, cppcoro::multi_producer_sequencer<std::size_t>>;
+    using single_channel_resource_generator = detail::channel_resource_generator<configuration_t, cppcoro::single_producer_sequencer<std::size_t>>;
 
     std::unique_ptr<thread_pool_t> m_thread_pool = std::make_unique<cppcoro::static_thread_pool>();
-    std::unique_ptr<multi_channel_resource_generator> m_resource_generator = std::make_unique<multi_channel_resource_generator>();
+    std::unique_ptr<multi_channel_resource_generator> m_multi_channel_resource_generator = std::make_unique<multi_channel_resource_generator>();
+
+    std::unique_ptr<single_channel_resource_generator> m_single_channel_resource_generator = std::make_unique<single_channel_resource_generator>();
 
     detail::channel_set<configuration_t> m_channels{};
 

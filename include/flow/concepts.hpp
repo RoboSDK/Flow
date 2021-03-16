@@ -13,12 +13,6 @@
 
 namespace flow {
 
-struct chain_tag {};
-
-template <typename chain_t>
-concept is_chain = std::is_base_of_v<chain_tag, std::decay_t<chain_t>>;
-
-
 /// shortcut to function traits to be used locally here
 namespace detail {
 template<typename callable_t>
@@ -106,4 +100,7 @@ concept is_function = is_spinner_function<callable_t> or is_producer_function<ca
 
 template <typename... functions_t>
 concept are_functions = (is_function<functions_t> and ...);
+
+template <typename... routines_t>
+concept are_routines = (is_routine<routines_t> and ...);
 }// namespace flow
