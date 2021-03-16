@@ -117,6 +117,16 @@ auto push_routine(is_network auto& network, auto&& routine)
   }
 }
 
+auto push_routine_or_chain(auto& network, auto&& routine) {
+  using routine_t = decltype(routine);
+
+  if constexpr (is_chain<routine_t>) {
+    network.push_chain(forward(routine));
+  }
+  else if constexpr (not is_chain<routine_t>) {
+    push_routine(network, forward(routine));
+  }
+}
 
 /***
  * Creates a network implementation from raw functions, lambdas, std::function, functors, and routine implementations in any order
@@ -130,21 +140,9 @@ auto network(auto&&... routines)
   using network_t = flow::detail::network_impl<configuration_t>;
   network_t network{};
 
-  std::tuple routines_tuple{ std::forward<decltype(routines)>(routines)... };
+  (push_routine_or_chain(network, forward(routines)), ...);
 
-  std::apply([&](auto&& r) {
-    using routine_t = decltype(r);
-
-    if constexpr (is_chain<routine_t>) {
-      network.push_chain(forward(r));
-    }
-    else if constexpr (not is_chain<routine_t>) {
-      push_routine(network, forward(r));
-    }
-  },
-    routines_tuple);
-
-  constexpr std::size_t num_routines = std::tuple_size_v<decltype(routines_tuple)>;
+  constexpr std::size_t num_routines = sizeof...(routines);
   if (network.size() < num_routines) {
     std::cerr << "Network size: " << network.size() << "\n";
     std::cerr << "Callables array size: " << num_routines << "\n";
@@ -238,7 +236,7 @@ namespace detail {
       detail::channel::policy consumer_channel_policy = detail::channel::policy::MULTI,
       typename return_t,
       typename... args_t>
-    void push(flow::detail::transformer_impl<return_t(args_t...)>&& routine)
+    auto push(flow::detail::transformer_impl<return_t(args_t...)>&& routine)
     {
       auto& producer_channel = make_channel<args_t..., producer_channel_policy>(routine.subscribe_to());
       auto& consumer_channel = make_channel<return_t, consumer_channel_policy>(routine.publish_to());
@@ -264,26 +262,26 @@ namespace detail {
       m_heap_storage.push_back(std::move(routine));
     }
 
-    auto& push_chain_begin(auto&& begin)
+    template <typename begin_t>
+    auto& push_chain_begin(begin_t&& begin) requires is_transformer_routine<begin_t> or is_producer_routine<begin_t>
     {
       using namespace detail::channel;
-      using begin_t = decltype(begin);
 
       static_assert(not is_consumer_routine<begin_t> and not is_spinner_routine<begin_t>,
         "network.hpp:push_chain_begin only takes in transformer or producer routines implementations.");
 
       if constexpr (is_transformer_routine<begin_t>) {
-        return push<policy::MULTI, policy::SINGLE>(std::move(begin)).second.get();
+        return push<policy::MULTI, policy::SINGLE>(std::move(begin)).second;
       }
       else {
         return push<policy::SINGLE>(std::move(begin));
       }
     }
 
-    void push_chain_end(auto&& end, auto& channel)
+    template <typename end_t>
+    void push_chain_end(end_t&& end, auto& channel) requires is_transformer_routine<end_t> or is_consumer_routine<end_t>
     {
       using namespace detail::channel;
-      using end_t = decltype(end);
 
       static_assert(not is_producer_routine<end_t> and not is_spinner_routine<end_t>,
                     "network.hpp:push_chain_end only takes in transformer or consumer routines implementations.");

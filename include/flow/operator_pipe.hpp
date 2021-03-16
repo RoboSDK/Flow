@@ -7,13 +7,16 @@
 
 namespace flow {
 
-template<typename routine_t>
-concept is_begin_routine = is_transformer_routine<routine_t> or is_producer_routine<routine_t>;
+constexpr auto operator|(is_chain auto&& current_chain, is_transformer_routine auto&& routine)
+{
+  using chain_state = typename decltype(current_chain.state())::type;
+  static_assert(is_init<chain_state>() or is_open<chain_state>(),
+                "flow::transformer goes at the beginning of a chain or any open chain.");
 
-template<typename routine_t>
-concept is_end_routine = is_transformer_routine<routine_t> or is_consumer_routine<routine_t>;
+  return chain<open_chain>(concat(forward(current_chain.routines), forward(routine)));
+}
 
-constexpr auto operator|(is_chain auto&& current_chain, is_begin_routine auto&& routine)
+constexpr auto operator|(is_chain auto&& current_chain, is_producer_routine auto&& routine)
 {
   using chain_state = typename decltype(current_chain.state())::type;
   static_assert(is_init<chain_state>(),
@@ -22,7 +25,7 @@ constexpr auto operator|(is_chain auto&& current_chain, is_begin_routine auto&& 
   return chain<open_chain>(concat(forward(current_chain.routines), forward(routine)));
 }
 
-constexpr auto operator|(is_chain auto&& current_chain, is_end_routine auto&& routine)
+constexpr auto operator|(is_chain auto&& current_chain, is_consumer_routine auto&& routine)
 {
   using chain_state = typename decltype(current_chain.state())::type;
   static_assert(is_open<chain_state>,
@@ -72,10 +75,5 @@ constexpr auto operator|(is_chain auto&& current_chain, is_chain_spinner auto&& 
 
   auto routine = detail::to_routine(forward(spinner));
   return chain<closed_chain>(concat(forward(current_chain.routines), std::move(routine)));
-}
-
-constexpr auto operator|(is_chain auto&& chain_so_far, is_routine auto&& f)
-{
-  return chain(concat(forward(chain_so_far.functions), forward(f)));
 }
 }// namespace flow

@@ -25,20 +25,20 @@ namespace detail {
  * @return A consumer object used to retrieve data by the network
  */
 template<typename return_t, typename argument_t>
-auto transformer(std::function<return_t(argument_t&&)>&& callback, std::string subscribe_to, std::string publish_to)
+auto transformer(std::function<return_t(argument_t&&)>&& callback, std::string subscribe_to = "", std::string publish_to = "")
 {
   using callback_t = decltype(callback);
   return detail::transformer_impl<return_t(argument_t)>(std::forward<callback_t>(callback), std::move(subscribe_to), std::move(publish_to));
 }
 
 template<typename return_t, typename argument_t>
-auto transformer(return_t (*callback)(argument_t&&), std::string subscribe_to, std::string publish_to)
+auto transformer(return_t (*callback)(argument_t&&), std::string subscribe_to = "", std::string publish_to = "")
 {
   using callback_t = decltype(callback);
   return detail::transformer_impl<return_t(argument_t)>(std::forward<callback_t>(callback), std::move(subscribe_to), std::move(publish_to));
 }
 
-auto transformer(auto&& lambda, std::string subscribe_to, std::string publish_to)
+auto transformer(auto&& lambda, std::string subscribe_to = "", std::string publish_to = "")
 {
   using callback_t = decltype(lambda);
   return transformer(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(subscribe_to), std::move(publish_to));
