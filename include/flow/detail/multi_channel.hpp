@@ -6,6 +6,7 @@
 #include "consumer_token.hpp"
 #include "producer_token.hpp"
 
+#include <cppcoro/async_mutex.hpp>
 #include <cppcoro/async_generator.hpp>
 #include <cppcoro/multi_producer_sequencer.hpp>
 #include <cppcoro/static_thread_pool.hpp>
@@ -186,10 +187,14 @@ public:
    ****************** END CONSUMER INTERFACE *****************
    ******************************************************/
 
-  termination_state state()
+  cppcoro::task<termination_state> state()
   {
-    return m_state;
+    static cppcoro::async_mutex mutex;
+
+    cppcoro::async_mutex_lock lock = co_await mutex.scoped_lock_async();
+    co_return m_state;
   }
+
 
 
 private:
