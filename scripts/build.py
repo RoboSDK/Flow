@@ -16,7 +16,7 @@ def execute_command(command: list):
     @param command A comand to build or configure a build
     """
     try:
-        process = subprocess.run(command, check=True, universal_newlines=True)
+        subprocess.run(command, check=True, universal_newlines=True)
 
     except FileNotFoundError:
         print(f"Attempted to use the following command: {command[0]}, but it looks like it's not installed!")
@@ -37,13 +37,14 @@ def clear_cmake_cache(build_directory: str):
     os.remove(cmake_cache)
 
 
-def configure(build_directory: str, build_type: str, enable_testing: bool):
+def configure(build_directory: str, build_type: str, enable_testing: bool, enable_examples: bool):
     """
     Configure the project using cmake
 
     @param build_directory:  The full path to the build directory
     @param build_type: Debug, Release, RelWithDebInfo
     @param enable_testing: Whether or not to build tests
+    @param enable_examples: Whether or not to build tests
     """
     clear_cmake_cache(build_directory)
     os.chdir(build_directory)
@@ -53,9 +54,15 @@ def configure(build_directory: str, build_type: str, enable_testing: bool):
     else:
         enable_testing_option = "-DENABLE_TESTING=OFF"
 
+    if enable_examples:
+        enable_examples_option = "-DENABLE_EXAMPLES=ON"
+    else:
+        enable_examples_option = "-DENABLE_EXAMPLES=OFF"
+
     command = ["cmake",
                f"-DCMAKE_BUILD_TYPE={build_type}",
                enable_testing_option,
+               enable_examples_option,
                ".."]
 
     execute_command(command)
@@ -144,12 +151,20 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "-e",
+        "-et",
         "--enable-testing",
         action="store_true",
         default=False,
         help=f"Build flow with testing enabled.\nIn "
              f"the build directory type in 'ctest -j{DEFAULT_NUM_THREADS}'",
+    )
+
+    parser.add_argument(
+        "-ee",
+        "--enable-examples",
+        action="store_true",
+        default=False,
+        help=f"Build flow with examples enabled."
     )
 
     parser.add_argument(
@@ -168,9 +183,17 @@ if __name__ == "__main__":
 
     if not os.path.exists(build_path):
         os.mkdir(build_path)
-        configure(build_directory=build_path, build_type=options.build_type, enable_testing=options.enable_testing)
+
+        configure(build_directory=build_path,
+                  build_type=options.build_type,
+                  enable_testing=options.enable_testing,
+                  enable_examples=options.enable_examples)
+
     elif options.clear_cache or partially_configured(build_path):
-        configure(build_directory=build_path, build_type=options.build_type, enable_testing=options.enable_testing)
+        configure(build_directory=build_path,
+                  build_type=options.build_type,
+                  enable_testing=options.enable_testing,
+                  enable_examples=options.enable_examples)
 
     build(build_directory=build_path, num_threads=options.num_threads, target=options.target)
 
