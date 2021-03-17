@@ -102,8 +102,10 @@ public:
    * Request permission to publish the next message
    * @return
    */
-  cppcoro::task<void> request_permission_to_publish(producer_token<message_t>& token)
+  cppcoro::task<bool> request_permission_to_publish(producer_token<message_t>& token)
   {
+    if (m_state > termination_state::uninitialised) co_return false;
+
     static constexpr std::size_t STRIDE_LENGTH = configuration_t::stride_length;
 
     ++std::atomic_ref(m_num_publishers_waiting);
@@ -111,6 +113,7 @@ public:
     --std::atomic_ref(m_num_publishers_waiting);
 
     token.sequences = std::move(sequences);
+    co_return true;
   }
 
   /**

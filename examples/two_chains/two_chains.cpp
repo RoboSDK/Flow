@@ -11,6 +11,7 @@ class Sensor {
 public:
   int operator()()
   {
+    spdlog::info("sensor");
     return m_distribution(m_random_engine);
   }
 
@@ -21,12 +22,14 @@ private:
 
 int low_pass_filter(int&& data)
 {
+  spdlog::info("low");
   static int limit = 30;
   return std::min(data, limit);
 }
 
 int high_pass_filter(int&& data)
 {
+  spdlog::info("high");
   static int limit = 70;
   return std::max(data, limit);
 }
@@ -44,7 +47,7 @@ int main()
   auto low_pass = flow::chain() | flow::transformer(low_pass_filter, "sensor") | consume_data;
   auto high_pass = flow::chain() | flow::transformer(high_pass_filter, "sensor") | consume_data;
 
-  auto network = flow::network(Sensor{}, std::move(high_pass), std::move(low_pass));
+  auto network = flow::network(Sensor{}, std::move(low_pass), std::move(high_pass));
 
   network.cancel_after(1ms);
   flow::spin(std::move(network));

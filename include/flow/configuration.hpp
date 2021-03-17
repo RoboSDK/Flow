@@ -15,7 +15,7 @@
 namespace flow {
 struct configuration {
   static constexpr std::size_t max_resources = 256;
-  static constexpr std::size_t message_buffer_size = 8;
-  static constexpr std::size_t stride_length = 4;
+  static constexpr std::size_t message_buffer_size = 32;
+  static constexpr std::size_t stride_length = 2;
 };
 }// namespace flow
