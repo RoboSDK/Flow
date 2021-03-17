@@ -27,6 +27,14 @@ The `bash.sh` script may be used to re-attach to the container if you have exite
 
 You may now build the library within the docker container and install it if you'd like. 
 
+```bash
+./scripts/build.py --enable-testing 
+```
+
+If the build script doesn't built, the project because of a crash try using the `--clear-cache` flash. 
+
+Use the `--help` option for more information.
+
 ##### Building
 
 Requires Ubuntu 20.04 for GCC >= 10.2 to install. 
