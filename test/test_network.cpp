@@ -2,6 +2,7 @@
 
 #include <catch2/catch.hpp>
 #include <flow/flow.hpp>
+#include <spdlog/spdlog.h>
 
 
 namespace {
@@ -12,6 +13,7 @@ std::bitset<3> confirm_functions_called{false};
 class Sensor {
 public:
   int operator()() {
+    spdlog::info("producing data");
     confirm_functions_called[0] = true;
     return m_data;
   }
@@ -20,6 +22,7 @@ private:
 };
 
 double transform_data(int&& data) {
+  spdlog::info("transforming data");
   REQUIRE(data == magic_number);
   confirm_functions_called[1] = true;
   return 2 * static_cast<double>(std::move(data));
@@ -27,6 +30,7 @@ double transform_data(int&& data) {
 
 
 void consume_data(double&& data) {
+  spdlog::info("consuming data");
   confirm_functions_called[2] = true;
   static constexpr double doubled_data = static_cast<double>(2 * magic_number);
   REQUIRE(data == doubled_data);
