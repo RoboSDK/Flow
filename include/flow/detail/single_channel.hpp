@@ -36,8 +36,8 @@ class single_channel {
   using scheduler_t = cppcoro::static_thread_pool;/// The static thread pool is used to schedule threads
 
 public:
-
-  constexpr metaprogramming::type_container<message_t> message_type() {
+  constexpr metaprogramming::type_container<message_t> message_type()
+  {
     return metaprogramming::type_container<message_t>{};
   }
 
@@ -115,6 +115,16 @@ public:
     co_return true;
   }
 
+  cppcoro::task<bool> request_permission_to_publish_one(producer_token<message_t>& token)
+  {
+    if (m_state > termination_state::uninitialised) co_return false;
+
+    ++std::atomic_ref(m_num_publishers_waiting);
+    token.sequence =  co_await m_resource->sequencer.claim_one(*m_scheduler);
+    --std::atomic_ref(m_num_publishers_waiting);
+    co_return true;
+  }
+
   /**
    * Publish the produced message
    * @param message The message type the single_channel communicates
@@ -122,11 +132,19 @@ public:
   void publish_messages(producer_token<message_t>& token)
   {
     for (auto& sequence_number : token.sequences) {
-      m_buffer[sequence_number & m_index_mask] = token.messages.front();
+      m_buffer[sequence_number & m_index_mask] = std::move(token.messages.front());
       token.messages.pop();
     }
 
     m_resource->sequencer.publish(std::move(token.sequences));
+  }
+
+  void publish_one(producer_token<message_t>& token)
+  {
+    m_buffer[token.sequence & m_index_mask] = std::move(token.messages.front());
+    token.messages.pop();
+
+    m_resource->sequencer.publish(token.sequence);
   }
 
   void confirm_termination()
@@ -148,20 +166,24 @@ public:
     token.end_sequence = co_await m_resource->sequencer.wait_until_published(
       token.sequence, *m_scheduler);
 
-    do {
+    while (std::atomic_ref(token.sequence)++ <= token.end_sequence) {
       co_yield m_buffer[token.sequence & m_index_mask];
-    } while (std::atomic_ref(token.sequence)++ < token.end_sequence);
+    }
+    --token.sequence;
   }
 
 
   /**
    * Notify the producer_function to produce the next messages
    */
-  void notify_message_consumed(consumer_token<message_t>& token)
+  bool notify_message_consumed(consumer_token<message_t>& token)
   {
-    if (token.sequence == token.end_sequence) {
-      m_resource->barrier.publish(token.end_sequence);
+    if (token.sequence >= token.end_sequence) {
+      m_resource->barrier.publish(token.sequence);
+      return true;
     }
+
+    return false;
   }
 
   void initialize_termination()
