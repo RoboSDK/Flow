@@ -1,4 +1,4 @@
-FROM manuelmeraz/flow:latest
+FROM manuelmeraz/flow:dev
 
 USER root
 
