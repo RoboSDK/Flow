@@ -176,12 +176,9 @@ public:
   /**
    * @return if any producer_function m_channels are currently waiting for permission
    */
-  cppcoro::task<bool> is_waiting()
+  bool is_waiting()
   {
-    static cppcoro::async_mutex mutex;
-    cppcoro::async_mutex_lock lock = co_await mutex.scoped_lock_async();
-
-    co_return m_num_publishers_waiting > 0;
+    return std::atomic_ref(m_num_publishers_waiting).load() > 0;
   }
 
 

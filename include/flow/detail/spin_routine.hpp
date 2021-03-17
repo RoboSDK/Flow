@@ -202,7 +202,7 @@ cppcoro::task<void> spin_transformer(
 
   producer_channel.initialize_termination();
 
-  while (co_await producer_channel.state() < producer_channel_t::termination_state::producer_received or co_await producer_channel.is_waiting()) {
+  while (co_await producer_channel.state() < producer_channel_t::termination_state::producer_received or producer_channel.is_waiting()) {
     co_await flush<return_t>(producer_channel, transformer, consumer_token);
   }
 
@@ -223,7 +223,7 @@ cppcoro::task<void> spin_transformer(
 template<typename return_t, flow::is_function routine_t>
   cppcoro::task<void> flush(auto& channel, routine_t& routine, auto& consumer_token) requires flow::is_consumer_function<routine_t> or flow::is_transformer_function<routine_t>
 {
-  while (co_await channel.is_waiting()) {
+  while (channel.is_waiting()) {
     auto next_message = channel.message_generator(consumer_token);
     auto current_message = co_await next_message.begin();
 
