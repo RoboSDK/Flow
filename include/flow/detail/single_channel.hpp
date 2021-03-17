@@ -128,11 +128,8 @@ public:
     m_resource->sequencer.publish(std::move(token.sequences));
   }
 
-  cppcoro::task<void> confirm_termination()
+  void confirm_termination()
   {
-    static cppcoro::async_mutex mutex;
-    cppcoro::async_mutex_lock lock = co_await mutex.scoped_lock_async();
-
     m_state = termination_state::producer_received;
   }
 
@@ -166,11 +163,8 @@ public:
     }
   }
 
-  cppcoro::task<void> initialize_termination()
+  void initialize_termination()
   {
-    static cppcoro::async_mutex mutex;
-    cppcoro::async_mutex_lock lock = co_await mutex.scoped_lock_async();
-
     m_state = termination_state::consumer_initialized;
   }
 
