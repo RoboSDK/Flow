@@ -18,7 +18,7 @@ The recommended to play with the library is to use the docker image. It will mou
 
 The image will have all dependencies installed for this library. 
 
-```
+```bash
 ./docker/build.sh # pull the image and make a user
 ./docker/start.sh # run the container and attach to it
 ```
@@ -31,7 +31,7 @@ You may now build the library within the docker container and install it if you'
 
 Requires Ubuntu 20.04 for GCC >= 10.2 to install. 
 
-```
+```bash
 # Install GCC >= 10.2 and make it the default
 sudo apt install build-essential gcc-10 g++-10 
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
@@ -188,7 +188,7 @@ and then the producer coroutines will end and exit their scope.
 ### Examples
 
 `example/minimal_producer_consumer`
-```
+```c++
 #include <flow/flow.hpp>
 
 std::string hello_world()
@@ -222,7 +222,7 @@ int main()
 
 
 Example with transformers and multiple chains
-```
+```c++
 #include <random>
 
 #include <flow/flow.hpp>
@@ -441,7 +441,7 @@ The following compilers should work:
 <a name="1-build-directory"></a>
 ### Build directory
 Make a build directory:
-```
+```bash
 mkdir build
 ```
 <a name="2-environment-variables"></a>
