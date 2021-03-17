@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cppcoro/async_mutex.hpp>
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>
 
@@ -65,6 +66,9 @@ cppcoro::task<void> spin_producer(
     channel.publish_messages(producer_token);
   }
 
+  static cppcoro::async_mutex mutex;
+  auto lock = co_await mutex.scoped_lock_async();
+
   channel.confirm_termination();
 }
 
@@ -110,14 +114,17 @@ cppcoro::task<void> spin_consumer(
     }
   }
 
+  // synchronize only when terminating program
+  static std::mutex termination_mutex;
+  std::lock_guard lock{termination_mutex};
+
   channel.initialize_termination();
 
   while (channel.state() < channel_t::termination_state::producer_received) {
-    co_await flush<void>(channel, consumer, consumer_token);
+    cppcoro::sync_wait(flush<void>(channel, consumer, consumer_token));
   }
 
   channel.finalize_termination();
-  co_await flush<void>(channel, consumer, consumer_token);
 }
 
 /**
@@ -176,41 +183,45 @@ cppcoro::task<void> spin_transformer(
     }
   }
 
+  // synchronize only when terminating program
+  static std::mutex termination_mutex;
+  std::lock_guard lock{termination_mutex};
+
   consumer_channel.confirm_termination();
-  bool published_all_messages_to_consume = false;
-  while (not published_all_messages_to_consume and consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
-    auto next_message = producer_channel.message_generator(consumer_token);
-    auto current_message = co_await next_message.begin();
 
-    while (current_message != next_message.end()) {
-      auto& message_to_consume = *current_message;
+  if (consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
+    bool published_all_messages_to_consume = false;
+    while (not published_all_messages_to_consume and consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
+      auto next_message = producer_channel.message_generator(consumer_token);
+      auto current_message = co_await next_message.begin();
 
-      auto message_to_produce = co_await [&]() -> cppcoro::task<return_t> {
-        co_return std::invoke(transformer, std::move(message_to_consume));
-      }();
+      while (current_message != next_message.end()) {
+        auto& message_to_consume = *current_message;
 
-      producer_token.messages.push(std::move(message_to_produce));
-      producer_channel.notify_message_consumed(consumer_token);
+        auto message_to_produce = co_await [&]() -> cppcoro::task<return_t> {
+               co_return std::invoke(transformer, std::move(message_to_consume));
+        }();
 
-      if (producer_token.messages.size() == producer_token.sequences.size()) {
-        consumer_channel.publish_messages(producer_token);
-        published_all_messages_to_consume = true;
-        break;
+        producer_token.messages.push(std::move(message_to_produce));
+        producer_channel.notify_message_consumed(consumer_token);
+
+        if (producer_token.messages.size() == producer_token.sequences.size()) {
+          consumer_channel.publish_messages(producer_token);
+          published_all_messages_to_consume = true;
+          break;
+        }
+        co_await ++current_message;
       }
-      co_await ++current_message;
     }
   }
 
   producer_channel.initialize_termination();
 
   while (producer_channel.state() < producer_channel_t::termination_state::producer_received or producer_channel.is_waiting()) {
-    co_await flush<return_t>(producer_channel, transformer, consumer_token);
+    cppcoro::sync_wait(flush<return_t>(producer_channel, transformer, consumer_token));
   }
 
   producer_channel.finalize_termination();
-
-  // producer needs one final flush
-  co_await flush<return_t>(producer_channel, transformer, consumer_token);
 }
 
 /**

@@ -129,7 +129,7 @@ public:
 
   void confirm_termination()
   {
-    m_state = termination_state::producer_received;
+    m_state = std::max(termination_state::producer_received, m_state);
   }
 
   /*******************************************************
@@ -165,12 +165,12 @@ public:
 
   void initialize_termination()
   {
-    m_state = termination_state::consumer_initialized;
+    m_state = std::max(termination_state::consumer_initialized, m_state);
   }
 
   void finalize_termination()
   {
-    m_state = termination_state::consumer_finalized;
+    m_state = std::max(termination_state::consumer_finalized, m_state);
   }
 
   /**
