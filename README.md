@@ -203,12 +203,10 @@ int main()
   using namespace std::literals;
 
   /**
-   * The producer hello_world is going to be publishing to the global std::string multi_channel.
-   * The consumer subscribe_hello is going to subscribe to the global std::string multi_channel.
-   *
-   * TODO: Take frequency as argument to chain()
+   * The producer hello_world creates a private channel to 
+   * subscribe_hello and sends messsages at 10hz
    */
-  auto net = flow::network(flow::chain() | hello_world | subscribe_hello);
+  auto net = flow::network(flow::chain(10hz) | hello_world | subscribe_hello);
 
   /**
    * Note: cancellation begins in 1 ms, but cancellation
@@ -262,8 +260,8 @@ int main()
 {
   using namespace std::literals;
 
-  auto low_pass = flow::chain() | flow::transformer(low_pass_filter, "sensor") | consume_data;
-  auto high_pass = flow::chain() | flow::transformer(high_pass_filter, "sensor") | consume_data;
+  auto low_pass = flow::chain(10hz) | flow::transform(low_pass_filter, "sensor") | consume_data;
+  auto high_pass = flow::chain(10hz) | flow::transforr(high_pass_filter, "sensor") | consume_data;
 
   auto network = flow::network(Sensor{}, std::move(low_pass), std::move(high_pass));
 
