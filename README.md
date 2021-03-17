@@ -225,49 +225,63 @@ int main()
 ```
 
 
-Example with transformers
+Example with transformers and multiple chains
 ```
+#include <random>
+
 #include <flow/flow.hpp>
 #include <spdlog/spdlog.h>
 
-std::string make_hello_world()
+static std::random_device m_random_device{};
+static std::mt19937 m_random_engine{ m_random_device() };
+static std::uniform_int_distribution<int> m_distribution{ 1, 100 };
+
+class Sensor {
+public:
+  int operator()()
+  {
+    spdlog::info("sensor");
+    return m_distribution(m_random_engine);
+  }
+
+  std::string publish_to() { return "sensor"; }
+
+private:
+};
+
+int low_pass_filter(int&& data)
 {
-  return "Hello World";
+  spdlog::info("low");
+  static int limit = 30;
+  return std::min(data, limit);
 }
 
-std::string reverse_string(std::string&& message)
+int high_pass_filter(int&& data)
 {
-  std::ranges::reverse(message);
-  return std::move(message);// no RVO here
+  spdlog::info("high");
+  static int limit = 70;
+  return std::max(data, limit);
 }
 
-std::size_t hash_string(std::string&& message)
+void consume_data(int&& data)
 {
-  return std::hash<std::string>{}(std::move(message));
+  spdlog::info("consuming data: {}", data);
 }
 
-// For now all messages are passed in by r-value
-void receive_hashed_message(std::size_t&& message)
-{
-  spdlog::info("Received Message: {}", message);
-}
 
 int main()
 {
-  using namespace flow;
   using namespace std::literals;
 
-  //   Order doesn't matter here
-  auto network = flow::network(flow::chain() | make_hello_world | reverse_string | hash_string | receive_hashed_message);
+  auto low_pass = flow::chain() | flow::transformer(low_pass_filter, "sensor") | consume_data;
+  auto high_pass = flow::chain() | flow::transformer(high_pass_filter, "sensor") | consume_data;
+
+  auto network = flow::network(Sensor{}, std::move(low_pass), std::move(high_pass));
 
   network.cancel_after(1ms);
-
-  // Alternative (and preferred method)
-  // auto network_handle = network.handle();
-  // network_handle.request_cancellation();
-
   flow::spin(std::move(network));
 }
+
 ```
 
 <a name="milestones"></a>
