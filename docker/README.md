@@ -12,9 +12,4 @@ If you leave bash session you may reattach with:
 ./bash.sh # attaches to the container again if previously disconnected
 ```
 
-At the moment the default user is the root user.
-
-TODO: Create a user matching the user name in the Dockerfile
-
-In the `/opt` directory Flow will be cloned and already built. There is
-also a minimal project that links to Flow called FlowExample.
+From there you should be able to clone this repo and run the `sripts/build.py` script to build this project

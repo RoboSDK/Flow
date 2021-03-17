@@ -1,5 +1,4 @@
 #include <flow/flow.hpp>
-
 #include <spdlog/spdlog.h>
 
 std::string hello_world()
@@ -7,7 +6,7 @@ std::string hello_world()
   return "Hello World";
 }
 
-void receive_message(std::string&& message)
+void subscribe_hello(std::string&& message)
 {
   spdlog::info("Received Message: {}", message);
 }
@@ -17,16 +16,16 @@ int main()
   using namespace std::literals;
 
   /**
-   * The producer_impl hello_world is going to be publishing to the global std::string multi_channel.
-   * The consumer receive_message is going to subscribe to the global std::string multi_channel.
+   * The producer hello_world is going to be publishing to the global std::string multi_channel.
+   * The consumer subscribe_hello is going to subscribe to the global std::string multi_channel.
    */
-  auto network = flow::network(hello_world, receive_message);
+  auto net = flow::network(hello_world, subscribe_hello);
 
   /**
    * Note: cancellation begins in 1 ms, but cancellation
    * is non-deterministic. 
    */
-  network.cancel_after(1ms);
+  net.cancel_after(1ms);
 
-  flow::spin(std::move(network));
+  flow::spin(std::move(net));
 }

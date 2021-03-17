@@ -28,11 +28,11 @@ auto spin(routines_t&&... routines)
 }
 
 /**
- * When spinning up a global network this function will be called.
+ * When spinning up a network this function will be called.
  * @param global_network  The network where user name channel names are used
  */
-auto spin(flow::is_network auto&& global_network)
+auto spin(flow::is_network auto&& network)
 {
-  return cppcoro::sync_wait(global_network.spin());
+  return cppcoro::sync_wait(network.spin());
 }
 }// namespace flow

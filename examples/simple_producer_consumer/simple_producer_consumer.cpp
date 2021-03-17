@@ -1,7 +1,7 @@
 #include <flow/flow.hpp>
 #include <spdlog/spdlog.h>
 
-std::string make_hello_world()
+std::string produce_hello_world()
 {
   return "Hello World";
 }
@@ -28,16 +28,8 @@ int main()
   using namespace flow;
   using namespace std::literals;
 
-  auto hello_world = producer(make_hello_world, "hello_world");
-  auto reverser = transformer(reverse_string, "hello_world", "reversed");
-  auto hasher = transformer(hash_string, "reversed", "hashed");
-  auto receiver = consumer(receive_hashed_message, "hashed");
-
-  //   Order doesn't matter here
-  auto network = flow::network(std::move(hello_world),
-                               std::move(reverser),
-                               std::move(hasher),
-                               std::move(receiver));
+  //  TODO: Take frequency as argument to chain()
+  auto network = flow::network(flow::chain() | produce_hello_world | reverse_string | hash_string | receive_hashed_message);
 
   network.cancel_after(1ms);
 

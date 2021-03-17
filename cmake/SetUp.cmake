@@ -19,7 +19,7 @@ include(cmake/PreventInSourceBuilds.cmake)
 
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 target_compile_features(project_options INTERFACE cxx_std_20)
-target_compile_options(project_options INTERFACE -fcoroutines -gdwarf-3)
+target_compile_options(project_options INTERFACE -fcoroutines -gdwarf-3 -fpie)
 
 include(cmake/VerifyCompilerSupportsCoroutines.cmake)
 

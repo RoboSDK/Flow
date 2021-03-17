@@ -3,7 +3,7 @@
 #include <flow/producer.hpp>
 
 namespace example {
-struct producer_routine {
+struct string_publisher {
   std::string operator()()
   {
     return "Hello World!";

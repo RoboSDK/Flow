@@ -7,7 +7,7 @@ VARIANT="manuelmeraz/flow"
 
 # The image tag to use. Defaults to "latest", but can be specified based on the image version.
 # example: TAG="0.0.1"
-TAG="latest"
+TAG="dev"
 
 # Name of the user we will add inside the docker container. You generally want your username
 # inside the container to match the username you will deploy with.
