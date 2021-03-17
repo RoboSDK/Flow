@@ -261,7 +261,7 @@ int main()
   using namespace std::literals;
 
   auto low_pass = flow::chain(10hz) | flow::transform(low_pass_filter, "sensor") | consume_data;
-  auto high_pass = flow::chain(10hz) | flow::transforr(high_pass_filter, "sensor") | consume_data;
+  auto high_pass = flow::chain(10hz) | flow::transform(high_pass_filter, "sensor") | consume_data;
 
   auto network = flow::network(Sensor{}, std::move(low_pass), std::move(high_pass));
 
