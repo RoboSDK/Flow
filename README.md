@@ -191,11 +191,10 @@ and then the producer coroutines will end and exit their scope.
 ```c++
 #include <flow/flow.hpp>
 
-std::string hello_world()
-{
-  return "Hello World";
-}
+// this is a producer
+std::string hello_world() { return "Hello World"; }
 
+// this is a consumer
 void subscribe_hello(std::string&& message){  }
 
 int main()
@@ -222,18 +221,18 @@ int main()
 Example with transformers and multiple chains
 ```c++
 #include <random>
-
 #include <flow/flow.hpp>
 
-static std::random_device m_random_device{};
-static std::mt19937 m_random_engine{ m_random_device() };
-static std::uniform_int_distribution<int> m_distribution{ 1, 100 };
+std::random_device random_device{};
+std::mt19937 random_engine{ random_device() };
+std::uniform_int_distribution<int> distribution{ 1, 100 };
 
+// producer that publishes to "sensor"
 class Sensor {
 public:
   int operator()()
   {
-    return m_distribution(m_random_engine);
+    return distribution(random_engine);
   }
 
   std::string publish_to() { return "sensor"; }
@@ -255,11 +254,11 @@ int high_pass_filter(int&& data)
 
 void consume_data(int&& data) { }
 
-
 int main()
 {
   using namespace std::literals;
-
+  
+  // transformers subscribe to sensor channel and create a private channel to consume data 
   auto low_pass = flow::chain(10hz) | flow::transform(low_pass_filter, "sensor") | consume_data;
   auto high_pass = flow::chain(10hz) | flow::transform(high_pass_filter, "sensor") | consume_data;
 
