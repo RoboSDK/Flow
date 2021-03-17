@@ -53,7 +53,8 @@ cppcoro::task<void> spin_producer(
 {
   producer_token<return_t> producer_token{};
   using channel_t = std::decay_t<decltype(channel)>;
-  while (co_await channel.state() < channel_t::termination_state::consumer_initialized) {
+
+  while (channel.state() < channel_t::termination_state::consumer_initialized) {
     co_await channel.request_permission_to_publish(producer_token);
 
     for (std::size_t i = 0; i < producer_token.sequences.size(); ++i) {
@@ -111,7 +112,7 @@ cppcoro::task<void> spin_consumer(
 
   channel.initialize_termination();
 
-  while (co_await channel.state() < channel_t::termination_state::producer_received) {
+  while (channel.state() < channel_t::termination_state::producer_received) {
     co_await flush<void>(channel, consumer, consumer_token);
   }
 
@@ -152,7 +153,7 @@ cppcoro::task<void> spin_transformer(
 
   co_await consumer_channel.request_permission_to_publish(producer_token);
 
-  while (co_await consumer_channel.state() < consumer_channel_t::termination_state::consumer_initialized) {
+  while (consumer_channel.state() < consumer_channel_t::termination_state::consumer_initialized) {
     auto next_message = producer_channel.message_generator(consumer_token);
     auto current_message = co_await next_message.begin();
 
@@ -177,7 +178,7 @@ cppcoro::task<void> spin_transformer(
 
   consumer_channel.confirm_termination();
   bool published_all_messages_to_consume = false;
-  while (not published_all_messages_to_consume and co_await consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
+  while (not published_all_messages_to_consume and consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
     auto next_message = producer_channel.message_generator(consumer_token);
     auto current_message = co_await next_message.begin();
 
@@ -202,7 +203,7 @@ cppcoro::task<void> spin_transformer(
 
   producer_channel.initialize_termination();
 
-  while (co_await producer_channel.state() < producer_channel_t::termination_state::producer_received or producer_channel.is_waiting()) {
+  while (producer_channel.state() < producer_channel_t::termination_state::producer_received or producer_channel.is_waiting()) {
     co_await flush<return_t>(producer_channel, transformer, consumer_token);
   }
 
