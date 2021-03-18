@@ -22,6 +22,10 @@ public:
     return m_time_elapsed >= m_wait_time;
   }
 
+  cppcoro::task<bool> async_is_ready() {
+    co_return is_ready();
+  }
+
 private:
   decltype(std::chrono::steady_clock::now()) m_last_timestamp{};
 

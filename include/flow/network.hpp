@@ -380,7 +380,7 @@ namespace detail {
     }
 
     /**
-   * Cancel the network after the specified time. Probably a better way to do this lazily.
+   * Cancel the network after the specified time
    *
    * This does not mean the network will be stopped after this amount of time! It takes a non-deterministic
    * amount of time to fully shut the network down.
@@ -394,6 +394,10 @@ namespace detail {
           std::this_thread::yield();
         }
 
+        std::cerr << "====================================================" << std::endl;
+        std::cerr << "cancelling!!" << std::endl;
+        std::cerr << "handles size: " << handle.get().size() << std::endl;
+        std::cerr << "====================================================" << std::endl;
         handle.get().request_cancellation();
       };
 

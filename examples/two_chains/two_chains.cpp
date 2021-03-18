@@ -11,8 +11,9 @@ class Sensor {
 public:
   int operator()()
   {
-    spdlog::info("sensor");
-    return m_distribution(m_random_engine);
+    auto data = m_distribution(m_random_engine);
+    spdlog::info("sensor:{}", data);
+    return data;
   }
 
   std::string publish_to() { return "sensor"; }
@@ -22,14 +23,14 @@ private:
 
 int low_pass_filter(int&& data)
 {
-  spdlog::info("low");
+  spdlog::info("low:{}", data);
   static int limit = 30;
   return std::min(data, limit);
 }
 
 int high_pass_filter(int&& data)
 {
-  spdlog::info("high");
+  spdlog::info("high: {}", data);
   static int limit = 70;
   return std::max(data, limit);
 }

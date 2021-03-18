@@ -166,11 +166,9 @@ public:
     token.end_sequence = co_await m_resource->sequencer.wait_until_published(
       token.sequence, *m_scheduler);
 
-    while (token.sequence < token.end_sequence) {
+    while (token.sequence <= token.end_sequence) {
       co_yield m_buffer[std::atomic_ref(token.sequence)++ & m_index_mask];
     }
-
-    co_yield m_buffer[std::atomic_ref(token.sequence).load() & m_index_mask];
   }
 
 

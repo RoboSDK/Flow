@@ -127,12 +127,12 @@ cppcoro::task<void> spin_consumer(
   channel.initialize_termination();
 
   while (channel.state() < channel_t::termination_state::producer_received) {
-    cppcoro::sync_wait(flush<void>(channel, consumer, consumer_token));
+    co_await flush<void>(channel, consumer, consumer_token);
   }
 
   channel.finalize_termination();
 
-  //  if (channel.is_waiting())  cppcoro::sync_wait(flush<void>(channel, consumer, consumer_token));
+//    if (channel.is_waiting())  cppcoro::sync_wait(flush<void>(channel, consumer, consumer_token));
 }
 
 /**
@@ -189,7 +189,6 @@ cppcoro::task<void> spin_transformer(
       if (producer_token.messages.size() == producer_token.sequences.size()) {
         consumer_channel.publish_messages(producer_token);
         co_await consumer_channel.request_permission_to_publish(producer_token);
-        break;
       }
 
       co_await ++current_message;
@@ -230,7 +229,7 @@ cppcoro::task<void> spin_transformer(
   producer_channel.initialize_termination();
 
   while (producer_channel.state() < producer_channel_t::termination_state::producer_received or producer_channel.is_waiting()) {
-    cppcoro::sync_wait(flush<return_t>(producer_channel, transformer, consumer_token));
+    co_await flush<return_t>(producer_channel, transformer, consumer_token);
   }
 
   producer_channel.finalize_termination();
