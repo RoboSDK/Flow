@@ -21,6 +21,11 @@ public:
     for (auto& handle : m_handles) handle.request_cancellation();
   }
 
+  std::size_t size()
+  {
+    return m_handles.size();
+  }
+
 private:
   std::vector<detail::cancellation_handle> m_handles{};
 };

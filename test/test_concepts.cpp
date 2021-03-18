@@ -289,7 +289,7 @@ TEST_CASE("Test producer routine", "[string_publisher]")
   }
 }
 
-TEST_CASE("Test consumer routine", "[hashed_string_subscriber]")
+TEST_CASE("Test consumer routine", "[string_subscriber]")
 {
   SECTION("raw function")
   {

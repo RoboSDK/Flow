@@ -166,10 +166,11 @@ public:
     token.end_sequence = co_await m_resource->sequencer.wait_until_published(
       token.sequence, *m_scheduler);
 
-    while (std::atomic_ref(token.sequence)++ <= token.end_sequence) {
-      co_yield m_buffer[token.sequence & m_index_mask];
+    while (token.sequence < token.end_sequence) {
+      co_yield m_buffer[std::atomic_ref(token.sequence)++ & m_index_mask];
     }
-    --token.sequence;
+
+    co_yield m_buffer[std::atomic_ref(token.sequence).load() & m_index_mask];
   }
 
 
@@ -178,12 +179,8 @@ public:
    */
   bool notify_message_consumed(consumer_token<message_t>& token)
   {
-    if (token.sequence >= token.end_sequence) {
-      m_resource->barrier.publish(token.sequence);
-      return true;
-    }
-
-    return false;
+    m_resource->barrier.publish(token.sequence);
+    return true;
   }
 
   void initialize_termination()

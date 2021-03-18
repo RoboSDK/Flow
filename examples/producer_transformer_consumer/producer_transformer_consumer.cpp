@@ -11,7 +11,7 @@ int main()
   using namespace std::literals;
 
   // order doesn't matter
-  auto network = flow::network(flow::chain() | string_publisher{}| string_reverser{} | string_hasher{} | hashed_string_subscriber{});
+  auto network = flow::network(flow::chain() | string_publisher{}| string_reverser{} | string_hasher{} | string_subscriber{});
   network.cancel_after(1ms);
   flow::spin(std::move(network));
 }

@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "flow/concepts.hpp"
+#include "flow/detail/spin_wait.hpp"
 #include "flow/network.hpp"
 
 #include "cancellable_function.hpp"
@@ -65,8 +66,7 @@ cppcoro::task<void> spin_producer(
   };
 
   while (not termination_has_initialized()) {
-     bool good = co_await channel.request_permission_to_publish(producer_token);
-     if (not good) break;
+    if (not co_await channel.request_permission_to_publish(producer_token)) break;
 
     for (std::size_t i = 0; i < producer_token.sequences.size(); ++i) {
       return_t message = co_await [&]() -> cppcoro::task<return_t> { co_return std::invoke(producer); }();
@@ -112,7 +112,7 @@ cppcoro::task<void> spin_consumer(
     auto next_message = channel.message_generator(consumer_token);
     auto current_message = co_await next_message.begin();
 
-    while (current_message != next_message.end()) {
+    while (current_message != next_message.end() and not consumer.is_cancellation_requested()) {
       auto& message = *current_message;
       co_await [&]() -> cppcoro::task<void> { co_return consumer(std::move(message)); }();
 
@@ -132,7 +132,7 @@ cppcoro::task<void> spin_consumer(
 
   channel.finalize_termination();
 
-//  if (channel.is_waiting())  cppcoro::sync_wait(flush<void>(channel, consumer, consumer_token));
+  //  if (channel.is_waiting())  cppcoro::sync_wait(flush<void>(channel, consumer, consumer_token));
 }
 
 /**
@@ -166,11 +166,10 @@ cppcoro::task<void> spin_transformer(
   using consumer_channel_t = std::decay_t<decltype(consumer_channel)>;
   using producer_channel_t = std::decay_t<decltype(producer_channel)>;
 
-  bool good = co_await consumer_channel.request_permission_to_publish(producer_token);
-  if (not good) co_return;
+  if (not co_await consumer_channel.request_permission_to_publish(producer_token)) co_return;
 
   auto termination_has_initialized = [&](auto& channel) {
-         return channel.state() >= consumer_channel_t::termination_state::consumer_initialized;
+    return channel.state() >= consumer_channel_t::termination_state::consumer_initialized;
   };
 
   while (not termination_has_initialized(consumer_channel)) {
@@ -201,26 +200,28 @@ cppcoro::task<void> spin_transformer(
   consumer_channel.confirm_termination();
 
   if (consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
-    bool published_all_messages_to_consume = false;
-    while (not published_all_messages_to_consume and consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
+    co_await consumer_channel.request_permission_to_publish_one(producer_token);
+
+    while (consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
       auto next_message = producer_channel.message_generator(consumer_token);
       auto current_message = co_await next_message.begin();
 
-      while (current_message != next_message.end()) {
+      while (current_message != next_message.end() and consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
         auto& message_to_consume = *current_message;
 
         auto message_to_produce = co_await [&]() -> cppcoro::task<return_t> {
-               co_return std::invoke(transformer, std::move(message_to_consume));
+          co_return std::invoke(transformer, std::move(message_to_consume));
         }();
 
         producer_token.messages.push(std::move(message_to_produce));
         producer_channel.notify_message_consumed(consumer_token);
+        consumer_channel.publish_one(producer_token);
 
-        if (producer_token.messages.size() == producer_token.sequences.size()) {
-          consumer_channel.publish_messages(producer_token);
-          published_all_messages_to_consume = true;
+        if (consumer_channel.state() >= consumer_channel_t::termination_state::consumer_finalized) {
           break;
         }
+
+        co_await consumer_channel.request_permission_to_publish_one(producer_token);
         co_await ++current_message;
       }
     }

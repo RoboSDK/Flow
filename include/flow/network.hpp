@@ -1,8 +1,9 @@
 #pragma once
 
-#include <iostream>
+#include <future>
 
 #include <cppcoro/on_scope_exit.hpp>
+#include <cppcoro/schedule_on.hpp>
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all.hpp>
 
@@ -11,10 +12,10 @@
 #include "flow/detail/channel_set.hpp"
 #include "flow/detail/mixed_array.hpp"
 #include "flow/detail/multi_channel.hpp"
+#include "flow/detail/routine.hpp"
 #include "flow/detail/single_channel.hpp"
 #include "flow/detail/spin_routine.hpp"
 #include "flow/detail/timeout_routine.hpp"
-#include "flow/detail/routine.hpp"
 
 #include "flow/concepts.hpp"
 #include "flow/consumer.hpp"
@@ -117,7 +118,8 @@ auto push_routine(is_network auto& network, auto&& routine)
   }
 }
 
-auto push_routine_or_chain(auto& network, auto&& routine) {
+auto push_routine_or_chain(auto& network, auto&& routine)
+{
   using routine_t = decltype(routine);
 
   if constexpr (is_chain<routine_t>) {
@@ -262,8 +264,8 @@ namespace detail {
       m_heap_storage.push_back(std::move(routine));
     }
 
-    template <typename begin_t>
-    auto& push_chain_begin(begin_t&& begin) requires is_transformer_routine<begin_t> or is_producer_routine<begin_t>
+    template<typename begin_t>
+      auto& push_chain_begin(begin_t&& begin) requires is_transformer_routine<begin_t> or is_producer_routine<begin_t>
     {
       using namespace detail::channel;
 
@@ -278,13 +280,13 @@ namespace detail {
       }
     }
 
-    template <typename end_t>
-    void push_chain_end(end_t&& end, auto& channel) requires is_transformer_routine<end_t> or is_consumer_routine<end_t>
+    template<typename end_t>
+      void push_chain_end(end_t&& end, auto& channel) requires is_transformer_routine<end_t> or is_consumer_routine<end_t>
     {
       using namespace detail::channel;
 
       static_assert(not is_producer_routine<end_t> and not is_spinner_routine<end_t>,
-                    "network.hpp:push_chain_end only takes in transformer or consumer routines implementations.");
+        "network.hpp:push_chain_end only takes in transformer or consumer routines implementations.");
 
       if constexpr (is_transformer_routine<end_t>) {
         using arg_t = typename decltype(channel.message_type())::type;
@@ -378,21 +380,25 @@ namespace detail {
     }
 
     /**
-   * Cancel the network after the specified time
+   * Cancel the network after the specified time. Probably a better way to do this lazily.
    *
    * This does not mean the network will be stopped after this amount of time! It takes a non-deterministic
    * amount of time to fully shut the network down.
    * @param any chrono time
    */
-    void cancel_after(std::chrono::nanoseconds time)
+    auto cancel_after(std::chrono::nanoseconds time)
     {
-      // Needs to be heap allocated so coroutines can access the member data out of scope
-      auto timeout_routine = std::make_shared<detail::timeout_routine>(time, [&] {
-        handle().request_cancellation();
-      });
+      auto time_out_after = [](auto time, std::reference_wrapper<network_handle> handle) {
+        spin_wait waiter{ time };
+        while (not waiter.is_ready()) {
+          std::this_thread::yield();
+        }
 
-      m_routines_to_spin.push_back(timeout_routine->spin());
-      m_heap_storage.push_back(std::move(timeout_routine));
+        handle.get().request_cancellation();
+      };
+
+      auto thread =  std::thread( time_out_after, time, std::ref(m_handle));
+      thread.detach();
     }
 
   private:
