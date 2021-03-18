@@ -104,18 +104,18 @@ cppcoro::task<void> spin_consumer(
   auto& channel,
   cancellable_function<void(argument_t&&)>& consumer)
 {
-  consumer_token<argument_t> consumer_token{};
+  subscriber_token<argument_t> subscriber_token{};
   using channel_t = std::decay_t<decltype(channel)>;
 
   while (not consumer.is_cancellation_requested()) {
-    auto next_message = channel.message_generator(consumer_token);
+    auto next_message = channel.message_generator(subscriber_token);
     auto current_message = co_await next_message.begin();
 
     while (current_message != next_message.end() and not consumer.is_cancellation_requested()) {
       auto& message = *current_message;
       co_await [&]() -> cppcoro::task<void> { co_return consumer(std::move(message)); }();
 
-      channel.notify_message_consumed(consumer_token);
+      channel.notify_message_consumed(subscriber_token);
       co_await ++current_message;
     }
   }
@@ -126,12 +126,12 @@ cppcoro::task<void> spin_consumer(
   channel.initialize_termination();
 
   while (channel.state() < channel_t::termination_state::publisher_received) {
-    co_await flush<void>(channel, consumer, consumer_token);
+    co_await flush<void>(channel, consumer, subscriber_token);
   }
 
   channel.finalize_termination();
 
-//    if (channel.is_waiting())  cppcoro::sync_wait(flush<void>(channel, consumer, consumer_token));
+//    if (channel.is_waiting())  cppcoro::sync_wait(flush<void>(channel, consumer, subscriber_token));
 }
 
 /**
@@ -161,7 +161,7 @@ cppcoro::task<void> spin_transformer(
   cancellable_function<return_t(argument_t&&)>& transformer)
 {
   publisher_token<return_t> publisher_token{};
-  consumer_token<argument_t> consumer_token{};
+  subscriber_token<argument_t> subscriber_token{};
   using consumer_channel_t = std::decay_t<decltype(consumer_channel)>;
   using publisher_channel_t = std::decay_t<decltype(publisher_channel)>;
 
@@ -172,7 +172,7 @@ cppcoro::task<void> spin_transformer(
   };
 
   while (not termination_has_initialized(consumer_channel)) {
-    auto next_message = publisher_channel.message_generator(consumer_token);
+    auto next_message = publisher_channel.message_generator(subscriber_token);
     auto current_message = co_await next_message.begin();
 
     while (current_message != next_message.end() and not termination_has_initialized(consumer_channel)) {
@@ -183,7 +183,7 @@ cppcoro::task<void> spin_transformer(
       }();
 
       publisher_token.messages.push(std::move(message_to_publish));
-      publisher_channel.notify_message_consumed(consumer_token);
+      publisher_channel.notify_message_consumed(subscriber_token);
 
       if (publisher_token.messages.size() == publisher_token.sequences.size()) {
         consumer_channel.publish_messages(publisher_token);
@@ -201,7 +201,7 @@ cppcoro::task<void> spin_transformer(
     co_await consumer_channel.request_permission_to_publish_one(publisher_token);
 
     while (consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
-      auto next_message = publisher_channel.message_generator(consumer_token);
+      auto next_message = publisher_channel.message_generator(subscriber_token);
       auto current_message = co_await next_message.begin();
 
       while (current_message != next_message.end() and consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
@@ -212,7 +212,7 @@ cppcoro::task<void> spin_transformer(
         }();
 
         publisher_token.messages.push(std::move(message_to_publish));
-        publisher_channel.notify_message_consumed(consumer_token);
+        publisher_channel.notify_message_consumed(subscriber_token);
         consumer_channel.publish_one(publisher_token);
 
         if (consumer_channel.state() >= consumer_channel_t::termination_state::consumer_finalized) {
@@ -228,7 +228,7 @@ cppcoro::task<void> spin_transformer(
   publisher_channel.initialize_termination();
 
   while (publisher_channel.state() < publisher_channel_t::termination_state::publisher_received or publisher_channel.is_waiting()) {
-    co_await flush<return_t>(publisher_channel, transformer, consumer_token);
+    co_await flush<return_t>(publisher_channel, transformer, subscriber_token);
   }
 
   publisher_channel.finalize_termination();
@@ -243,10 +243,10 @@ cppcoro::task<void> spin_transformer(
  * @return A coroutine
  */
 template<typename return_t, flow::is_function routine_t>
-  cppcoro::task<void> flush(auto& channel, routine_t& routine, auto& consumer_token) requires flow::is_consumer_function<routine_t> or flow::is_transformer_function<routine_t>
+  cppcoro::task<void> flush(auto& channel, routine_t& routine, auto& subscriber_token) requires flow::is_consumer_function<routine_t> or flow::is_transformer_function<routine_t>
 {
   while (channel.is_waiting()) {
-    auto next_message = channel.message_generator(consumer_token);
+    auto next_message = channel.message_generator(subscriber_token);
     auto current_message = co_await next_message.begin();
 
     while (current_message != next_message.end()) {
@@ -256,7 +256,7 @@ template<typename return_t, flow::is_function routine_t>
         co_return std::invoke(routine, std::move(message));
       }();
 
-      channel.notify_message_consumed(consumer_token);
+      channel.notify_message_consumed(subscriber_token);
       co_await ++current_message;
     }
   }

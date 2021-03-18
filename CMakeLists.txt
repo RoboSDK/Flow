@@ -44,7 +44,7 @@ if (ENABLE_PCH)
             cancellation_handle
             channel_resource
             channel_set
-            consumer_token
+            subscriber_token
             hash
             metaprogramming
             mixed_array

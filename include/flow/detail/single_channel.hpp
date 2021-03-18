@@ -3,8 +3,8 @@
 #include <stack>
 
 #include "channel_resource.hpp"
-#include "consumer_token.hpp"
 #include "publisher_token.hpp"
+#include "subscriber_token.hpp"
 
 #include <cppcoro/async_generator.hpp>
 #include <cppcoro/single_producer_sequencer.hpp>
@@ -161,7 +161,7 @@ public:
    * have already been published by a publisher_function
    * @return a message generator
    */
-  cppcoro::async_generator<message_t> message_generator(consumer_token<message_t>& token)
+  cppcoro::async_generator<message_t> message_generator(subscriber_token<message_t>& token)
   {
     token.end_sequence = co_await m_resource->sequencer.wait_until_published(
       token.sequence, *m_scheduler);
@@ -175,7 +175,7 @@ public:
   /**
    * Notify the publisher_function to publish the next messages
    */
-  bool notify_message_consumed(consumer_token<message_t>& token)
+  bool notify_message_consumed(subscriber_token<message_t>& token)
   {
     m_resource->barrier.publish(token.sequence);
     return true;
