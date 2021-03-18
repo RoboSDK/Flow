@@ -144,13 +144,6 @@ auto network(auto&&... routines)
 
   (push_routine_or_chain(network, forward(routines)), ...);
 
-  constexpr std::size_t num_routines = sizeof...(routines);
-  if (network.size() < num_routines) {
-    std::cerr << "Network size: " << network.size() << "\n";
-    std::cerr << "Callables array size: " << num_routines << "\n";
-    throw std::runtime_error("Network size is less than functions array. This is a developer error. Please submit an issue.");
-  }
-
   return network;
 }
 

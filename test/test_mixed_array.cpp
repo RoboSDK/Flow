@@ -1,6 +1,5 @@
 #include <catch2/catch.hpp>
 #include <flow/detail/mixed_array.hpp>
-#include <iostream>
 #include <sstream>
 
 void verify(auto& arr) {

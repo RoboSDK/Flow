@@ -3,7 +3,6 @@
 #include <cppcoro/async_mutex.hpp>
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>
-#include <iostream>
 
 #include "flow/concepts.hpp"
 #include "flow/detail/spin_wait.hpp"
