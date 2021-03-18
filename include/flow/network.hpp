@@ -394,10 +394,6 @@ namespace detail {
           std::this_thread::yield();
         }
 
-        std::cerr << "====================================================" << std::endl;
-        std::cerr << "cancelling!!" << std::endl;
-        std::cerr << "handles size: " << handle.get().size() << std::endl;
-        std::cerr << "====================================================" << std::endl;
         handle.get().request_cancellation();
       };
 
