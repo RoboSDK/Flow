@@ -13,12 +13,12 @@ struct channel_resource {
 
   /*
    * The sequence barrier is used to communicate from the consumer_function end that it has
-   * received and consumed the message to the producer_function end of the multi_channel
+   * received and consumed the message to the publisher_function end of the multi_channel
    */
   sequence_barrier barrier{};
 
   /*
-   * The producer_function sequencer generated sequence numbers that the producer_function end of the multi_channel
+   * The publisher_function sequencer generated sequence numbers that the publisher_function end of the multi_channel
    * uses to publish to the consumer_function end
    */
   sequencer_t sequencer{ barrier, configuration_t::message_buffer_size };

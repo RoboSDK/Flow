@@ -1,6 +1,6 @@
 #pragma once
 
-#include <flow/producer.hpp>
+#include <flow/publisher.hpp>
 
 #include <spdlog/spdlog.h>
 

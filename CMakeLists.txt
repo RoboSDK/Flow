@@ -30,7 +30,7 @@ if (ENABLE_PCH)
             flow
             network_handle
             network
-            producer
+            publisher
             spin
             spinner
             transformer)
@@ -49,7 +49,7 @@ if (ENABLE_PCH)
             metaprogramming
             mixed_array
             multi_channel
-            producer_token
+            publisher_token
             spin_routine
             timeout_routine)
 

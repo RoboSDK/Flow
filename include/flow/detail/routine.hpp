@@ -3,10 +3,10 @@
 #include "flow/concepts.hpp"
 #include "flow/detail/forward.hpp"
 
-#include "flow/producer.hpp"
 #include "flow/consumer.hpp"
-#include "flow/transformer.hpp"
+#include "flow/publisher.hpp"
 #include "flow/spinner.hpp"
+#include "flow/transformer.hpp"
 
 namespace flow::detail {
 
@@ -42,8 +42,8 @@ constexpr auto to_routine(is_function auto&& function)
   else if constexpr (is_consumer_function<function_t>) {
     return flow::consumer(function, get_subscribe_to(function));
   }
-  else if constexpr (is_producer_function<function_t>) {
-    return flow::producer(function, get_publish_to(function));
+  else if constexpr (is_publisher_function<function_t>) {
+    return flow::publisher(function, get_publish_to(function));
   }
   /**
          * If you change this please be careful. The constexpr check for a spinner function seems to

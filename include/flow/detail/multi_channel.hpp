@@ -4,7 +4,7 @@
 
 #include "channel_resource.hpp"
 #include "consumer_token.hpp"
-#include "producer_token.hpp"
+#include "publisher_token.hpp"
 
 #include <cppcoro/async_generator.hpp>
 #include <cppcoro/multi_producer_sequencer.hpp>
@@ -14,16 +14,16 @@
 /**
  * The link between routines in a network are m_channels.
  *
- * A multi multi_channel in this framework is a multi producer_impl multi consumer multi_channel that are linked
+ * A multi multi_channel in this framework is a multi publisher_impl multi consumer multi_channel that are linked
  * to two corresponding neighbors in a network.
  */
 
 namespace flow::detail {
 
 /**
- * A multi producer_impl multi consumer channel
+ * A multi publisher_impl multi consumer channel
  *
- * This means that because the assumption is that multiple producers and consumers will be used to
+ * This means that because the assumption is that multiple publishers and consumers will be used to
  * communicate through this single channel, there will be a performance cost of atomics for synchronization
  *
  * @tparam raw_message_t The raw message type is the message type with references potentially attached
@@ -44,7 +44,7 @@ public:
   enum class termination_state {
     uninitialised,
     consumer_initialized,
-    producer_received,
+    publisher_received,
     consumer_finalized
   };
 
@@ -95,14 +95,14 @@ public:
   std::size_t hash() { return typeid(message_t).hash_code() ^ std::hash<std::string>{}(m_name); }
 
   /*******************************************************
-   ****************** PRODUCER INTERFACE *****************
+   ****************** publisher INTERFACE *****************
    ******************************************************/
 
   /**
    * Request permission to publish the next message
    * @return
    */
-  cppcoro::task<bool> request_permission_to_publish(producer_token<message_t>& token)
+  cppcoro::task<bool> request_permission_to_publish(publisher_token<message_t>& token)
   {
     if (m_state > termination_state::uninitialised) co_return false;
 
@@ -116,7 +116,7 @@ public:
     co_return true;
   }
 
-  cppcoro::task<bool> request_permission_to_publish_one(producer_token<message_t>& token)
+  cppcoro::task<bool> request_permission_to_publish_one(publisher_token<message_t>& token)
   {
     if (m_state > termination_state::uninitialised) co_return false;
 
@@ -130,7 +130,7 @@ public:
    * Publish the produced message
    * @param message The message type the multi_channel communicates
    */
-  void publish_messages(producer_token<message_t>& token)
+  void publish_messages(publisher_token<message_t>& token)
   {
     for (auto& sequence_number : token.sequences) {
       m_buffer[sequence_number & m_index_mask] = std::move(token.messages.front());
@@ -140,7 +140,7 @@ public:
     m_resource->sequencer.publish(std::move(token.sequences));
   }
 
-  void publish_one(producer_token<message_t>& token)
+  void publish_one(publisher_token<message_t>& token)
   {
     m_buffer[token.sequence & m_index_mask] = std::move(token.messages.front());
     token.messages.pop();
@@ -150,7 +150,7 @@ public:
 
   void confirm_termination()
   {
-    m_state = std::max(termination_state::producer_received, m_state);
+    m_state = std::max(termination_state::publisher_received, m_state);
   }
 
   /*******************************************************
@@ -159,7 +159,7 @@ public:
 
   /**
    * Retrieve an iterable message generator. Will generate all messages that
-   * have already been published by a producer_function
+   * have already been published by a publisher_function
    * @return a message generator
    */
   cppcoro::async_generator<message_t> message_generator(consumer_token<message_t>& token)
@@ -173,7 +173,7 @@ public:
   }
 
   /**
-   * Notify the producer_function to produce the next messages
+   * Notify the publisher_function to publish the next messages
    */
   bool notify_message_consumed(consumer_token<message_t>& token)
   {
@@ -193,7 +193,7 @@ public:
   }
 
   /**
-   * @return if any producer_function m_channels are currently waiting for permission
+   * @return if any publisher_function m_channels are currently waiting for permission
    */
   bool is_waiting()
   {

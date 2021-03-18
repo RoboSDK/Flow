@@ -16,11 +16,11 @@ constexpr auto operator|(is_chain auto&& current_chain, is_transformer_routine a
   return chain<open_chain>(concat(forward(current_chain.routines), forward(routine)));
 }
 
-constexpr auto operator|(is_chain auto&& current_chain, is_producer_routine auto&& routine)
+constexpr auto operator|(is_chain auto&& current_chain, is_publisher_routine auto&& routine)
 {
   using chain_state = typename decltype(current_chain.state())::type;
   static_assert(is_init<chain_state>(),
-    "Can only pass a flow::producer or flow::transformer at the beginning of a chain.");
+    "Can only pass a flow::publisher or flow::transformer at the beginning of a chain.");
 
   return chain<open_chain>(concat(forward(current_chain.routines), forward(routine)));
 }
@@ -35,7 +35,7 @@ constexpr auto operator|(is_chain auto&& current_chain, is_consumer_routine auto
 }
 
 template<typename function_t>
-concept is_chain_function = is_consumer_function<function_t> or is_producer_function<function_t> or is_transformer_function<function_t>;
+concept is_chain_function = is_consumer_function<function_t> or is_publisher_function<function_t> or is_transformer_function<function_t>;
 
 constexpr auto operator|(is_chain auto&& current_chain, is_chain_function auto&& function)
 {
@@ -46,8 +46,8 @@ constexpr auto operator|(is_chain auto&& current_chain, is_chain_function auto&&
     "Can only pass a flow::consumer or flow::transformer at to an open chain.");
 
   if constexpr (is_init<chain_state>()) {
-    static_assert(is_producer_function<function_t> or is_transformer_function<function_t>,
-      "Chain can only be initialized with a producer of transformer function.");
+    static_assert(is_publisher_function<function_t> or is_transformer_function<function_t>,
+      "Chain can only be initialized with a publisher of transformer function.");
 
     auto routine = detail::to_routine(forward(function));
     return chain<open_chain>(concat(forward(current_chain.routines), std::move(routine)));

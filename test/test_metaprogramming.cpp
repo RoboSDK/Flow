@@ -291,7 +291,7 @@ TEST_CASE("Make an set from a list of types", "[make_type_set]")
 }
 
 void raw_spinner() {}
-int raw_producer() { return 42; }
+int raw_publisher() { return 42; }
 void raw_consumer(int /*unused*/) {}
 int raw_transformer(int /*unused*/) { return 42; }
 
@@ -315,20 +315,20 @@ TEST_CASE("Test function traits", "[function_traits]")
     test_spinner(raw_spinner);
   }
 
-  SECTION("Test producer_function")
+  SECTION("Test publisher_function")
   {
-    auto test_producer = [](auto&& producer) {
-           STATIC_REQUIRE(function_traits<decltype(producer)>::arity == 0);
-           STATIC_REQUIRE(not std::is_void_v<typename function_traits<decltype(producer)>::return_type>);
+    auto test_publisher = [](auto&& publisher) {
+           STATIC_REQUIRE(function_traits<decltype(publisher)>::arity == 0);
+           STATIC_REQUIRE(not std::is_void_v<typename function_traits<decltype(publisher)>::return_type>);
     };
 
     [[maybe_unused]] constexpr auto f = [] { return 42; };
-    test_producer(f);
+    test_publisher(f);
 
     [[maybe_unused]] const auto stdf = std::function<int()>{f};
-    test_producer(stdf);
+    test_publisher(stdf);
 
-    test_producer(raw_producer);
+    test_publisher(raw_publisher);
   }
 
   SECTION("Test consumer_function")

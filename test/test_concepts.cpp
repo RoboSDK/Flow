@@ -19,10 +19,10 @@ void _or_network_or_function()
 }
 
 template<typename routine_t>
-void test_producer_routine()
+void test_publisher_routine()
 {
   STATIC_REQUIRE(flow::is_routine<routine_t>);
-  STATIC_REQUIRE(flow::is_producer_routine<routine_t>);
+  STATIC_REQUIRE(flow::is_publisher_routine<routine_t>);
 
   STATIC_REQUIRE(not flow::is_consumer_routine<routine_t>);
   STATIC_REQUIRE(not flow::is_transformer_routine<routine_t>);
@@ -37,7 +37,7 @@ void test_consumer_routine()
   STATIC_REQUIRE(flow::is_routine<routine_t>);
   STATIC_REQUIRE(flow::is_consumer_routine<routine_t>);
 
-  STATIC_REQUIRE(not flow::is_producer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_publisher_routine<routine_t>);
   STATIC_REQUIRE(not flow::is_transformer_routine<routine_t>);
   STATIC_REQUIRE(not flow::is_spinner_routine<routine_t>);
 
@@ -50,7 +50,7 @@ void test_transformer_routine()
   STATIC_REQUIRE(flow::is_routine<routine_t>);
   STATIC_REQUIRE(flow::is_transformer_routine<routine_t>);
 
-  STATIC_REQUIRE(not flow::is_producer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_publisher_routine<routine_t>);
   STATIC_REQUIRE(not flow::is_consumer_routine<routine_t>);
   STATIC_REQUIRE(not flow::is_spinner_routine<routine_t>);
 
@@ -63,23 +63,23 @@ void test_spinner_routine()
   STATIC_REQUIRE(flow::is_routine<routine_t>);
   STATIC_REQUIRE(flow::is_spinner_routine<routine_t>);
 
-  STATIC_REQUIRE(not flow::is_producer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_publisher_routine<routine_t>);
   STATIC_REQUIRE(not flow::is_consumer_routine<routine_t>);
   STATIC_REQUIRE(not flow::is_transformer_routine<routine_t>);
 
   _or_network_or_function<routine_t>();
 }
 
-template<typename producer_t>
-void test_producer()
+template<typename publisher_t>
+void test_publisher()
 {
-  STATIC_REQUIRE(flow::is_producer_function<producer_t>);
-  STATIC_REQUIRE(flow::is_function<producer_t>);
-  STATIC_REQUIRE(not flow::is_consumer_function<producer_t>);
-  STATIC_REQUIRE(not flow::is_transformer_function<producer_t>);
-  STATIC_REQUIRE(not flow::is_spinner_function<producer_t>);
+  STATIC_REQUIRE(flow::is_publisher_function<publisher_t>);
+  STATIC_REQUIRE(flow::is_function<publisher_t>);
+  STATIC_REQUIRE(not flow::is_consumer_function<publisher_t>);
+  STATIC_REQUIRE(not flow::is_transformer_function<publisher_t>);
+  STATIC_REQUIRE(not flow::is_spinner_function<publisher_t>);
 
-  _or_routine_network<producer_t>();
+  _or_routine_network<publisher_t>();
 }
 
 template<typename consumer_t>
@@ -87,7 +87,7 @@ void test_consumer()
 {
   STATIC_REQUIRE(flow::is_consumer_function<consumer_t>);
   STATIC_REQUIRE(flow::is_function<consumer_t>);
-  STATIC_REQUIRE(not flow::is_producer_function<consumer_t>);
+  STATIC_REQUIRE(not flow::is_publisher_function<consumer_t>);
   STATIC_REQUIRE(not flow::is_transformer_function<consumer_t>);
   STATIC_REQUIRE(not flow::is_spinner_function<consumer_t>);
 
@@ -99,7 +99,7 @@ void test_transformer()
 {
   STATIC_REQUIRE(flow::is_transformer_function<transformer_t>);
   STATIC_REQUIRE(flow::is_function<transformer_t>);
-  STATIC_REQUIRE(not flow::is_producer_function<transformer_t>);
+  STATIC_REQUIRE(not flow::is_publisher_function<transformer_t>);
   STATIC_REQUIRE(not flow::is_consumer_function<transformer_t>);
   STATIC_REQUIRE(not flow::is_spinner_function<transformer_t>);
 
@@ -111,7 +111,7 @@ void test_spinner()
 {
   STATIC_REQUIRE(flow::is_spinner_function<spinner_t>);
   STATIC_REQUIRE(flow::is_function<spinner_t>);
-  STATIC_REQUIRE(not flow::is_producer_function<spinner_t>);
+  STATIC_REQUIRE(not flow::is_publisher_function<spinner_t>);
   STATIC_REQUIRE(not flow::is_consumer_function<spinner_t>);
   STATIC_REQUIRE(not flow::is_transformer_function<spinner_t>);
 
@@ -128,7 +128,7 @@ static int static_produce_int() { return 0; }
 static std::string static_produce_string() { return ""; }
 
 template<typename T>
-class producer_functor {
+class publisher_functor {
 public:
   T operator()() { return data; }
 
@@ -137,54 +137,54 @@ private:
 };
 }// namespace
 
-TEST_CASE("Test raw producer function pointer", "[producer_function_pointer]")
+TEST_CASE("Test raw publisher function pointer", "[publisher_function_pointer]")
 {
-  SECTION("produce int")
+  SECTION("publish int")
   {
-    using producer_t = decltype(produce_int);
-    test_producer<producer_t>();
+    using publisher_t = decltype(produce_int);
+    test_publisher<publisher_t>();
   }
 
-  SECTION("produce string")
+  SECTION("publish string")
   {
-    using producer_t = decltype(produce_string);
-    test_producer<producer_t>();
+    using publisher_t = decltype(produce_string);
+    test_publisher<publisher_t>();
   }
 
-  SECTION("static produce int")
+  SECTION("static publish int")
   {
-    using producer_t = decltype(static_produce_int);
-    test_producer<producer_t>();
+    using publisher_t = decltype(static_produce_int);
+    test_publisher<publisher_t>();
   }
 
-  SECTION("static produce string")
+  SECTION("static publish string")
   {
-    using producer_t = decltype(static_produce_string);
-    test_producer<producer_t>();
+    using publisher_t = decltype(static_produce_string);
+    test_publisher<publisher_t>();
   }
 
-  SECTION("produce functor int")
+  SECTION("publish functor int")
   {
-    [[maybe_unused]] auto producer = producer_functor<int>{};
-    using producer_t = decltype(producer);
-    test_producer<producer_t>();
+    [[maybe_unused]] auto publisher = publisher_functor<int>{};
+    using publisher_t = decltype(publisher);
+    test_publisher<publisher_t>();
   }
 
-  SECTION("produce functor string")
+  SECTION("publish functor string")
   {
-    [[maybe_unused]] auto producer = producer_functor<std::string>{};
-    using producer_t = decltype(producer);
-    test_producer<producer_t>();
+    [[maybe_unused]] auto publisher = publisher_functor<std::string>{};
+    using publisher_t = decltype(publisher);
+    test_publisher<publisher_t>();
   }
 
   SECTION("lambdas")
   {
-    auto int_producer_lambda = [] { return 0; };
-    test_producer<decltype(int_producer_lambda)>();
+    auto int_publisher_lambda = [] { return 0; };
+    test_publisher<decltype(int_publisher_lambda)>();
 
     auto test_lambda = [](auto&& lambda) {
-      using lambda_producer_t = decltype(lambda);
-      test_producer<lambda_producer_t>();
+      using lambda_publisher_t = decltype(lambda);
+      test_publisher<lambda_publisher_t>();
       return 0;
     };
 
@@ -262,30 +262,30 @@ TEST_CASE("Test spinner", "[spinner]")
   }
 }
 
-TEST_CASE("Test producer routine", "[string_publisher]")
+TEST_CASE("Test publisher routine", "[string_publisher]")
 {
   SECTION("raw function")
   {
-    auto producer_routine = flow::producer(produce_int, "int");
-    STATIC_REQUIRE(flow::is_producer_routine<decltype(producer_routine)>);
+    auto publisher_routine = flow::publisher(produce_int, "int");
+    STATIC_REQUIRE(flow::is_publisher_routine<decltype(publisher_routine)>);
   }
 
   SECTION("static function")
   {
-    auto producer_routine = flow::producer(static_produce_int, "int");
-    STATIC_REQUIRE(flow::is_producer_routine<decltype(producer_routine)>);
+    auto publisher_routine = flow::publisher(static_produce_int, "int");
+    STATIC_REQUIRE(flow::is_publisher_routine<decltype(publisher_routine)>);
   }
 
   SECTION("functor")
   {
-    auto producer_routine = flow::producer(producer_functor<int>{}, "int");
-    STATIC_REQUIRE(flow::is_producer_routine<decltype(producer_routine)>);
+    auto publisher_routine = flow::publisher(publisher_functor<int>{}, "int");
+    STATIC_REQUIRE(flow::is_publisher_routine<decltype(publisher_routine)>);
   }
 
   SECTION("lambda")
   {
-    auto producer_routine = flow::producer([] { return 0; }, "int");
-    STATIC_REQUIRE(flow::is_producer_routine<decltype(producer_routine)>);
+    auto publisher_routine = flow::publisher([] { return 0; }, "int");
+    STATIC_REQUIRE(flow::is_publisher_routine<decltype(publisher_routine)>);
   }
 }
 

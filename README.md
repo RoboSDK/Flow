@@ -103,7 +103,7 @@ Most of the callback base frameworks like ROS (Robot Operating System) and even 
 real time capabilities because they ignore performance in their design. I learned C++ using ROS, so I'm not putting it down.
 I think it's great for what it is. 
 
-In ROS-land the major forms of communication are done through publishers and subscribers (producers and consumers) where
+In ROS-land the major forms of communication are done through publishers and subscribers (publishers and consumers) where
 some loop is being done by a node object, or a while loop in the main program. This is strictly a multi-threaded form
 of concurrency and strong synchronization is required to communicate within callbacks. We all know this is not
 what we want with asynchronous functions.
@@ -131,7 +131,7 @@ has.
     - Notation:  `()`
     - Example: In C++ this is a `()->void` function, or any other process that 
     
-2. *Producer* - A producer is an function with no dependencies and some other function must depend on it. 
+2. *publisher* - A publisher is an function with no dependencies and some other function must depend on it. 
     - Notation:  `()->R`
     - Example: In C++ this is a `()->R` function, or any other process that emulates the behavior
     
@@ -149,29 +149,29 @@ is an invalid network.
 <a name="1-2-communication"></a>
 ### Communication
 Each of these functions are connected to each other through a `channel`. Each channel needs to have
-at least one producer and one receiver on the other end. A transformer doubles as a producer and receiver, 
+at least one publisher and one receiver on the other end. A transformer doubles as a publisher and receiver, 
 so a path through the network may look something like this
 
-`{()->A , (A)->B, (B)->C, (C)}` This network contains a producer, two transformers, and a receiver. It is complete 
+`{()->A , (A)->B, (B)->C, (C)}` This network contains a publisher, two transformers, and a receiver. It is complete 
 and and closed. There will be three channels in between; each with its own channel name. If no channel name is provided,
 then an empty string will be used; you can think of this as a *global channel*. 
 
 A global channel is a channel that is available globally for that specific message type. Publishing an
 `int` without a channel name will publish to the global `int` channel.
 
-**Not yet implemented**: At the moment channels use a multi-producer scheme, so if only one producer exists in that
+**Not yet implemented**: At the moment channels use a multi-publisher scheme, so if only one publisher exists in that
 channel, then it is inefficient due to synchronization of atomics. There will be a way to make channels that are
-single producer single receiver in the future. These will be done by tightly linking multiple functions and generating
+single publisher single receiver in the future. These will be done by tightly linking multiple functions and generating
 private channels that are inaccessible through the main network. Think of it as creating a subnet within the network.
 
 Each of the functions in the network will begin and start to process data and eventually reach a frequency.
 
 Looking at the original example: `{()->A , (A)->B, (B)->C, (C)}`
 
-At t0 the two transformers and receiver at the end will be waiting for messages and the producer will begin to 
-produce data. This could be through a network socket that has no local dependencies (e.g. sensor data). 
+At t0 the two transformers and receiver at the end will be waiting for messages and the publisher will begin to 
+publish data. This could be through a network socket that has no local dependencies (e.g. sensor data). 
 
-At t1 The first transformer receives the first message and transforms it, and at the same time the producer begins
+At t1 The first transformer receives the first message and transforms it, and at the same time the publisher begins
 producing a second piece of data. 
 
 This keeps going until all 4 functions are constantly communicating information to the final receiver with some
@@ -182,24 +182,24 @@ frequency.
 
 Cancellation of coroutines is tricky, but there is a logical way to cancel this large network. 
 
-The producers begin the chain of functions, and the way to end the chain is by beginning with the receiver
+The publishers begin the chain of functions, and the way to end the chain is by beginning with the receiver
 at the end of the chain. when a cancellation request is performed the consumers at the end of the
 network flow will begin by exiting their main loop. 
 
-At this point, transformers and producers down the chain will be awaiting compute time for their coroutine. The receiver
-will then `flush` out the waiting transformer or producer that is next in line, once that transformer is free the 
-receiver will end. Then the transformer will repeat this until the producer is reached at the beginning of the chain 
-and then the producer coroutines will end and exit their scope.
+At this point, transformers and publishers down the chain will be awaiting compute time for their coroutine. The receiver
+will then `flush` out the waiting transformer or publisher that is next in line, once that transformer is free the 
+receiver will end. Then the transformer will repeat this until the publisher is reached at the beginning of the chain 
+and then the publisher coroutines will end and exit their scope.
 
 
 <a name="2-examples"></a>
 ### Examples
 
-`example/minimal_producer_consumer`
+`example/minimal_publisher_consumer`
 ```c++
 #include <flow/flow.hpp>
 
-// This is a producer
+// This is a publisher
 std::string hello_world() { return "Hello World"; }
 
 // This is a consumer. Values are passed in by rvalue, 
@@ -211,7 +211,7 @@ int main()
   using namespace std::literals;
 
   /**
-   * The producer hello_world creates a private channel to 
+   * The publisher hello_world creates a private channel to 
    * subscribe_hello and sends messsages at 10hz
    */
   auto net = flow::network(flow::chain(10hz) | hello_world | subscribe_hello);
@@ -236,7 +236,7 @@ std::random_device random_device{};
 std::mt19937 random_engine{ random_device() };
 std::uniform_int_distribution<int> distribution{ 1, 100 };
 
-// producer that publishes to "sensor"
+// publisher that publishes to "sensor"
 class Sensor {
 public:
   int operator()()
@@ -289,7 +289,7 @@ int main()
 | 0.1.0   | Ability to create in-memory network, send messages, and shut down reliably.  | 1/25/2021          |
 | 0.1.1   | Ability to set frequency of routines. Use fflat buffers as messages          |                    |
 | 0.1.2   | TCP, UDP, ICP, etc support to send receive messages efficiently.             | Mid-February 20201 |
-| 0.1.3   | Can generate custom messages. Single producer single consumer channels.      | 2/12/2021          |
+| 0.1.3   | Can generate custom messages. Single publisher single consumer channels.      | 2/12/2021          |
 | 0.1.4   | Collect performance metrics and show in documentation                        | Mid-March 2021     |
 | 0.1.5   | Create tools to tweak performance                                            | April 2021         |
 | 0.1.6   | Optimization of implementation and add memory pool/allocator options         | May 2021           |
@@ -648,7 +648,7 @@ described in the 'Build using an alternate compiler' section above.
 
 If you have a dependency 'A' that requires a specific version of another 
 dependency 'B', and your project is trying to use the wrong version of 
-dependency 'B', Conan will produce warnings about this configuration error 
+dependency 'B', Conan will publish warnings about this configuration error 
 when you run CMake. These warnings can easily get lost between a couple 
 hundred or thousand lines of output, depending on the size of your project. 
 

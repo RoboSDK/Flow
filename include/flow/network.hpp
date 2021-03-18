@@ -20,51 +20,51 @@
 #include "flow/concepts.hpp"
 #include "flow/consumer.hpp"
 #include "flow/network_handle.hpp"
-#include "flow/producer.hpp"
+#include "flow/publisher.hpp"
 #include "flow/spinner.hpp"
 #include "flow/transformer.hpp"
 
 #include "flow/chain.hpp"
 
 /**
- * A network is a sequence of routines connected by single producer single consumer channels.
+ * A network is a sequence of routines connected by single publisher single consumer channels.
  * The end of the network depends on the data flow from the beginning of the network. The beginning
  * of the network has no dependencies.
  *
- * An empty network is a network which has no routines and can take a spinner or a producer.
+ * An empty network is a network which has no routines and can take a spinner or a publisher.
  *
  * The minimal network s a network with a spinner, because it depends on nothing and nothing depends on it.
  *
- * When a network is begun with a producer, transformers may be inserted into the network until it is capped
+ * When a network is begun with a publisher, transformers may be inserted into the network until it is capped
  * with a consumer.
  *
  * Each network is considered independent from another network and may not communicate with each other.
  *
- * producer -> transfomer -> ... -> consumer
+ * publisher -> transfomer -> ... -> consumer
  *
  * Each channel in the network uses contiguous memory to pass data to the channel waiting on the other way. All
- * data must flow from producer to consumer; no cyclical dependencies.
+ * data must flow from publisher to consumer; no cyclical dependencies.
  *
  * Cancellation
  * Cancelling the network of coroutines is a bit tricky because if you stop them all at once, some of them will hang
  * with no way to have them leave the awaiting state.
  *
  * When starting the network reaction all routines will begin to wait and the first callable_routine that is given priority is the
- * producer at the beginning of the network, and the last will be the end of the network, or consumer.
+ * publisher at the beginning of the network, and the last will be the end of the network, or consumer.
  *
  * The consumer then has to be the one that initializes the cancellation. The algorithm is as follows:
  *
  * Consumer receives cancellation request from the cancellation handle
  * consumer terminates the channel it is communicating with
- * consumer flushes out any awaiting producers/transformers on the producing end of the channel
+ * consumer flushes out any awaiting publishers/transformers on the producing end of the channel
  * end callable_routine
  *
- * The transformer or producer that is next in the network will then receiving channel termination notification
+ * The transformer or publisher that is next in the network will then receiving channel termination notification
  * from the consumer at the end of the network and break out of its loop
- * It well then notify terminate the producer channel it receives data from and flush it out
+ * It well then notify terminate the publisher channel it receives data from and flush it out
  *
- * rinse repeat until the beginning of the network, which is a producer
- * The producer simply breaks out of its loop and exits the scope
+ * rinse repeat until the beginning of the network, which is a publisher
+ * The publisher simply breaks out of its loop and exits the scope
  */
 
 namespace flow {
@@ -100,8 +100,8 @@ auto push_routine(is_network auto& network, auto&& routine)
   else if constexpr (is_consumer_function<routine_t>) {
     network.push(flow::consumer(routine, get_subscribe_to(routine)));
   }
-  else if constexpr (is_producer_function<routine_t>) {
-    network.push(flow::producer(routine, get_publish_to(routine)));
+  else if constexpr (is_publisher_function<routine_t>) {
+    network.push(flow::publisher(routine, get_publish_to(routine)));
   }
   /**
        * If you change this please be careful. The constexpr check for a spinner function seems to
@@ -205,17 +205,17 @@ namespace detail {
     }
 
     /**
-   * Pushes a producer_function into the network
-   * @param producer The producer_function callable_routine
-   * @param channel_name The multi_channel name the producer_function will publish to
+   * Pushes a publisher_function into the network
+   * @param publisher The publisher_function callable_routine
+   * @param channel_name The multi_channel name the publisher_function will publish to
    */
     template<
-      detail::channel::policy producer_channel_policy = detail::channel::policy::MULTI,
+      detail::channel::policy publisher_channel_policy = detail::channel::policy::MULTI,
       typename message_t>
-    auto& push(flow::detail::producer_impl<message_t>&& routine)
+    auto& push(flow::detail::publisher_impl<message_t>&& routine)
     {
-      auto& channel = make_channel<message_t, producer_channel_policy>(routine.publish_to());
-      m_routines_to_spin.push_back(detail::spin_producer<message_t>(channel, routine.callback()));
+      auto& channel = make_channel<message_t, publisher_channel_policy>(routine.publish_to());
+      m_routines_to_spin.push_back(detail::spin_publisher<message_t>(channel, routine.callback()));
       m_heap_storage.push_back(std::move(routine));
       return channel;
     }
@@ -223,23 +223,23 @@ namespace detail {
     /**
    *  Pushes a transformer_function into the network and creates any necessary m_channels it requires
    * @param transformer A callable_routine that depends on another callable_routine and is depended on by a consumer_function or transformer_function
-   * @param producer_channel_name The multi_channel it depends on
+   * @param publisher_channel_name The multi_channel it depends on
    * @param consumer_channel_name The multi_channel that it will publish to
    */
     template<
-      detail::channel::policy producer_channel_policy = detail::channel::policy::MULTI,
+      detail::channel::policy publisher_channel_policy = detail::channel::policy::MULTI,
       detail::channel::policy consumer_channel_policy = detail::channel::policy::MULTI,
       typename return_t,
       typename... args_t>
     auto push(flow::detail::transformer_impl<return_t(args_t...)>&& routine)
     {
-      auto& producer_channel = make_channel<args_t..., producer_channel_policy>(routine.subscribe_to());
+      auto& publisher_channel = make_channel<args_t..., publisher_channel_policy>(routine.subscribe_to());
       auto& consumer_channel = make_channel<return_t, consumer_channel_policy>(routine.publish_to());
 
-      m_routines_to_spin.push_back(detail::spin_transformer<return_t, args_t...>(producer_channel, consumer_channel, routine.callback()));
+      m_routines_to_spin.push_back(detail::spin_transformer<return_t, args_t...>(publisher_channel, consumer_channel, routine.callback()));
       m_heap_storage.push_back(std::move(routine));
 
-      return std::make_pair(std::ref(producer_channel), std::ref(consumer_channel));
+      return std::make_pair(std::ref(publisher_channel), std::ref(consumer_channel));
     }
 
     /**
@@ -258,12 +258,12 @@ namespace detail {
     }
 
     template<typename begin_t>
-      auto& push_chain_begin(begin_t&& begin) requires is_transformer_routine<begin_t> or is_producer_routine<begin_t>
+      auto& push_chain_begin(begin_t&& begin) requires is_transformer_routine<begin_t> or is_publisher_routine<begin_t>
     {
       using namespace detail::channel;
 
       static_assert(not is_consumer_routine<begin_t> and not is_spinner_routine<begin_t>,
-        "network.hpp:push_chain_begin only takes in transformer or producer routines implementations.");
+        "network.hpp:push_chain_begin only takes in transformer or publisher routines implementations.");
 
       if constexpr (is_transformer_routine<begin_t>) {
         return push<policy::MULTI, policy::SINGLE>(std::move(begin)).second;
@@ -278,7 +278,7 @@ namespace detail {
     {
       using namespace detail::channel;
 
-      static_assert(not is_producer_routine<end_t> and not is_spinner_routine<end_t>,
+      static_assert(not is_publisher_routine<end_t> and not is_spinner_routine<end_t>,
         "network.hpp:push_chain_end only takes in transformer or consumer routines implementations.");
 
       if constexpr (is_transformer_routine<end_t>) {
@@ -354,7 +354,7 @@ namespace detail {
    * Makes a handle to this network that will allow whoever holds the handle to cancel
    * the network
    *
-   * The cancellation handle will trigger the consumer_function to cancel and trickel down all the way to the producer_function
+   * The cancellation handle will trigger the consumer_function to cancel and trickel down all the way to the publisher_function
    * @return A cancellation handle
    */
     network_handle handle()

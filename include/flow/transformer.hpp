@@ -59,14 +59,14 @@ public:
   transformer_impl& operator=(transformer_impl&&) noexcept = default;
   transformer_impl& operator=(transformer_impl const&) = default;
 
-  transformer_impl(flow::is_transformer_function auto&& callback, std::string producer_channel_name, std::string consumer_channel_name)
+  transformer_impl(flow::is_transformer_function auto&& callback, std::string publisher_channel_name, std::string consumer_channel_name)
     : m_callback(detail::make_shared_cancellable_function(std::forward<decltype(callback)>(callback))),
-      m_producer_channel_name(std::move(producer_channel_name)),
+      m_publisher_channel_name(std::move(publisher_channel_name)),
       m_consumer_channel_name(std::move(consumer_channel_name))
   {
   }
 
-  auto subscribe_to() { return m_producer_channel_name; }
+  auto subscribe_to() { return m_publisher_channel_name; }
   auto publish_to() { return m_consumer_channel_name; }
 
   auto& callback() { return *m_callback; }
@@ -75,7 +75,7 @@ private:
   using callback_ptr = typename detail::cancellable_function<return_t(args_t&&...)>::sPtr;
 
   callback_ptr m_callback{ nullptr };
-  std::string m_producer_channel_name{};
+  std::string m_publisher_channel_name{};
   std::string m_consumer_channel_name{};
 };
 }// namespace detail

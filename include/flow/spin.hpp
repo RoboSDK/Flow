@@ -1,7 +1,7 @@
 #pragma once
 
 #include "flow/consumer.hpp"
-#include "flow/producer.hpp"
+#include "flow/publisher.hpp"
 #include "flow/spinner.hpp"
 #include "flow/transformer.hpp"
 

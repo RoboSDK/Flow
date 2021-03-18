@@ -6,10 +6,9 @@
 namespace flow::detail {
 
 template <typename message_t>
-struct producer_token {
+struct publisher_token {
   std::queue<message_t> messages{};
   cppcoro::sequence_range<std::size_t> sequences{};
 
   std::size_t sequence{};
-};
-}
+};}
