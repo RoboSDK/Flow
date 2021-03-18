@@ -94,7 +94,7 @@ over the last few months. I've had to make a couple of redesigns, but I think th
 as a base.
 
 I have many more additions I want to add, such as support for TCP/IP and UDP, performance optimizations, and ergonomics
-such as adding in a when_all to subscribe to multiple channels at once with a receiver or transform.
+such as adding in a when_all to subscribe to multiple channels at once with a subscriber or transformer.
 
 <a name="1-overview"></a>
 ### Overview
@@ -110,17 +110,17 @@ has.
 
 1. *Spinner* - A spinner is an function with no dependencies and nothing depends on it. it's a closed system. 
     - Notation:  `()`
-    - Example: In C++ this is a `()->void` function, or any other process that 
+    - Example: In C++ this is a `()->void` function, or any other process that emulates it
     
-2. *publish* - A publish is an function with no dependencies and some other function must depend on it. 
+2. *Publish* - A publisher is an function with no dependencies and some other function must depend on it. 
     - Notation:  `()->R`
     - Example: In C++ this is a `()->R` function, or any other process that emulates the behavior
     
-3. *subscribe* - A receiver is an function with at least one dependency and nothing depends on it.
+3. *Subscribe* - A subscriber is an function with at least one dependency and nothing depends on it.
     - Notation:  `(A)`
     - Example: In C++ this is a `(A&&... a)->void` function, or any other process that emulates the behavior
     
-3. *Transformer* - A transform is an function with at least one dependency and at least one function depends on it.
+3. *Transformer* - A transformer is an function with at least one dependency and at least one function depends on it.
     - Notation:  `(A)->R`
     - Example: In C++ this is a `(A&&... a)->R` function, or any other process that emulates the behavior
     
@@ -130,10 +130,10 @@ is an invalid network.
 <a name="1-2-communication"></a>
 ### Communication
 Each of these functions are connected to each other through a `channel`. Each channel needs to have
-at least one publish and one receiver on the other end. A transform doubles as a publish and receiver, 
+at least one publisher and one subscriber on the other end. A transformer doubles as a publisher and subscriber, 
 so a path through the network may look something like this
 
-`{()->A , (A)->B, (B)->C, (C)}` This network contains a publish, two transformers, and a receiver. It is complete 
+`{()->A , (A)->B, (B)->C, (C)}` This network contains a publisher, two transformers, and a subscriber. It is complete 
 and and closed. There will be three channels in between; each with its own channel name. If no channel name is provided,
 then an empty string will be used; you can think of this as a *global channel*. 
 
@@ -144,13 +144,13 @@ Each of the functions in the network will begin and start to process data and ev
 
 Looking at the original example: `{()->A , (A)->B, (B)->C, (C)}`
 
-At t0 the two transformers and receiver at the end will be waiting for messages and the publish will begin to 
+At t0 the two transformers and subscriber at the end will be waiting for messages and the publisher will begin to 
 publish data. This could be through a network socket that has no local dependencies (e.g. sensor data). 
 
-At t1 The first transform receives the first message and transforms it, and at the same time the publish begins
-producing a second piece of data. 
+At t1 The first transformer receives the first message and transforms it, and at the same time the publisher begins
+publishing a second piece of data. 
 
-This keeps going until all 4 functions are constantly communicating information to the final receiver with some
+This keeps going until all 4 functions are constantly communicating information to the final subscriber with some
 frequency.
 
 <a name="1-3-Cancellation"></a>
@@ -158,14 +158,14 @@ frequency.
 
 Cancellation of coroutines is tricky, but there is a logical way to cancel this large network. 
 
-The publishers begin the chain of functions, and the way to end the chain is by beginning with the receiver
+The publishers begin the chain of functions, and the way to end the chain is by beginning with the subscriber
 at the end of the chain. when a cancellation request is performed the subscribers at the end of the
 network flow will begin by exiting their main loop. 
 
-At this point, transformers and publishers down the chain will be awaiting compute time for their coroutine. The receiver
-will then `flush` out the waiting transform or publish that is next in line, once that transform is free the 
-receiver will end. Then the transform will repeat this until the publish is reached at the beginning of the chain 
-and then the publish coroutines will end and exit their scope.
+At this point, transformers and publishers down the chain will be awaiting compute time for their coroutine. The subscriber
+will then `flush` out the waiting transformer or publisher that is next in line, once that transformer is free the 
+subscriber will end. Then the transformer will repeat this until the publisher is reached at the beginning of the chain 
+and then the publisher coroutines will end and exit their scope.
 
 
 <a name="2-examples"></a>
@@ -187,7 +187,7 @@ int main()
   using namespace std::literals;
 
   /**
-   * The publish hello_world creates a private channel to 
+   * The publisher hello_world creates a private channel to 
    * subscribe_hello and sends messsages at 10hz
    */
   auto net = flow::network(flow::chain(10hz) | hello_world | subscribe_hello);
@@ -212,7 +212,7 @@ std::random_device random_device{};
 std::mt19937 random_engine{ random_device() };
 std::uniform_int_distribution<int> distribution{ 1, 100 };
 
-// publish that publishes to "sensor"
+// publisher that publishes to "sensor"
 class Sensor {
 public:
   int operator()()
@@ -225,21 +225,21 @@ public:
 private:
 };
 
-// transform that consumes an integer and produces an integer
+// transformer that subscribes to an integer and publishes an integer
 int low_pass_filter(int&& data)
 {
   static int limit = 30;
   return std::min(data, limit);
 }
 
-// transform that consumes an integer and produces an integer
+// transformer that subscribes to an integer and publishes an integer
 int high_pass_filter(int&& data)
 {
   static int limit = 70;
   return std::max(data, limit);
 }
 
-// subscribe that consumes an integer
+// subscriber that subscribes to an integer
 void consume_data(int&& data) { }
 
 int main()
@@ -265,7 +265,7 @@ int main()
 | 0.1.0   | Ability to create in-memory network, send messages, and shut down reliably.  | 1/25/2021          |
 | 0.1.1   | Ability to set frequency of routines. Use fflat buffers as messages          |                    |
 | 0.1.2   | TCP, UDP, ICP, etc support to send receive messages efficiently.             | Mid-February 20201 |
-| 0.1.3   | Can generate custom messages. Single publish single subscribe channels.      | 2/12/2021          |
+| 0.1.3   | Can generate custom messages. Single publisher single subscribe channels.      | 2/12/2021          |
 | 0.1.4   | Collect performance metrics and show in documentation                        | Mid-March 2021     |
 | 0.1.5   | Create tools to tweak performance                                            | April 2021         |
 | 0.1.6   | Optimization of implementation and add memory pool/allocator options         | May 2021           |
