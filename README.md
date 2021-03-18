@@ -263,7 +263,7 @@ int high_pass_filter(int&& data)
   return std::max(data, limit);
 }
 
-// consumer that consumer an integer
+// consumer that consumes an integer
 void consume_data(int&& data) { }
 
 int main()
