@@ -199,10 +199,11 @@ and then the producer coroutines will end and exit their scope.
 ```c++
 #include <flow/flow.hpp>
 
-// this is a producer
+// This is a producer
 std::string hello_world() { return "Hello World"; }
 
-// this is a consumer
+// This is a consumer. Values are passed in by rvalue, 
+// implying that the caller is now the owner of the data.
 void subscribe_hello(std::string&& message){  }
 
 int main()
@@ -248,18 +249,21 @@ public:
 private:
 };
 
+// transformer that consumer an integer and produces an integer
 int low_pass_filter(int&& data)
 {
   static int limit = 30;
   return std::min(data, limit);
 }
 
+// transformer that consumer an integer and produces an integer
 int high_pass_filter(int&& data)
 {
   static int limit = 70;
   return std::max(data, limit);
 }
 
+// consumer that consumer an integer
 void consume_data(int&& data) { }
 
 int main()
