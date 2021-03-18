@@ -11,7 +11,7 @@ constexpr auto operator|(is_chain auto&& current_chain, is_transformer_routine a
 {
   using chain_state = typename decltype(current_chain.state())::type;
   static_assert(is_init<chain_state>() or is_open<chain_state>(),
-                "flow::transformer goes at the beginning of a chain or any open chain.");
+                "flow::transform goes at the beginning of a chain or any open chain.");
 
   return chain<open_chain>(concat(forward(current_chain.routines), forward(routine)));
 }
@@ -20,7 +20,7 @@ constexpr auto operator|(is_chain auto&& current_chain, is_publisher_routine aut
 {
   using chain_state = typename decltype(current_chain.state())::type;
   static_assert(is_init<chain_state>(),
-    "Can only pass a flow::publish or flow::transformer at the beginning of a chain.");
+    "Can only pass a flow::publish or flow::transform at the beginning of a chain.");
 
   return chain<open_chain>(concat(forward(current_chain.routines), forward(routine)));
 }
@@ -29,7 +29,7 @@ constexpr auto operator|(is_chain auto&& current_chain, is_subscriber_routine au
 {
   using chain_state = typename decltype(current_chain.state())::type;
   static_assert(is_open<chain_state>,
-    "Can only pass a flow::subscribe or flow::transformer at to an open chain.");
+    "Can only pass a flow::subscribe or flow::transform at to an open chain.");
 
   return chain<closed_chain>(concat(forward(current_chain.routines), forward(routine)));
 }
@@ -43,18 +43,18 @@ constexpr auto operator|(is_chain auto&& current_chain, is_chain_function auto&&
   using chain_state = typename decltype(current_chain.state())::type;
 
   static_assert(not is_closed<chain_state>(),
-    "Can only pass a flow::subscribe or flow::transformer at to an open chain.");
+    "Can only pass a flow::subscribe or flow::transform at to an open chain.");
 
   if constexpr (is_init<chain_state>()) {
     static_assert(is_publisher_function<function_t> or is_transformer_function<function_t>,
-      "Chain can only be initialized with a publish of transformer function.");
+      "Chain can only be initialized with a publish of transform function.");
 
     auto routine = detail::to_routine(forward(function));
     return chain<open_chain>(concat(forward(current_chain.routines), std::move(routine)));
   }
   else if constexpr (is_open<chain_state>()) {
     static_assert(is_transformer_function<function_t> or is_subscriber_function<function_t>,
-      "Chain can only be appended to by transformer functions or a subscribe function.");
+      "Chain can only be appended to by transform functions or a subscribe function.");
 
     if constexpr (is_transformer_function<function_t>) {
       return chain<open_chain>(concat(forward(current_chain.routines), forward(function)));

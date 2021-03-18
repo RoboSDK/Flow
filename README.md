@@ -94,7 +94,7 @@ over the last few months. I've had to make a couple of redesigns, but I think th
 as a base.
 
 I have many more additions I want to add, such as support for TCP/IP and UDP, performance optimizations, and ergonomics
-such as adding in a when_all to subscribe to multiple channels at once with a receiver or transformer.
+such as adding in a when_all to subscribe to multiple channels at once with a receiver or transform.
 
 <a name="1-overview"></a>
 ### Overview
@@ -120,7 +120,7 @@ has.
     - Notation:  `(A)`
     - Example: In C++ this is a `(A&&... a)->void` function, or any other process that emulates the behavior
     
-3. *Transformer* - A transformer is an function with at least one dependency and at least one function depends on it.
+3. *Transformer* - A transform is an function with at least one dependency and at least one function depends on it.
     - Notation:  `(A)->R`
     - Example: In C++ this is a `(A&&... a)->R` function, or any other process that emulates the behavior
     
@@ -130,7 +130,7 @@ is an invalid network.
 <a name="1-2-communication"></a>
 ### Communication
 Each of these functions are connected to each other through a `channel`. Each channel needs to have
-at least one publish and one receiver on the other end. A transformer doubles as a publish and receiver, 
+at least one publish and one receiver on the other end. A transform doubles as a publish and receiver, 
 so a path through the network may look something like this
 
 `{()->A , (A)->B, (B)->C, (C)}` This network contains a publish, two transformers, and a receiver. It is complete 
@@ -147,7 +147,7 @@ Looking at the original example: `{()->A , (A)->B, (B)->C, (C)}`
 At t0 the two transformers and receiver at the end will be waiting for messages and the publish will begin to 
 publish data. This could be through a network socket that has no local dependencies (e.g. sensor data). 
 
-At t1 The first transformer receives the first message and transforms it, and at the same time the publish begins
+At t1 The first transform receives the first message and transforms it, and at the same time the publish begins
 producing a second piece of data. 
 
 This keeps going until all 4 functions are constantly communicating information to the final receiver with some
@@ -163,8 +163,8 @@ at the end of the chain. when a cancellation request is performed the subscriber
 network flow will begin by exiting their main loop. 
 
 At this point, transformers and publishers down the chain will be awaiting compute time for their coroutine. The receiver
-will then `flush` out the waiting transformer or publish that is next in line, once that transformer is free the 
-receiver will end. Then the transformer will repeat this until the publish is reached at the beginning of the chain 
+will then `flush` out the waiting transform or publish that is next in line, once that transform is free the 
+receiver will end. Then the transform will repeat this until the publish is reached at the beginning of the chain 
 and then the publish coroutines will end and exit their scope.
 
 
@@ -225,14 +225,14 @@ public:
 private:
 };
 
-// transformer that consumes an integer and produces an integer
+// transform that consumes an integer and produces an integer
 int low_pass_filter(int&& data)
 {
   static int limit = 30;
   return std::min(data, limit);
 }
 
-// transformer that consumes an integer and produces an integer
+// transform that consumes an integer and produces an integer
 int high_pass_filter(int&& data)
 {
   static int limit = 70;

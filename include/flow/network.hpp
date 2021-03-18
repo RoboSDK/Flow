@@ -59,7 +59,7 @@
  * subscribe flushes out any awaiting publishers/transformers on the producing end of the channel
  * end callable_routine
  *
- * The transformer or publish that is next in the network will then receiving channel termination notification
+ * The transform or publish that is next in the network will then receiving channel termination notification
  * from the subscribe at the end of the network and break out of its loop
  * It well then notify terminate the publish channel it receives data from and flush it out
  *
@@ -95,7 +95,7 @@ auto push_routine(is_network auto& network, auto&& routine)
 
   using routine_t = decltype(routine);
   if constexpr (is_transformer_function<routine_t>) {
-    network.push(transformer(routine, get_subscribe_to(routine), get_publish_to(routine)));
+    network.push(transform(routine, get_subscribe_to(routine), get_publish_to(routine)));
   }
   else if constexpr (is_subscriber_function<routine_t>) {
     network.push(flow::subscribe(routine, get_subscribe_to(routine)));
@@ -263,7 +263,7 @@ namespace detail {
       using namespace detail::channel;
 
       static_assert(not is_subscriber_routine<begin_t> and not is_spinner_routine<begin_t>,
-        "network.hpp:push_chain_begin only takes in transformer or publish routines implementations.");
+        "network.hpp:push_chain_begin only takes in transform or publish routines implementations.");
 
       if constexpr (is_transformer_routine<begin_t>) {
         return push<policy::MULTI, policy::SINGLE>(std::move(begin)).second;
@@ -279,7 +279,7 @@ namespace detail {
       using namespace detail::channel;
 
       static_assert(not is_publisher_routine<end_t> and not is_spinner_routine<end_t>,
-        "network.hpp:push_chain_end only takes in transformer or subscribe routines implementations.");
+        "network.hpp:push_chain_end only takes in transform or subscribe routines implementations.");
 
       if constexpr (is_transformer_routine<end_t>) {
         using arg_t = typename decltype(channel.message_type())::type;

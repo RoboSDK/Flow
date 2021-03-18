@@ -310,11 +310,11 @@ TEST_CASE("Test subscribe routine", "[string_subscriber]")
   }
 }
 
-TEST_CASE("Test transformer routine", "[transformer_routine]")
+TEST_CASE("Test transform routine", "[transformer_routine]")
 {
   SECTION("raw function")
   {
-    auto transformer_routine = flow::transformer(transform_int, "int", "bar");
+    auto transformer_routine = flow::transform(transform_int, "int", "bar");
     STATIC_REQUIRE(flow::is_transformer_routine<decltype(transformer_routine)>);
   }
 }

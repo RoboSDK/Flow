@@ -45,8 +45,8 @@ int main()
 {
   using namespace std::literals;
 
-  auto low_pass = flow::chain() | flow::transformer(low_pass_filter, "sensor") | consume_data;
-  auto high_pass = flow::chain() | flow::transformer(high_pass_filter, "sensor") | consume_data;
+  auto low_pass = flow::chain() | flow::transform(low_pass_filter, "sensor") | consume_data;
+  auto high_pass = flow::chain() | flow::transform(high_pass_filter, "sensor") | consume_data;
 
   auto network = flow::network(Sensor{}, std::move(low_pass), std::move(high_pass));
 

@@ -37,7 +37,7 @@ constexpr auto to_routine(is_function auto&& function)
   using function_t = decltype(function);
 
   if constexpr (is_transformer_function<function_t>) {
-    return transformer(forward(function), get_subscribe_to(function), get_publish_to(function));
+    return transform(forward(function), get_subscribe_to(function), get_publish_to(function));
   }
   else if constexpr (is_subscriber_function<function_t>) {
     return flow::subscribe(function, get_subscribe_to(function));
