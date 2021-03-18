@@ -175,10 +175,10 @@ and then the publisher coroutines will end and exit their scope.
 ```c++
 #include <flow/flow.hpp>
 
-// This is a publish
+// This is a publisher
 std::string hello_world() { return "Hello World"; }
 
-// This is a subscribe. Values are passed in by rvalue, 
+// This is a subscriber. Values are passed in by rvalue, 
 // implying that the caller is now the owner of the data.
 void subscribe_hello(std::string&& message){  }
 
