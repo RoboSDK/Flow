@@ -249,14 +249,14 @@ public:
 private:
 };
 
-// transformer that consumer an integer and produces an integer
+// transformer that consumes an integer and produces an integer
 int low_pass_filter(int&& data)
 {
   static int limit = 30;
   return std::min(data, limit);
 }
 
-// transformer that consumer an integer and produces an integer
+// transformer that consumes an integer and produces an integer
 int high_pass_filter(int&& data)
 {
   static int limit = 70;
