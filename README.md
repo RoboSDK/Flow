@@ -112,11 +112,11 @@ has.
     - Notation:  `()`
     - Example: In C++ this is a `()->void` function, or any other process that emulates it
     
-2. *Publish* - A publisher is an function with no dependencies and some other function must depend on it. 
+2. *Publisher* - A publisher is an function with no dependencies and some other function must depend on it. 
     - Notation:  `()->R`
     - Example: In C++ this is a `()->R` function, or any other process that emulates the behavior
     
-3. *Subscribe* - A subscriber is an function with at least one dependency and nothing depends on it.
+3. *Subscriber* - A subscriber is an function with at least one dependency and nothing depends on it.
     - Notation:  `(A)`
     - Example: In C++ this is a `(A&&... a)->void` function, or any other process that emulates the behavior
     
