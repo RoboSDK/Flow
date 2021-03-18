@@ -1,6 +1,6 @@
 #include <flow/flow.hpp>
 
-#include "consumer_routine.hpp"
+#include "subscriber_routine.hpp"
 #include "publisher_routine.hpp"
 
 int main()

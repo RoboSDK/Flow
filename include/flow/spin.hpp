@@ -1,8 +1,8 @@
 #pragma once
 
-#include "flow/consumer.hpp"
 #include "flow/publisher.hpp"
 #include "flow/spinner.hpp"
+#include "flow/subscriber.hpp"
 #include "flow/transformer.hpp"
 
 #include "flow/network.hpp"

@@ -18,11 +18,11 @@ namespace detail {
  *
  * These objects created are passed in to the network to spin up the routines
  *
- * @tparam argument_t The consumer tag
- * @param callback A consumer function
+ * @tparam argument_t The subscriber tag
+ * @param callback A subscriber function
  * @param publish_to The channel to publish to
  * @param subscribe_to The channel to subscribe to
- * @return A consumer object used to retrieve data by the network
+ * @return A subscriber object used to retrieve data by the network
  */
 template<typename return_t, typename argument_t>
 auto transformer(std::function<return_t(argument_t&&)>&& callback, std::string subscribe_to = "", std::string publish_to = "")
@@ -59,15 +59,15 @@ public:
   transformer_impl& operator=(transformer_impl&&) noexcept = default;
   transformer_impl& operator=(transformer_impl const&) = default;
 
-  transformer_impl(flow::is_transformer_function auto&& callback, std::string publisher_channel_name, std::string consumer_channel_name)
+  transformer_impl(flow::is_transformer_function auto&& callback, std::string publisher_channel_name, std::string subscriber_channel_name)
     : m_callback(detail::make_shared_cancellable_function(std::forward<decltype(callback)>(callback))),
       m_publisher_channel_name(std::move(publisher_channel_name)),
-      m_consumer_channel_name(std::move(consumer_channel_name))
+      m_subscriber_channel_name(std::move(subscriber_channel_name))
   {
   }
 
   auto subscribe_to() { return m_publisher_channel_name; }
-  auto publish_to() { return m_consumer_channel_name; }
+  auto publish_to() { return m_subscriber_channel_name; }
 
   auto& callback() { return *m_callback; }
 
@@ -76,7 +76,7 @@ private:
 
   callback_ptr m_callback{ nullptr };
   std::string m_publisher_channel_name{};
-  std::string m_consumer_channel_name{};
+  std::string m_subscriber_channel_name{};
 };
 }// namespace detail
 }// namespace flow

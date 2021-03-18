@@ -12,14 +12,14 @@ struct channel_resource {
   using sequence_barrier = cppcoro::sequence_barrier<std::size_t>;
 
   /*
-   * The sequence barrier is used to communicate from the consumer_function end that it has
+   * The sequence barrier is used to communicate from the subscriber_function end that it has
    * received and consumed the message to the publisher_function end of the multi_channel
    */
   sequence_barrier barrier{};
 
   /*
    * The publisher_function sequencer generated sequence numbers that the publisher_function end of the multi_channel
-   * uses to publish to the consumer_function end
+   * uses to publish to the subscriber_function end
    */
   sequencer_t sequencer{ barrier, configuration_t::message_buffer_size };
 };

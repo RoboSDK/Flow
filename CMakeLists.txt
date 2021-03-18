@@ -26,7 +26,7 @@ if (ENABLE_PCH)
     list(APPEND public_headers
             concepts
             configuration
-            consumer
+            subscriber
             flow
             network_handle
             network

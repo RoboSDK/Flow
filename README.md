@@ -103,7 +103,7 @@ Most of the callback base frameworks like ROS (Robot Operating System) and even 
 real time capabilities because they ignore performance in their design. I learned C++ using ROS, so I'm not putting it down.
 I think it's great for what it is. 
 
-In ROS-land the major forms of communication are done through publishers and subscribers (publishers and consumers) where
+In ROS-land the major forms of communication are done through publishers and subscribers (publishers and subscribers) where
 some loop is being done by a node object, or a while loop in the main program. This is strictly a multi-threaded form
 of concurrency and strong synchronization is required to communicate within callbacks. We all know this is not
 what we want with asynchronous functions.
@@ -135,7 +135,7 @@ has.
     - Notation:  `()->R`
     - Example: In C++ this is a `()->R` function, or any other process that emulates the behavior
     
-3. *Consumer* - A receiver is an function with at least one dependency and nothing depends on it.
+3. *subscriber* - A receiver is an function with at least one dependency and nothing depends on it.
     - Notation:  `(A)`
     - Example: In C++ this is a `(A&&... a)->void` function, or any other process that emulates the behavior
     
@@ -183,7 +183,7 @@ frequency.
 Cancellation of coroutines is tricky, but there is a logical way to cancel this large network. 
 
 The publishers begin the chain of functions, and the way to end the chain is by beginning with the receiver
-at the end of the chain. when a cancellation request is performed the consumers at the end of the
+at the end of the chain. when a cancellation request is performed the subscribers at the end of the
 network flow will begin by exiting their main loop. 
 
 At this point, transformers and publishers down the chain will be awaiting compute time for their coroutine. The receiver
@@ -195,14 +195,14 @@ and then the publisher coroutines will end and exit their scope.
 <a name="2-examples"></a>
 ### Examples
 
-`example/minimal_publisher_consumer`
+`example/minimal_publisher_subscriber`
 ```c++
 #include <flow/flow.hpp>
 
 // This is a publisher
 std::string hello_world() { return "Hello World"; }
 
-// This is a consumer. Values are passed in by rvalue, 
+// This is a subscriber. Values are passed in by rvalue, 
 // implying that the caller is now the owner of the data.
 void subscribe_hello(std::string&& message){  }
 
@@ -263,7 +263,7 @@ int high_pass_filter(int&& data)
   return std::max(data, limit);
 }
 
-// consumer that consumes an integer
+// subscriber that consumes an integer
 void consume_data(int&& data) { }
 
 int main()
@@ -289,7 +289,7 @@ int main()
 | 0.1.0   | Ability to create in-memory network, send messages, and shut down reliably.  | 1/25/2021          |
 | 0.1.1   | Ability to set frequency of routines. Use fflat buffers as messages          |                    |
 | 0.1.2   | TCP, UDP, ICP, etc support to send receive messages efficiently.             | Mid-February 20201 |
-| 0.1.3   | Can generate custom messages. Single publisher single consumer channels.      | 2/12/2021          |
+| 0.1.3   | Can generate custom messages. Single publisher single subscriber channels.      | 2/12/2021          |
 | 0.1.4   | Collect performance metrics and show in documentation                        | Mid-March 2021     |
 | 0.1.5   | Create tools to tweak performance                                            | April 2021         |
 | 0.1.6   | Optimization of implementation and add memory pool/allocator options         | May 2021           |

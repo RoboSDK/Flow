@@ -14,16 +14,16 @@
 /**
  * The link between routines in a network are m_channels.
  *
- * A multi multi_channel in this framework is a multi publisher_impl multi consumer multi_channel that are linked
+ * A multi multi_channel in this framework is a multi publisher_impl multi subscriber multi_channel that are linked
  * to two corresponding neighbors in a network.
  */
 
 namespace flow::detail {
 
 /**
- * A multi publisher_impl multi consumer channel
+ * A multi publisher_impl multi subscriber channel
  *
- * This means that because the assumption is that multiple publishers and consumers will be used to
+ * This means that because the assumption is that multiple publishers and subscribers will be used to
  * communicate through this single channel, there will be a performance cost of atomics for synchronization
  *
  * @tparam raw_message_t The raw message type is the message type with references potentially attached
@@ -43,9 +43,9 @@ public:
 
   enum class termination_state {
     uninitialised,
-    consumer_initialized,
+    subscriber_initialized,
     publisher_received,
-    consumer_finalized
+    subscriber_finalized
   };
 
   /**
@@ -154,7 +154,7 @@ public:
   }
 
   /*******************************************************
-   ****************** CONSUMER INTERFACE *****************
+   ****************** subscriber INTERFACE *****************
    ******************************************************/
 
   /**
@@ -184,12 +184,12 @@ public:
 
   void initialize_termination()
   {
-    m_state = std::max(termination_state::consumer_initialized, m_state);
+    m_state = std::max(termination_state::subscriber_initialized, m_state);
   }
 
   void finalize_termination()
   {
-    m_state = std::max(termination_state::consumer_finalized, m_state);
+    m_state = std::max(termination_state::subscriber_finalized, m_state);
   }
 
   /**
@@ -202,7 +202,7 @@ public:
 
 
   /*******************************************************
-   ****************** END CONSUMER INTERFACE *****************
+   ****************** END subscriber INTERFACE *****************
    ******************************************************/
 
   termination_state state()

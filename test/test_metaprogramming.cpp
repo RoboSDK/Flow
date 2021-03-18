@@ -292,7 +292,7 @@ TEST_CASE("Make an set from a list of types", "[make_type_set]")
 
 void raw_spinner() {}
 int raw_publisher() { return 42; }
-void raw_consumer(int /*unused*/) {}
+void raw_subscriber(int /*unused*/) {}
 int raw_transformer(int /*unused*/) { return 42; }
 
 
@@ -331,20 +331,20 @@ TEST_CASE("Test function traits", "[function_traits]")
     test_publisher(raw_publisher);
   }
 
-  SECTION("Test consumer_function")
+  SECTION("Test subscriber_function")
   {
-    auto test_consumer = [](auto&& consumer) {
-           STATIC_REQUIRE(function_traits<decltype(consumer)>::arity > 0);
-           STATIC_REQUIRE(std::is_void_v<typename function_traits<decltype(consumer)>::return_type>);
+    auto test_subscriber = [](auto&& subscriber) {
+           STATIC_REQUIRE(function_traits<decltype(subscriber)>::arity > 0);
+           STATIC_REQUIRE(std::is_void_v<typename function_traits<decltype(subscriber)>::return_type>);
     };
 
     [[maybe_unused]] constexpr auto f = [](int /*unused*/) {};
-    test_consumer(f);
+    test_subscriber(f);
 
     [[maybe_unused]] const auto stdf = std::function<void(int)>{f};
-    test_consumer(stdf);
+    test_subscriber(stdf);
 
-    test_consumer(raw_consumer);
+    test_subscriber(raw_subscriber);
   }
 
   SECTION("Test doubler")

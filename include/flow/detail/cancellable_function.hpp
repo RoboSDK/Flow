@@ -22,7 +22,7 @@
  *
  *   while (not cancellable.is_cancellation_requested()) { // do work }
  *
- * These cancellable functions are used by the network data structure to cancel the consumer_function
+ * These cancellable functions are used by the network data structure to cancel the subscriber_function
  * at the end of the network. This triggers the full cancellation of the network itself.
  */
 

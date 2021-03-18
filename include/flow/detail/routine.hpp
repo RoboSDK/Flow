@@ -3,9 +3,9 @@
 #include "flow/concepts.hpp"
 #include "flow/detail/forward.hpp"
 
-#include "flow/consumer.hpp"
 #include "flow/publisher.hpp"
 #include "flow/spinner.hpp"
+#include "flow/subscriber.hpp"
 #include "flow/transformer.hpp"
 
 namespace flow::detail {
@@ -39,8 +39,8 @@ constexpr auto to_routine(is_function auto&& function)
   if constexpr (is_transformer_function<function_t>) {
     return transformer(forward(function), get_subscribe_to(function), get_publish_to(function));
   }
-  else if constexpr (is_consumer_function<function_t>) {
-    return flow::consumer(function, get_subscribe_to(function));
+  else if constexpr (is_subscriber_function<function_t>) {
+    return flow::subscriber(function, get_subscribe_to(function));
   }
   else if constexpr (is_publisher_function<function_t>) {
     return flow::publisher(function, get_publish_to(function));

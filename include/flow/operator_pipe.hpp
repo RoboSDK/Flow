@@ -25,17 +25,17 @@ constexpr auto operator|(is_chain auto&& current_chain, is_publisher_routine aut
   return chain<open_chain>(concat(forward(current_chain.routines), forward(routine)));
 }
 
-constexpr auto operator|(is_chain auto&& current_chain, is_consumer_routine auto&& routine)
+constexpr auto operator|(is_chain auto&& current_chain, is_subscriber_routine auto&& routine)
 {
   using chain_state = typename decltype(current_chain.state())::type;
   static_assert(is_open<chain_state>,
-    "Can only pass a flow::consumer or flow::transformer at to an open chain.");
+    "Can only pass a flow::subscriber or flow::transformer at to an open chain.");
 
   return chain<closed_chain>(concat(forward(current_chain.routines), forward(routine)));
 }
 
 template<typename function_t>
-concept is_chain_function = is_consumer_function<function_t> or is_publisher_function<function_t> or is_transformer_function<function_t>;
+concept is_chain_function = is_subscriber_function<function_t> or is_publisher_function<function_t> or is_transformer_function<function_t>;
 
 constexpr auto operator|(is_chain auto&& current_chain, is_chain_function auto&& function)
 {
@@ -43,7 +43,7 @@ constexpr auto operator|(is_chain auto&& current_chain, is_chain_function auto&&
   using chain_state = typename decltype(current_chain.state())::type;
 
   static_assert(not is_closed<chain_state>(),
-    "Can only pass a flow::consumer or flow::transformer at to an open chain.");
+    "Can only pass a flow::subscriber or flow::transformer at to an open chain.");
 
   if constexpr (is_init<chain_state>()) {
     static_assert(is_publisher_function<function_t> or is_transformer_function<function_t>,
@@ -53,8 +53,8 @@ constexpr auto operator|(is_chain auto&& current_chain, is_chain_function auto&&
     return chain<open_chain>(concat(forward(current_chain.routines), std::move(routine)));
   }
   else if constexpr (is_open<chain_state>()) {
-    static_assert(is_transformer_function<function_t> or is_consumer_function<function_t>,
-      "Chain can only be appended to by transformer functions or a consumer function.");
+    static_assert(is_transformer_function<function_t> or is_subscriber_function<function_t>,
+      "Chain can only be appended to by transformer functions or a subscriber function.");
 
     if constexpr (is_transformer_function<function_t>) {
       return chain<open_chain>(concat(forward(current_chain.routines), forward(function)));

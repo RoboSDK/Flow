@@ -1,6 +1,6 @@
 #pragma once
 
-#include <flow/consumer.hpp>
+#include <flow/subscriber.hpp>
 
 #include <spdlog/spdlog.h>
 

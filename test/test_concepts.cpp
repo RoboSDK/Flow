@@ -24,7 +24,7 @@ void test_publisher_routine()
   STATIC_REQUIRE(flow::is_routine<routine_t>);
   STATIC_REQUIRE(flow::is_publisher_routine<routine_t>);
 
-  STATIC_REQUIRE(not flow::is_consumer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_subscriber_routine<routine_t>);
   STATIC_REQUIRE(not flow::is_transformer_routine<routine_t>);
   STATIC_REQUIRE(not flow::is_spinner_routine<routine_t>);
 
@@ -32,10 +32,10 @@ void test_publisher_routine()
 }
 
 template<typename routine_t>
-void test_consumer_routine()
+void test_subscriber_routine()
 {
   STATIC_REQUIRE(flow::is_routine<routine_t>);
-  STATIC_REQUIRE(flow::is_consumer_routine<routine_t>);
+  STATIC_REQUIRE(flow::is_subscriber_routine<routine_t>);
 
   STATIC_REQUIRE(not flow::is_publisher_routine<routine_t>);
   STATIC_REQUIRE(not flow::is_transformer_routine<routine_t>);
@@ -51,7 +51,7 @@ void test_transformer_routine()
   STATIC_REQUIRE(flow::is_transformer_routine<routine_t>);
 
   STATIC_REQUIRE(not flow::is_publisher_routine<routine_t>);
-  STATIC_REQUIRE(not flow::is_consumer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_subscriber_routine<routine_t>);
   STATIC_REQUIRE(not flow::is_spinner_routine<routine_t>);
 
   _or_network_or_function<routine_t>();
@@ -64,7 +64,7 @@ void test_spinner_routine()
   STATIC_REQUIRE(flow::is_spinner_routine<routine_t>);
 
   STATIC_REQUIRE(not flow::is_publisher_routine<routine_t>);
-  STATIC_REQUIRE(not flow::is_consumer_routine<routine_t>);
+  STATIC_REQUIRE(not flow::is_subscriber_routine<routine_t>);
   STATIC_REQUIRE(not flow::is_transformer_routine<routine_t>);
 
   _or_network_or_function<routine_t>();
@@ -75,23 +75,23 @@ void test_publisher()
 {
   STATIC_REQUIRE(flow::is_publisher_function<publisher_t>);
   STATIC_REQUIRE(flow::is_function<publisher_t>);
-  STATIC_REQUIRE(not flow::is_consumer_function<publisher_t>);
+  STATIC_REQUIRE(not flow::is_subscriber_function<publisher_t>);
   STATIC_REQUIRE(not flow::is_transformer_function<publisher_t>);
   STATIC_REQUIRE(not flow::is_spinner_function<publisher_t>);
 
   _or_routine_network<publisher_t>();
 }
 
-template<typename consumer_t>
-void test_consumer()
+template<typename subscriber_t>
+void test_subscriber()
 {
-  STATIC_REQUIRE(flow::is_consumer_function<consumer_t>);
-  STATIC_REQUIRE(flow::is_function<consumer_t>);
-  STATIC_REQUIRE(not flow::is_publisher_function<consumer_t>);
-  STATIC_REQUIRE(not flow::is_transformer_function<consumer_t>);
-  STATIC_REQUIRE(not flow::is_spinner_function<consumer_t>);
+  STATIC_REQUIRE(flow::is_subscriber_function<subscriber_t>);
+  STATIC_REQUIRE(flow::is_function<subscriber_t>);
+  STATIC_REQUIRE(not flow::is_publisher_function<subscriber_t>);
+  STATIC_REQUIRE(not flow::is_transformer_function<subscriber_t>);
+  STATIC_REQUIRE(not flow::is_spinner_function<subscriber_t>);
 
-  _or_routine_network<consumer_t>();
+  _or_routine_network<subscriber_t>();
 }
 
 template<typename transformer_t>
@@ -100,7 +100,7 @@ void test_transformer()
   STATIC_REQUIRE(flow::is_transformer_function<transformer_t>);
   STATIC_REQUIRE(flow::is_function<transformer_t>);
   STATIC_REQUIRE(not flow::is_publisher_function<transformer_t>);
-  STATIC_REQUIRE(not flow::is_consumer_function<transformer_t>);
+  STATIC_REQUIRE(not flow::is_subscriber_function<transformer_t>);
   STATIC_REQUIRE(not flow::is_spinner_function<transformer_t>);
 
   _or_routine_network<transformer_t>();
@@ -112,7 +112,7 @@ void test_spinner()
   STATIC_REQUIRE(flow::is_spinner_function<spinner_t>);
   STATIC_REQUIRE(flow::is_function<spinner_t>);
   STATIC_REQUIRE(not flow::is_publisher_function<spinner_t>);
-  STATIC_REQUIRE(not flow::is_consumer_function<spinner_t>);
+  STATIC_REQUIRE(not flow::is_subscriber_function<spinner_t>);
   STATIC_REQUIRE(not flow::is_transformer_function<spinner_t>);
 
   _or_routine_network<spinner_t>();
@@ -197,7 +197,7 @@ void consume_int(int&& /*unused*/) {}
 void consume_string(std::string&& /*unused*/) {}
 
 template<typename T>
-class consumer_functor {
+class subscriber_functor {
 public:
   void operator()(T&& data) { m_data = std::move(data); }
 
@@ -206,27 +206,27 @@ private:
 };
 }// namespace
 
-TEST_CASE("Test raw consumer function pointer", "[consumer_function_pointer]")
+TEST_CASE("Test raw subscriber function pointer", "[subscriber_function_pointer]")
 {
   SECTION("consume int")
   {
-    using consumer_t = decltype(consume_int);
-    test_consumer<consumer_t>();
+    using subscriber_t = decltype(consume_int);
+    test_subscriber<subscriber_t>();
   }
 
   SECTION("consume string")
   {
-    using consumer_t = decltype(consume_string);
-    test_consumer<consumer_t>();
+    using subscriber_t = decltype(consume_string);
+    test_subscriber<subscriber_t>();
   }
 
-  SECTION("test consumer functor")
+  SECTION("test subscriber functor")
   {
-    auto int_consumer_functor = consumer_functor<int>{};
-    test_consumer<decltype(int_consumer_functor)>();
+    auto int_subscriber_functor = subscriber_functor<int>{};
+    test_subscriber<decltype(int_subscriber_functor)>();
 
-    auto string_consumer_functor = consumer_functor<std::string>{};
-    test_consumer<decltype(string_consumer_functor)>();
+    auto string_subscriber_functor = subscriber_functor<std::string>{};
+    test_subscriber<decltype(string_subscriber_functor)>();
   }
 }
 
@@ -235,7 +235,7 @@ std::string transform_int(int&& /*unused*/) { return ""; }
 int transform_string(std::string&& /*unused*/) { return 0; }
 }// namespace
 
-TEST_CASE("test consumer", "[consumer]")
+TEST_CASE("test subscriber", "[subscriber]")
 {
   SECTION("transform int")
   {
@@ -289,24 +289,24 @@ TEST_CASE("Test publisher routine", "[string_publisher]")
   }
 }
 
-TEST_CASE("Test consumer routine", "[string_subscriber]")
+TEST_CASE("Test subscriber routine", "[string_subscriber]")
 {
   SECTION("raw function")
   {
-    auto consumer_routine = flow::consumer(consume_int, "int");
-    STATIC_REQUIRE(flow::is_consumer_routine<decltype(consumer_routine)>);
+    auto subscriber_routine = flow::subscriber(consume_int, "int");
+    STATIC_REQUIRE(flow::is_subscriber_routine<decltype(subscriber_routine)>);
   }
 
   SECTION("functor")
   {
-    auto consumer_routine = flow::consumer(consumer_functor<int>{}, "int");
-    STATIC_REQUIRE(flow::is_consumer_routine<decltype(consumer_routine)>);
+    auto subscriber_routine = flow::subscriber(subscriber_functor<int>{}, "int");
+    STATIC_REQUIRE(flow::is_subscriber_routine<decltype(subscriber_routine)>);
   }
 
   SECTION("lambda")
   {
-    auto consumer_routine = flow::consumer([](int&& /*unused*/) {}, "int");
-    STATIC_REQUIRE(flow::is_consumer_routine<decltype(consumer_routine)>);
+    auto subscriber_routine = flow::subscriber([](int&& /*unused*/) {}, "int");
+    STATIC_REQUIRE(flow::is_subscriber_routine<decltype(subscriber_routine)>);
   }
 }
 

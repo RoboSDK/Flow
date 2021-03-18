@@ -21,7 +21,7 @@
 
 namespace flow::detail {
 inline static cppcoro::async_mutex transformer_mutex;
-inline static cppcoro::async_mutex consumer_mutex;
+inline static cppcoro::async_mutex subscriber_mutex;
 
 /**
  * Generates a coroutine that keeps calling the spinner_function until it is cancelled
@@ -61,7 +61,7 @@ cppcoro::task<void> spin_publisher(
   using channel_t = std::decay_t<decltype(channel)>;
 
   auto termination_has_initialized = [&] {
-    return channel.state() >= channel_t::termination_state::consumer_initialized;
+    return channel.state() >= channel_t::termination_state::subscriber_initialized;
   };
 
   while (not termination_has_initialized()) {
@@ -81,39 +81,39 @@ cppcoro::task<void> spin_publisher(
 /**
  * TODO: Handle many arguments, maybe convert it to a tuple?
  *
- * Generates a coroutine that keeps calling the consumer_function until it is cancelled.
+ * Generates a coroutine that keeps calling the subscriber_function until it is cancelled.
  *
- * The consumer_function will be placed at the end of the function network and will be the one
+ * The subscriber_function will be placed at the end of the function network and will be the one
  * that triggers any cancellation events. It depends on a transformer_function or publisher_function to
  * send messages through the multi_channel.
  *
- * When a consumer_function detects that cancellation is requested, then it will process
+ * When a subscriber_function detects that cancellation is requested, then it will process
  * any messages it has left in the buffer.
  *
  * After the main loop it will terminate the multi_channel and flush out any routines
  * currently waiting on the other end of the multi_channel.
  *
  * @param channel a flow multi_channel that represents a connection between a publisher_function or transformer_function
- *                that is generating data and the consumer_function that will be receiving the data
- * @param consumer A consumer_function is a cancellable function with at least one argument required to call it and
+ *                that is generating data and the subscriber_function that will be receiving the data
+ * @param subscriber A subscriber_function is a cancellable function with at least one argument required to call it and
  *                 a specified return type
- * @return A coroutine that continues until the consumer_function is cancelled
+ * @return A coroutine that continues until the subscriber_function is cancelled
  */
 template<typename argument_t>
-cppcoro::task<void> spin_consumer(
+cppcoro::task<void> spin_subscriber(
   auto& channel,
-  cancellable_function<void(argument_t&&)>& consumer)
+  cancellable_function<void(argument_t&&)>& subscriber)
 {
   subscriber_token<argument_t> subscriber_token{};
   using channel_t = std::decay_t<decltype(channel)>;
 
-  while (not consumer.is_cancellation_requested()) {
+  while (not subscriber.is_cancellation_requested()) {
     auto next_message = channel.message_generator(subscriber_token);
     auto current_message = co_await next_message.begin();
 
-    while (current_message != next_message.end() and not consumer.is_cancellation_requested()) {
+    while (current_message != next_message.end() and not subscriber.is_cancellation_requested()) {
       auto& message = *current_message;
-      co_await [&]() -> cppcoro::task<void> { co_return consumer(std::move(message)); }();
+      co_await [&]() -> cppcoro::task<void> { co_return subscriber(std::move(message)); }();
 
       channel.notify_message_consumed(subscriber_token);
       co_await ++current_message;
@@ -121,26 +121,26 @@ cppcoro::task<void> spin_consumer(
   }
 
   // synchronize coroutines only when terminating program
-  auto lock = co_await consumer_mutex.scoped_lock_async();
+  auto lock = co_await subscriber_mutex.scoped_lock_async();
 
   channel.initialize_termination();
 
   while (channel.state() < channel_t::termination_state::publisher_received) {
-    co_await flush<void>(channel, consumer, subscriber_token);
+    co_await flush<void>(channel, subscriber, subscriber_token);
   }
 
   channel.finalize_termination();
 
-//    if (channel.is_waiting())  cppcoro::sync_wait(flush<void>(channel, consumer, subscriber_token));
+//    if (channel.is_waiting())  cppcoro::sync_wait(flush<void>(channel, subscriber, subscriber_token));
 }
 
 /**
  * TODO: Handle many arguments, maybe convert it to a tuple?
  *
  * Generates a coroutine that keeps calling the transformer_function until the multi_channel its
- * sending messages to is terminated by the consumer_function or transformer_function on the other end
+ * sending messages to is terminated by the subscriber_function or transformer_function on the other end
  *
- * Transformers will live in between a publisher_function and consumer_function.
+ * Transformers will live in between a publisher_function and subscriber_function.
  *
  * When a transformer_function detects that the next function in line has terminated the multi_channel, then it will process
  * any messages it has left in the buffer and break out of its loop.
@@ -149,33 +149,33 @@ cppcoro::task<void> spin_consumer(
  * currently waiting on the other end of the publisher_function multi_channel.
  *
  * @param publisher_channel The multi_channel that will have a producing function on the other end
- * @param consumer_channel The multi_channel that will have a consuming function on the other end
- * @param transformer A consumer_function is a cancellable function with at least one argument required to call it and
+ * @param subscriber_channel The multi_channel that will have a consuming function on the other end
+ * @param transformer A subscriber_function is a cancellable function with at least one argument required to call it and
  *                 a specified return type
  * @return A coroutine that continues until the transformer_function is cancelled
  */
 template<typename return_t, typename argument_t>
 cppcoro::task<void> spin_transformer(
   auto& publisher_channel,
-  auto& consumer_channel,
+  auto& subscriber_channel,
   cancellable_function<return_t(argument_t&&)>& transformer)
 {
   publisher_token<return_t> publisher_token{};
   subscriber_token<argument_t> subscriber_token{};
-  using consumer_channel_t = std::decay_t<decltype(consumer_channel)>;
+  using subscriber_channel_t = std::decay_t<decltype(subscriber_channel)>;
   using publisher_channel_t = std::decay_t<decltype(publisher_channel)>;
 
-  if (not co_await consumer_channel.request_permission_to_publish(publisher_token)) co_return;
+  if (not co_await subscriber_channel.request_permission_to_publish(publisher_token)) co_return;
 
   auto termination_has_initialized = [&](auto& channel) {
-    return channel.state() >= consumer_channel_t::termination_state::consumer_initialized;
+    return channel.state() >= subscriber_channel_t::termination_state::subscriber_initialized;
   };
 
-  while (not termination_has_initialized(consumer_channel)) {
+  while (not termination_has_initialized(subscriber_channel)) {
     auto next_message = publisher_channel.message_generator(subscriber_token);
     auto current_message = co_await next_message.begin();
 
-    while (current_message != next_message.end() and not termination_has_initialized(consumer_channel)) {
+    while (current_message != next_message.end() and not termination_has_initialized(subscriber_channel)) {
       auto& message_to_consume = *current_message;
 
       auto message_to_publish = co_await [&]() -> cppcoro::task<return_t> {
@@ -186,8 +186,8 @@ cppcoro::task<void> spin_transformer(
       publisher_channel.notify_message_consumed(subscriber_token);
 
       if (publisher_token.messages.size() == publisher_token.sequences.size()) {
-        consumer_channel.publish_messages(publisher_token);
-        co_await consumer_channel.request_permission_to_publish(publisher_token);
+        subscriber_channel.publish_messages(publisher_token);
+        co_await subscriber_channel.request_permission_to_publish(publisher_token);
       }
 
       co_await ++current_message;
@@ -195,16 +195,16 @@ cppcoro::task<void> spin_transformer(
   }
 
   auto lock = co_await transformer_mutex.scoped_lock_async();
-  consumer_channel.confirm_termination();
+  subscriber_channel.confirm_termination();
 
-  if (consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
-    co_await consumer_channel.request_permission_to_publish_one(publisher_token);
+  if (subscriber_channel.state() < subscriber_channel_t::termination_state::subscriber_finalized) {
+    co_await subscriber_channel.request_permission_to_publish_one(publisher_token);
 
-    while (consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
+    while (subscriber_channel.state() < subscriber_channel_t::termination_state::subscriber_finalized) {
       auto next_message = publisher_channel.message_generator(subscriber_token);
       auto current_message = co_await next_message.begin();
 
-      while (current_message != next_message.end() and consumer_channel.state() < consumer_channel_t::termination_state::consumer_finalized) {
+      while (current_message != next_message.end() and subscriber_channel.state() < subscriber_channel_t::termination_state::subscriber_finalized) {
         auto& message_to_consume = *current_message;
 
         auto message_to_publish = co_await [&]() -> cppcoro::task<return_t> {
@@ -213,13 +213,13 @@ cppcoro::task<void> spin_transformer(
 
         publisher_token.messages.push(std::move(message_to_publish));
         publisher_channel.notify_message_consumed(subscriber_token);
-        consumer_channel.publish_one(publisher_token);
+        subscriber_channel.publish_one(publisher_token);
 
-        if (consumer_channel.state() >= consumer_channel_t::termination_state::consumer_finalized) {
+        if (subscriber_channel.state() >= subscriber_channel_t::termination_state::subscriber_finalized) {
           break;
         }
 
-        co_await consumer_channel.request_permission_to_publish_one(publisher_token);
+        co_await subscriber_channel.request_permission_to_publish_one(publisher_token);
         co_await ++current_message;
       }
     }
@@ -235,15 +235,15 @@ cppcoro::task<void> spin_transformer(
 }
 
 /**
- * The consumer_function or transformer_function function will flush out any publisher_function routines
+ * The subscriber_function or transformer_function function will flush out any publisher_function routines
  * in waiting on the other end of the multi_channel
  *
- * @param channel A communication multi_channel between the consumer_function and publisher_function routines
- * @param routine A consumer_function or transformer_function function
+ * @param channel A communication multi_channel between the subscriber_function and publisher_function routines
+ * @param routine A subscriber_function or transformer_function function
  * @return A coroutine
  */
 template<typename return_t, flow::is_function routine_t>
-  cppcoro::task<void> flush(auto& channel, routine_t& routine, auto& subscriber_token) requires flow::is_consumer_function<routine_t> or flow::is_transformer_function<routine_t>
+  cppcoro::task<void> flush(auto& channel, routine_t& routine, auto& subscriber_token) requires flow::is_subscriber_function<routine_t> or flow::is_transformer_function<routine_t>
 {
   while (channel.is_waiting()) {
     auto next_message = channel.message_generator(subscriber_token);
