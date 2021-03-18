@@ -29,7 +29,7 @@ constexpr auto operator|(is_chain auto&& current_chain, is_subscriber_routine au
 {
   using chain_state = typename decltype(current_chain.state())::type;
   static_assert(is_open<chain_state>,
-    "Can only pass a flow::subscriber or flow::transformer at to an open chain.");
+    "Can only pass a flow::subscribe or flow::transformer at to an open chain.");
 
   return chain<closed_chain>(concat(forward(current_chain.routines), forward(routine)));
 }
@@ -43,7 +43,7 @@ constexpr auto operator|(is_chain auto&& current_chain, is_chain_function auto&&
   using chain_state = typename decltype(current_chain.state())::type;
 
   static_assert(not is_closed<chain_state>(),
-    "Can only pass a flow::subscriber or flow::transformer at to an open chain.");
+    "Can only pass a flow::subscribe or flow::transformer at to an open chain.");
 
   if constexpr (is_init<chain_state>()) {
     static_assert(is_publisher_function<function_t> or is_transformer_function<function_t>,
@@ -54,7 +54,7 @@ constexpr auto operator|(is_chain auto&& current_chain, is_chain_function auto&&
   }
   else if constexpr (is_open<chain_state>()) {
     static_assert(is_transformer_function<function_t> or is_subscriber_function<function_t>,
-      "Chain can only be appended to by transformer functions or a subscriber function.");
+      "Chain can only be appended to by transformer functions or a subscribe function.");
 
     if constexpr (is_transformer_function<function_t>) {
       return chain<open_chain>(concat(forward(current_chain.routines), forward(function)));

@@ -206,7 +206,7 @@ private:
 };
 }// namespace
 
-TEST_CASE("Test raw subscriber function pointer", "[subscriber_function_pointer]")
+TEST_CASE("Test raw subscribe function pointer", "[subscriber_function_pointer]")
 {
   SECTION("consume int")
   {
@@ -220,7 +220,7 @@ TEST_CASE("Test raw subscriber function pointer", "[subscriber_function_pointer]
     test_subscriber<subscriber_t>();
   }
 
-  SECTION("test subscriber functor")
+  SECTION("test subscribe functor")
   {
     auto int_subscriber_functor = subscriber_functor<int>{};
     test_subscriber<decltype(int_subscriber_functor)>();
@@ -235,7 +235,7 @@ std::string transform_int(int&& /*unused*/) { return ""; }
 int transform_string(std::string&& /*unused*/) { return 0; }
 }// namespace
 
-TEST_CASE("test subscriber", "[subscriber]")
+TEST_CASE("test subscribe", "[subscribe]")
 {
   SECTION("transform int")
   {
@@ -289,23 +289,23 @@ TEST_CASE("Test publish routine", "[string_publisher]")
   }
 }
 
-TEST_CASE("Test subscriber routine", "[string_subscriber]")
+TEST_CASE("Test subscribe routine", "[string_subscriber]")
 {
   SECTION("raw function")
   {
-    auto subscriber_routine = flow::subscriber(consume_int, "int");
+    auto subscriber_routine = flow::subscribe(consume_int, "int");
     STATIC_REQUIRE(flow::is_subscriber_routine<decltype(subscriber_routine)>);
   }
 
   SECTION("functor")
   {
-    auto subscriber_routine = flow::subscriber(subscriber_functor<int>{}, "int");
+    auto subscriber_routine = flow::subscribe(subscriber_functor<int>{}, "int");
     STATIC_REQUIRE(flow::is_subscriber_routine<decltype(subscriber_routine)>);
   }
 
   SECTION("lambda")
   {
-    auto subscriber_routine = flow::subscriber([](int&& /*unused*/) {}, "int");
+    auto subscriber_routine = flow::subscribe([](int&& /*unused*/) {}, "int");
     STATIC_REQUIRE(flow::is_subscriber_routine<decltype(subscriber_routine)>);
   }
 }

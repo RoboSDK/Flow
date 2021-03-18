@@ -14,14 +14,14 @@
 /**
  * The link between routines in a network are m_channels.
  *
- * A multi multi_channel in this framework is a multi publisher_impl multi subscriber multi_channel that are linked
+ * A multi multi_channel in this framework is a multi publisher_impl multi subscribe multi_channel that are linked
  * to two corresponding neighbors in a network.
  */
 
 namespace flow::detail {
 
 /**
- * A multi publisher_impl multi subscriber channel
+ * A multi publisher_impl multi subscribe channel
  *
  * This means that because the assumption is that multiple publishers and subscribers will be used to
  * communicate through this single channel, there will be a performance cost of atomics for synchronization
@@ -154,7 +154,7 @@ public:
   }
 
   /*******************************************************
-   ****************** subscriber INTERFACE *****************
+   ****************** subscribe INTERFACE *****************
    ******************************************************/
 
   /**
@@ -202,7 +202,7 @@ public:
 
 
   /*******************************************************
-   ****************** END subscriber INTERFACE *****************
+   ****************** END subscribe INTERFACE *****************
    ******************************************************/
 
   termination_state state()

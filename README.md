@@ -116,7 +116,7 @@ has.
     - Notation:  `()->R`
     - Example: In C++ this is a `()->R` function, or any other process that emulates the behavior
     
-3. *subscriber* - A receiver is an function with at least one dependency and nothing depends on it.
+3. *subscribe* - A receiver is an function with at least one dependency and nothing depends on it.
     - Notation:  `(A)`
     - Example: In C++ this is a `(A&&... a)->void` function, or any other process that emulates the behavior
     
@@ -178,7 +178,7 @@ and then the publish coroutines will end and exit their scope.
 // This is a publish
 std::string hello_world() { return "Hello World"; }
 
-// This is a subscriber. Values are passed in by rvalue, 
+// This is a subscribe. Values are passed in by rvalue, 
 // implying that the caller is now the owner of the data.
 void subscribe_hello(std::string&& message){  }
 
@@ -239,7 +239,7 @@ int high_pass_filter(int&& data)
   return std::max(data, limit);
 }
 
-// subscriber that consumes an integer
+// subscribe that consumes an integer
 void consume_data(int&& data) { }
 
 int main()
@@ -265,7 +265,7 @@ int main()
 | 0.1.0   | Ability to create in-memory network, send messages, and shut down reliably.  | 1/25/2021          |
 | 0.1.1   | Ability to set frequency of routines. Use fflat buffers as messages          |                    |
 | 0.1.2   | TCP, UDP, ICP, etc support to send receive messages efficiently.             | Mid-February 20201 |
-| 0.1.3   | Can generate custom messages. Single publish single subscriber channels.      | 2/12/2021          |
+| 0.1.3   | Can generate custom messages. Single publish single subscribe channels.      | 2/12/2021          |
 | 0.1.4   | Collect performance metrics and show in documentation                        | Mid-March 2021     |
 | 0.1.5   | Create tools to tweak performance                                            | April 2021         |
 | 0.1.6   | Optimization of implementation and add memory pool/allocator options         | May 2021           |

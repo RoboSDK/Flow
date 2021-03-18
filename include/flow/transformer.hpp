@@ -18,11 +18,11 @@ namespace detail {
  *
  * These objects created are passed in to the network to spin up the routines
  *
- * @tparam argument_t The subscriber tag
- * @param callback A subscriber function
+ * @tparam argument_t The subscribe tag
+ * @param callback A subscribe function
  * @param publish_to The channel to publish to
  * @param subscribe_to The channel to subscribe to
- * @return A subscriber object used to retrieve data by the network
+ * @return A subscribe object used to retrieve data by the network
  */
 template<typename return_t, typename argument_t>
 auto transformer(std::function<return_t(argument_t&&)>&& callback, std::string subscribe_to = "", std::string publish_to = "")

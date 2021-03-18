@@ -40,7 +40,7 @@ constexpr auto to_routine(is_function auto&& function)
     return transformer(forward(function), get_subscribe_to(function), get_publish_to(function));
   }
   else if constexpr (is_subscriber_function<function_t>) {
-    return flow::subscriber(function, get_subscribe_to(function));
+    return flow::subscribe(function, get_subscribe_to(function));
   }
   else if constexpr (is_publisher_function<function_t>) {
     return flow::publish(function, get_publish_to(function));

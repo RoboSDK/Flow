@@ -131,7 +131,7 @@ cppcoro::task<void> spin_subscriber(
 
   channel.finalize_termination();
 
-//    if (channel.is_waiting())  cppcoro::sync_wait(flush<void>(channel, subscriber, subscriber_token));
+//    if (channel.is_waiting())  cppcoro::sync_wait(flush<void>(channel, subscribe, subscriber_token));
 }
 
 /**
