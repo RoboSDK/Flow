@@ -30,5 +30,5 @@ TEST_CASE("Test cancellable subscription", "[cancellable_subscription]")
 {
   Point p{};
   test_cancellable<void, Point const&>(p);// subscription
-  test_cancellable<void, Point&>(p);// publisher
+  test_cancellable<void, Point&>(p);// publish
 }

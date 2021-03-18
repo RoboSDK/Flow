@@ -43,7 +43,7 @@ constexpr auto to_routine(is_function auto&& function)
     return flow::subscriber(function, get_subscribe_to(function));
   }
   else if constexpr (is_publisher_function<function_t>) {
-    return flow::publisher(function, get_publish_to(function));
+    return flow::publish(function, get_publish_to(function));
   }
   /**
          * If you change this please be careful. The constexpr check for a spinner function seems to

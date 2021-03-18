@@ -8,32 +8,32 @@ namespace detail {
 }
 
 /**
- * Create a publisher from a callback and channel name to publish on
+ * Create a publish from a callback and channel name to publish on
  *
  * These objects created are passed in to the network to spin up the routines
  *
- * @tparam argument_t The publisher tag
- * @param callback A publisher function
+ * @tparam argument_t The publish tag
+ * @param callback A publish function
  * @param publish_to The channel to publish to
- * @return A publisher object used to retrieve data by the network
+ * @return A publish object used to retrieve data by the network
  */
 template<typename return_t>
-auto publisher(std::function<return_t()>&& callback, std::string publish_to)
+auto publish(std::function<return_t()>&& callback, std::string publish_to)
 {
   using callback_t = decltype(callback);
   return detail::publisher_impl<return_t>(std::forward<callback_t>(callback), std::move(publish_to));
 }
 
 template<typename return_t>
-auto publisher(return_t (*callback)(), std::string publish_to)
+auto publish(return_t (*callback)(), std::string publish_to)
 {
   return detail::publisher_impl<return_t>([callback = std::move(callback)]() -> return_t { return callback(); }, std::move(publish_to));
 }
 
-auto publisher(auto&& lambda, std::string publish_to)
+auto publish(auto&& lambda, std::string publish_to)
 {
   using callback_t = decltype(lambda);
-  return publisher(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(publish_to));
+  return publish(detail::metaprogramming::to_function(std::forward<callback_t>(lambda)), std::move(publish_to));
 }
 
 

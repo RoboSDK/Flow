@@ -95,7 +95,7 @@ public:
   std::size_t hash() { return typeid(message_t).hash_code() ^ std::hash<std::string>{}(m_name); }
 
   /*******************************************************
-   ****************** publisher INTERFACE *****************
+   ****************** publish INTERFACE *****************
    ******************************************************/
 
   /**

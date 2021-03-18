@@ -27,30 +27,30 @@
 #include "flow/chain.hpp"
 
 /**
- * A network is a sequence of routines connected by single publisher single subscriber channels.
+ * A network is a sequence of routines connected by single publish single subscriber channels.
  * The end of the network depends on the data flow from the beginning of the network. The beginning
  * of the network has no dependencies.
  *
- * An empty network is a network which has no routines and can take a spinner or a publisher.
+ * An empty network is a network which has no routines and can take a spinner or a publish.
  *
  * The minimal network s a network with a spinner, because it depends on nothing and nothing depends on it.
  *
- * When a network is begun with a publisher, transformers may be inserted into the network until it is capped
+ * When a network is begun with a publish, transformers may be inserted into the network until it is capped
  * with a subscriber.
  *
  * Each network is considered independent from another network and may not communicate with each other.
  *
- * publisher -> transfomer -> ... -> subscriber
+ * publish -> transfomer -> ... -> subscriber
  *
  * Each channel in the network uses contiguous memory to pass data to the channel waiting on the other way. All
- * data must flow from publisher to subscriber; no cyclical dependencies.
+ * data must flow from publish to subscriber; no cyclical dependencies.
  *
  * Cancellation
  * Cancelling the network of coroutines is a bit tricky because if you stop them all at once, some of them will hang
  * with no way to have them leave the awaiting state.
  *
  * When starting the network reaction all routines will begin to wait and the first callable_routine that is given priority is the
- * publisher at the beginning of the network, and the last will be the end of the network, or subscriber.
+ * publish at the beginning of the network, and the last will be the end of the network, or subscriber.
  *
  * The subscriber then has to be the one that initializes the cancellation. The algorithm is as follows:
  *
@@ -59,12 +59,12 @@
  * subscriber flushes out any awaiting publishers/transformers on the producing end of the channel
  * end callable_routine
  *
- * The transformer or publisher that is next in the network will then receiving channel termination notification
+ * The transformer or publish that is next in the network will then receiving channel termination notification
  * from the subscriber at the end of the network and break out of its loop
- * It well then notify terminate the publisher channel it receives data from and flush it out
+ * It well then notify terminate the publish channel it receives data from and flush it out
  *
- * rinse repeat until the beginning of the network, which is a publisher
- * The publisher simply breaks out of its loop and exits the scope
+ * rinse repeat until the beginning of the network, which is a publish
+ * The publish simply breaks out of its loop and exits the scope
  */
 
 namespace flow {
@@ -101,7 +101,7 @@ auto push_routine(is_network auto& network, auto&& routine)
     network.push(flow::subscriber(routine, get_subscribe_to(routine)));
   }
   else if constexpr (is_publisher_function<routine_t>) {
-    network.push(flow::publisher(routine, get_publish_to(routine)));
+    network.push(flow::publish(routine, get_publish_to(routine)));
   }
   /**
        * If you change this please be careful. The constexpr check for a spinner function seems to
@@ -263,7 +263,7 @@ namespace detail {
       using namespace detail::channel;
 
       static_assert(not is_subscriber_routine<begin_t> and not is_spinner_routine<begin_t>,
-        "network.hpp:push_chain_begin only takes in transformer or publisher routines implementations.");
+        "network.hpp:push_chain_begin only takes in transformer or publish routines implementations.");
 
       if constexpr (is_transformer_routine<begin_t>) {
         return push<policy::MULTI, policy::SINGLE>(std::move(begin)).second;

@@ -112,7 +112,7 @@ has.
     - Notation:  `()`
     - Example: In C++ this is a `()->void` function, or any other process that 
     
-2. *publisher* - A publisher is an function with no dependencies and some other function must depend on it. 
+2. *publish* - A publish is an function with no dependencies and some other function must depend on it. 
     - Notation:  `()->R`
     - Example: In C++ this is a `()->R` function, or any other process that emulates the behavior
     
@@ -130,10 +130,10 @@ is an invalid network.
 <a name="1-2-communication"></a>
 ### Communication
 Each of these functions are connected to each other through a `channel`. Each channel needs to have
-at least one publisher and one receiver on the other end. A transformer doubles as a publisher and receiver, 
+at least one publish and one receiver on the other end. A transformer doubles as a publish and receiver, 
 so a path through the network may look something like this
 
-`{()->A , (A)->B, (B)->C, (C)}` This network contains a publisher, two transformers, and a receiver. It is complete 
+`{()->A , (A)->B, (B)->C, (C)}` This network contains a publish, two transformers, and a receiver. It is complete 
 and and closed. There will be three channels in between; each with its own channel name. If no channel name is provided,
 then an empty string will be used; you can think of this as a *global channel*. 
 
@@ -144,10 +144,10 @@ Each of the functions in the network will begin and start to process data and ev
 
 Looking at the original example: `{()->A , (A)->B, (B)->C, (C)}`
 
-At t0 the two transformers and receiver at the end will be waiting for messages and the publisher will begin to 
+At t0 the two transformers and receiver at the end will be waiting for messages and the publish will begin to 
 publish data. This could be through a network socket that has no local dependencies (e.g. sensor data). 
 
-At t1 The first transformer receives the first message and transforms it, and at the same time the publisher begins
+At t1 The first transformer receives the first message and transforms it, and at the same time the publish begins
 producing a second piece of data. 
 
 This keeps going until all 4 functions are constantly communicating information to the final receiver with some
@@ -163,9 +163,9 @@ at the end of the chain. when a cancellation request is performed the subscriber
 network flow will begin by exiting their main loop. 
 
 At this point, transformers and publishers down the chain will be awaiting compute time for their coroutine. The receiver
-will then `flush` out the waiting transformer or publisher that is next in line, once that transformer is free the 
-receiver will end. Then the transformer will repeat this until the publisher is reached at the beginning of the chain 
-and then the publisher coroutines will end and exit their scope.
+will then `flush` out the waiting transformer or publish that is next in line, once that transformer is free the 
+receiver will end. Then the transformer will repeat this until the publish is reached at the beginning of the chain 
+and then the publish coroutines will end and exit their scope.
 
 
 <a name="2-examples"></a>
@@ -175,7 +175,7 @@ and then the publisher coroutines will end and exit their scope.
 ```c++
 #include <flow/flow.hpp>
 
-// This is a publisher
+// This is a publish
 std::string hello_world() { return "Hello World"; }
 
 // This is a subscriber. Values are passed in by rvalue, 
@@ -187,7 +187,7 @@ int main()
   using namespace std::literals;
 
   /**
-   * The publisher hello_world creates a private channel to 
+   * The publish hello_world creates a private channel to 
    * subscribe_hello and sends messsages at 10hz
    */
   auto net = flow::network(flow::chain(10hz) | hello_world | subscribe_hello);
@@ -212,7 +212,7 @@ std::random_device random_device{};
 std::mt19937 random_engine{ random_device() };
 std::uniform_int_distribution<int> distribution{ 1, 100 };
 
-// publisher that publishes to "sensor"
+// publish that publishes to "sensor"
 class Sensor {
 public:
   int operator()()
@@ -265,7 +265,7 @@ int main()
 | 0.1.0   | Ability to create in-memory network, send messages, and shut down reliably.  | 1/25/2021          |
 | 0.1.1   | Ability to set frequency of routines. Use fflat buffers as messages          |                    |
 | 0.1.2   | TCP, UDP, ICP, etc support to send receive messages efficiently.             | Mid-February 20201 |
-| 0.1.3   | Can generate custom messages. Single publisher single subscriber channels.      | 2/12/2021          |
+| 0.1.3   | Can generate custom messages. Single publish single subscriber channels.      | 2/12/2021          |
 | 0.1.4   | Collect performance metrics and show in documentation                        | Mid-March 2021     |
 | 0.1.5   | Create tools to tweak performance                                            | April 2021         |
 | 0.1.6   | Optimization of implementation and add memory pool/allocator options         | May 2021           |

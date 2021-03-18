@@ -137,7 +137,7 @@ private:
 };
 }// namespace
 
-TEST_CASE("Test raw publisher function pointer", "[publisher_function_pointer]")
+TEST_CASE("Test raw publish function pointer", "[publisher_function_pointer]")
 {
   SECTION("publish int")
   {
@@ -262,29 +262,29 @@ TEST_CASE("Test spinner", "[spinner]")
   }
 }
 
-TEST_CASE("Test publisher routine", "[string_publisher]")
+TEST_CASE("Test publish routine", "[string_publisher]")
 {
   SECTION("raw function")
   {
-    auto publisher_routine = flow::publisher(produce_int, "int");
+    auto publisher_routine = flow::publish(produce_int, "int");
     STATIC_REQUIRE(flow::is_publisher_routine<decltype(publisher_routine)>);
   }
 
   SECTION("static function")
   {
-    auto publisher_routine = flow::publisher(static_produce_int, "int");
+    auto publisher_routine = flow::publish(static_produce_int, "int");
     STATIC_REQUIRE(flow::is_publisher_routine<decltype(publisher_routine)>);
   }
 
   SECTION("functor")
   {
-    auto publisher_routine = flow::publisher(publisher_functor<int>{}, "int");
+    auto publisher_routine = flow::publish(publisher_functor<int>{}, "int");
     STATIC_REQUIRE(flow::is_publisher_routine<decltype(publisher_routine)>);
   }
 
   SECTION("lambda")
   {
-    auto publisher_routine = flow::publisher([] { return 0; }, "int");
+    auto publisher_routine = flow::publish([] { return 0; }, "int");
     STATIC_REQUIRE(flow::is_publisher_routine<decltype(publisher_routine)>);
   }
 }
