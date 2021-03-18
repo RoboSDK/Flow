@@ -89,25 +89,6 @@ sudo make install
 <a name="core-concepts"></a>
 ## Core Concepts
 
-When I first learned about asynchrony and what its purpose was there
-was confusion between [concurrency and asynchronous processes](https://stackoverflow.com/questions/4844637/what-is-the-difference-between-concurrency-parallelism-and-asynchronous-methods). 
-
-After becoming more aware of asynchrony the rabbit holes led me down the world of [monads](https://www.youtube.com/watch?v=t1e8gqXLbsU) and functional programming
-with haskell. I was looking at how asynchrony was being used by libraries, where at the time they were implemented with monadic interfaces. . 
-
-It was difficult to grasp, but it was starting to make sense. I never built a monadic library because it seemed mentally tedious.
-I started looking into C++ 20 and found out about coroutines. After diving deeper and deeper into coroutines, 
-these were the solution to all the problems in robotics; really, [real time systems](https://gridem.blogspot.com/2018/07/heterogeneous-concurrent-exactly-once.html).
-
-Most of the callback base frameworks like ROS (Robot Operating System) and even ROS2 are severely lacking in
-real time capabilities because they ignore performance in their design. I learned C++ using ROS, so I'm not putting it down.
-I think it's great for what it is. 
-
-In ROS-land the major forms of communication are done through publishers and subscribers (publishers and subscribers) where
-some loop is being done by a node object, or a while loop in the main program. This is strictly a multi-threaded form
-of concurrency and strong synchronization is required to communicate within callbacks. We all know this is not
-what we want with asynchronous functions.
-
 **Note on the current state of the project**: Right now this is an pre-pre-pre-alpha. I've been working on this in my spare time
 over the last few months. I've had to make a couple of redesigns, but I think this is the one that will work to server
 as a base.
@@ -158,11 +139,6 @@ then an empty string will be used; you can think of this as a *global channel*.
 
 A global channel is a channel that is available globally for that specific message type. Publishing an
 `int` without a channel name will publish to the global `int` channel.
-
-**Not yet implemented**: At the moment channels use a multi-publisher scheme, so if only one publisher exists in that
-channel, then it is inefficient due to synchronization of atomics. There will be a way to make channels that are
-single publisher single receiver in the future. These will be done by tightly linking multiple functions and generating
-private channels that are inaccessible through the main network. Think of it as creating a subnet within the network.
 
 Each of the functions in the network will begin and start to process data and eventually reach a frequency.
 
@@ -416,7 +392,7 @@ The following compilers should work:
     </details>
 
 
-  * [Cppcheck](http://cppcheck.sourceforge.net_impl/)
+  * [Cppcheck](http://cppcheck.sourceforge.net/)
     <details>
     <summary>Install Command</summary>
 
