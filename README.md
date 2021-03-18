@@ -31,7 +31,7 @@ You may now build the library within the docker container and install it if you'
 ./scripts/build.py --enable-testing --enable-examples
 ```
 
-If the build script doesn't built, the project because of a crash try using the `--clear-cache` flash. 
+If the build script doesn't build the project because of a crash try using the `--clear-cache` flash. 
 
 Use the `--help` option for more information.
 
