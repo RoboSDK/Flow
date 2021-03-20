@@ -206,18 +206,25 @@ int main()
 Example with transformers and multiple chains
 ```c++
 #include <random>
+
 #include <flow/flow.hpp>
+#include <spdlog/spdlog.h>
 
-std::random_device random_device{};
-std::mt19937 random_engine{ random_device() };
-std::uniform_int_distribution<int> distribution{ 1, 100 };
+static std::random_device m_random_device{};
+static std::mt19937 m_random_engine{ m_random_device() };
+static std::uniform_int_distribution<int> m_distribution{ 1, 100 };
 
-// publisher that publishes to "sensor"
+struct Data {
+  int data{};
+};
+
 class Sensor {
 public:
-  int operator()()
+  Data operator()()
   {
-    return distribution(random_engine);
+    auto data = m_distribution(m_random_engine);
+    spdlog::info("sensor:{}", data);
+    return Data{ data };
   }
 
   std::string publish_to() { return "sensor"; }
@@ -225,37 +232,40 @@ public:
 private:
 };
 
-// transformer that subscribes to an integer and publishes an integer
-int low_pass_filter(int&& data)
+Data low_pass_filter(Data&& msg)
 {
+  spdlog::info("low:{}", msg.data);
   static int limit = 30;
-  return std::min(data, limit);
+  msg.data = std::min(msg.data, limit);
+  return std::move(msg);
 }
 
-// transformer that subscribes to an integer and publishes an integer
-int high_pass_filter(int&& data)
+Data high_pass_filter(Data&& msg)
 {
+  spdlog::info("high: {}", msg.data);
   static int limit = 70;
-  return std::max(data, limit);
+  msg.data = std::max(msg.data, limit);
+  return std::move(msg);
 }
 
-// subscriber that subscribes to an integer
-void consume_data(int&& data) { }
+auto consume_data(Data&& data)
+{
+  spdlog::info("consuming data: {}", data.data);
+}
+
 
 int main()
 {
   using namespace std::literals;
-  
-  // transformers subscribe to sensor channel and create a private channel to consume data 
+
   auto low_pass = flow::chain(10hz) | flow::transform(low_pass_filter, "sensor") | consume_data;
   auto high_pass = flow::chain(10hz) | flow::transform(high_pass_filter, "sensor") | consume_data;
 
   auto network = flow::network(Sensor{}, std::move(low_pass), std::move(high_pass));
 
-  network.cancel_after(1ms);
+  network.cancel_after(5s);
   flow::spin(std::move(network));
 }
-
 ```
 
 <a name="milestones"></a>

@@ -7,13 +7,17 @@ static std::random_device m_random_device{};
 static std::mt19937 m_random_engine{ m_random_device() };
 static std::uniform_int_distribution<int> m_distribution{ 1, 100 };
 
+struct Data {
+  int data{};
+};
+
 class Sensor {
 public:
-  int operator()()
+  Data operator()()
   {
     auto data = m_distribution(m_random_engine);
     spdlog::info("sensor:{}", data);
-    return data;
+    return Data{ data };
   }
 
   std::string publish_to() { return "sensor"; }
@@ -21,23 +25,25 @@ public:
 private:
 };
 
-int low_pass_filter(int&& data)
+Data low_pass_filter(Data&& msg)
 {
-  spdlog::info("low:{}", data);
+  spdlog::info("low:{}", msg.data);
   static int limit = 30;
-  return std::min(data, limit);
+  msg.data = std::min(msg.data, limit);
+  return std::move(msg);
 }
 
-int high_pass_filter(int&& data)
+Data high_pass_filter(Data&& msg)
 {
-  spdlog::info("high: {}", data);
+  spdlog::info("high: {}", msg.data);
   static int limit = 70;
-  return std::max(data, limit);
+  msg.data = std::max(msg.data, limit);
+  return std::move(msg);
 }
 
-void consume_data(int&& data)
+auto consume_data(Data&& data)
 {
-  spdlog::info("consuming data: {}", data);
+  spdlog::info("consuming data: {}", data.data);
 }
 
 
