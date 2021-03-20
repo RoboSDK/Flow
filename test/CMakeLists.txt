@@ -59,5 +59,6 @@ if (ENABLE_EXAMPLES)
 #    add_test(NAME publisher_transformer_subscriber COMMAND publisher_transformer_subscriber)
 #    add_test(NAME simple_publisher_subscriber COMMAND simple_publisher_subscriber)
     add_test(NAME simple_user_publisher_subscriber COMMAND simple_user_publisher_subscriber)
+    add_test(NAME two_chains COMMAND two_chains)
 endif()
 
