@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+
 #include <cppcoro/async_mutex.hpp>
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>
@@ -20,9 +22,6 @@
  */
 
 namespace flow::detail {
-inline static cppcoro::async_mutex transformer_mutex;
-inline static cppcoro::async_mutex subscriber_mutex;
-
 /**
  * Generates a coroutine that keeps calling the spinner_function until it is cancelled
  * @param scheduler a cppcoro::static_thread_pool, cppcoro::io_service, or another cppcoro scheduler
@@ -120,9 +119,6 @@ cppcoro::task<void> spin_subscriber(
     }
   }
 
-  // synchronize coroutines only when terminating program
-  auto lock = co_await subscriber_mutex.scoped_lock_async();
-
   channel.initialize_termination();
 
   while (channel.state() < channel_t::termination_state::publisher_received) {
@@ -131,7 +127,9 @@ cppcoro::task<void> spin_subscriber(
 
   channel.finalize_termination();
 
-//    if (channel.is_waiting())  cppcoro::sync_wait(flush<void>(channel, subscribe, subscriber_token));
+  if (channel.is_waiting()) {
+    co_await flush<void>(channel, subscriber, subscriber_token);
+  }
 }
 
 /**
@@ -196,31 +194,32 @@ cppcoro::task<void> spin_transformer(
 
   subscriber_channel.confirm_termination();
 
-  if (subscriber_channel.state() < subscriber_channel_t::termination_state::subscriber_finalized) {
-    co_await subscriber_channel.request_permission_to_publish_one(publisher_token);
+  auto subscriber_channel_terminated = [&] {
+    return subscriber_channel.state() >= subscriber_channel_t::termination_state::subscriber_finalized;
+  };
 
-    while (subscriber_channel.state() < subscriber_channel_t::termination_state::subscriber_finalized) {
-      auto next_message = publisher_channel.message_generator(subscriber_token);
-      auto current_message = co_await next_message.begin();
+  co_await subscriber_channel.request_permission_to_publish(publisher_token);
 
-      while (current_message != next_message.end() and subscriber_channel.state() < subscriber_channel_t::termination_state::subscriber_finalized) {
-        auto& message_to_consume = *current_message;
+  if (not subscriber_channel_terminated()) {
+    auto next_message = publisher_channel.message_generator(subscriber_token);
+    auto current_message = co_await next_message.begin();
 
-        auto message_to_publish = co_await [&]() -> cppcoro::task<return_t> {
-          co_return std::invoke(transformer, std::move(message_to_consume));
-        }();
+    while (current_message != next_message.end() and not subscriber_channel_terminated()) {
+      auto& message_to_consume = *current_message;
 
-        publisher_token.messages.push(std::move(message_to_publish));
-        publisher_channel.notify_message_consumed(subscriber_token);
-        subscriber_channel.publish_one(publisher_token);
+      auto message_to_publish = co_await [&]() -> cppcoro::task<return_t> {
+        co_return std::invoke(transformer, std::move(message_to_consume));
+      }();
 
-        if (subscriber_channel.state() >= subscriber_channel_t::termination_state::subscriber_finalized) {
-          break;
-        }
+      publisher_token.messages.push(std::move(message_to_publish));
+      publisher_channel.notify_message_consumed(subscriber_token);
 
-        co_await subscriber_channel.request_permission_to_publish_one(publisher_token);
-        co_await ++current_message;
+      if (publisher_token.messages.size() == publisher_token.sequences.size()) {
+        subscriber_channel.publish_messages(publisher_token);
+        co_await subscriber_channel.request_permission_to_publish(publisher_token);
       }
+
+      co_await ++current_message;
     }
   }
 
@@ -231,6 +230,9 @@ cppcoro::task<void> spin_transformer(
   }
 
   publisher_channel.finalize_termination();
+  if (publisher_channel.is_waiting()) {
+    co_await flush<return_t>(publisher_channel, transformer, subscriber_token);
+  }
 }
 
 /**

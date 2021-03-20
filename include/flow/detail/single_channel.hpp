@@ -2,9 +2,9 @@
 
 #include <stack>
 
-#include "channel_resource.hpp"
-#include "publisher_token.hpp"
-#include "subscriber_token.hpp"
+#include "flow/detail/channel_resource.hpp"
+#include "flow/detail/publisher_token.hpp"
+#include "flow/detail/subscriber_token.hpp"
 
 #include <cppcoro/async_generator.hpp>
 #include <cppcoro/single_producer_sequencer.hpp>
@@ -31,11 +31,11 @@ namespace flow::detail {
  */
 template<typename raw_message_t, typename configuration_t>
 class single_channel {
+public:
   using message_t = std::decay_t<raw_message_t>;/// Remove references
   using resource_t = channel_resource<configuration_t, cppcoro::single_producer_sequencer<std::size_t>>;
   using scheduler_t = cppcoro::static_thread_pool;/// The static thread pool is used to schedule threads
 
-public:
   constexpr metaprogramming::type_container<message_t> message_type()
   {
     return metaprogramming::type_container<message_t>{};
@@ -94,6 +94,14 @@ public:
    */
   std::size_t hash() { return typeid(message_t).hash_code() ^ std::hash<std::string>{}(m_name); }
 
+  std::string name() const {
+    if (m_name.empty()) {
+     return typeid(message_t).name();
+    }
+
+    return m_name;
+  }
+
   /*******************************************************
    ****************** publish INTERFACE *****************
    ******************************************************/
@@ -115,14 +123,11 @@ public:
     co_return true;
   }
 
-  cppcoro::task<bool> request_permission_to_publish_one(publisher_token<message_t>& token)
+  cppcoro::task<void> request_permission_to_publish_one(publisher_token<message_t>& token)
   {
-    if (m_state > termination_state::uninitialised) co_return false;
-
     ++std::atomic_ref(m_num_publishers_waiting);
     token.sequence =  co_await m_resource->sequencer.claim_one(*m_scheduler);
     --std::atomic_ref(m_num_publishers_waiting);
-    co_return true;
   }
 
   /**
