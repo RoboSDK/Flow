@@ -48,8 +48,6 @@ endmacro()
 
 add_catch_test(test_mixed_array)
 add_catch_test(test_cancellation)
-#add_catch_test(test_timeout_function)
-add_catch_test(test_network)
 
 add_constexpr_catch_test(test_metaprogramming)
 add_constexpr_catch_test(test_concepts)
