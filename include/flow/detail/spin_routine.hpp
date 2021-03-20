@@ -5,7 +5,6 @@
 #include <cppcoro/async_mutex.hpp>
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>
-#include <iostream>
 
 #include "flow/concepts.hpp"
 #include "flow/detail/spin_wait.hpp"
@@ -72,11 +71,9 @@ cppcoro::task<void> spin_publisher(
       publisher_token.messages.push(std::move(message));
     }
 
-    std::cerr << "publisher publishing\n";
     channel.publish_messages(publisher_token);
   }
 
-  std::cerr << "producer done\n";
   channel.confirm_termination();
 }
 
@@ -123,21 +120,16 @@ cppcoro::task<void> spin_subscriber(
   }
 
   channel.initialize_termination();
-  std::cerr << "subscriber initialize termination\n";
 
   while (channel.state() < channel_t::termination_state::publisher_received) {
-    //    std::cerr << "subscriber: publisher has not yet received termination. Flush!\n";
     co_await flush<void>(channel, subscriber, subscriber_token);
   }
 
-  std::cerr << "subscriber: Finalize termination\n";
   channel.finalize_termination();
 
   if (channel.is_waiting()) {
-    std::cerr << "subscriber: something still waiting in channel" << channel.name() << ". Flush!\n";
     co_await flush<void>(channel, subscriber, subscriber_token);
   }
-  std::cerr << "subscriber: done!\n";
 }
 
 /**
@@ -178,12 +170,10 @@ cppcoro::task<void> spin_transformer(
   };
 
   while (not termination_has_initialized(subscriber_channel)) {
-    std::cerr << "transformer spin and wait";
     auto next_message = publisher_channel.message_generator(subscriber_token);
     auto current_message = co_await next_message.begin();
 
     while (current_message != next_message.end() and not termination_has_initialized(subscriber_channel)) {
-      std::cerr << "transformer go over publsher messages";
       auto& message_to_consume = *current_message;
 
       auto message_to_publish = co_await [&]() -> cppcoro::task<return_t> {
@@ -195,11 +185,9 @@ cppcoro::task<void> spin_transformer(
 
       if (publisher_token.messages.size() == publisher_token.sequences.size()) {
         subscriber_channel.publish_messages(publisher_token);
-        std::cerr << "transformer wait for permission";
         co_await subscriber_channel.request_permission_to_publish(publisher_token);
       }
 
-      std::cerr << "transformer go keep getting messages";
       co_await ++current_message;
     }
   }
@@ -216,10 +204,8 @@ cppcoro::task<void> spin_transformer(
     auto next_message = publisher_channel.message_generator(subscriber_token);
     auto current_message = co_await next_message.begin();
 
-    std::cerr << "transformer: Subscriber channel " << subscriber_channel.name() << " has received notivation that transformer has received cancellation. Reverse flush!\n";
     while (current_message != next_message.end() and not subscriber_channel_terminated()) {
 
-      std::cerr << "transformer: Subscriber channel " << subscriber_channel.name() << " has received notivation that transformer has received cancellation. Reverse flush!\n";
       auto& message_to_consume = *current_message;
 
       auto message_to_publish = co_await [&]() -> cppcoro::task<return_t> {
@@ -238,7 +224,6 @@ cppcoro::task<void> spin_transformer(
     }
   }
 
-  std::cerr << "transformer: Initializing publisher termination " << publisher_channel.name() << "\n";
   publisher_channel.initialize_termination();
 
   auto publisher_channel_terminated = [&] {
@@ -246,18 +231,15 @@ cppcoro::task<void> spin_transformer(
   };
 
   while (not publisher_channel_terminated() and publisher_channel.is_waiting()) {
-    std::cerr << "transformer: Flushing publisher channel " << publisher_channel.name() << "\n";
     co_await flush<return_t>(publisher_channel, transformer, subscriber_token);
   }
 
   publisher_channel.finalize_termination();
   if (not publisher_channel_terminated() and publisher_channel.is_waiting()) {
-    std::cerr << "transformer: something still waiting in publisher channel " << publisher_channel.name() << ". Flush!\n";
     co_await flush<return_t>(publisher_channel, transformer, subscriber_token);
   }
 
   if (not subscriber_channel_terminated() and publisher_channel_terminated()) {
-    std::cerr << "Final reverse flush for subscriber channel: " << subscriber_channel.name() << "\n";
     co_await subscriber_channel.request_permission_to_publish(publisher_token);
 
     while (publisher_token.messages.size() < publisher_token.sequences.size()) {
@@ -266,8 +248,6 @@ cppcoro::task<void> spin_transformer(
 
     subscriber_channel.publish_messages(publisher_token);
   }
-
-  std::cerr << "transformer: Done!\n";
 }
 
 /**
