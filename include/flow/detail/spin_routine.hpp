@@ -235,11 +235,8 @@ cppcoro::task<void> spin_transformer(
   }
 
   publisher_channel.finalize_termination();
-  if (not publisher_channel_terminated() and publisher_channel.is_waiting()) {
-    co_await flush<return_t>(publisher_channel, transformer, subscriber_token);
-  }
 
-  if (not subscriber_channel_terminated() and publisher_channel_terminated()) {
+  if (not subscriber_channel_terminated() and publisher_channel_terminated() and not publisher_channel.is_waiting()) {
     co_await subscriber_channel.request_permission_to_publish(publisher_token);
 
     while (publisher_token.messages.size() < publisher_token.sequences.size()) {
