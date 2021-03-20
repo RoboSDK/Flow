@@ -112,11 +112,11 @@ has.
     - Notation:  `()`
     - Example: In C++ this is a `()->void` function, or any other process that emulates it
     
-2. *Publish* - A publisher is an function with no dependencies and some other function must depend on it. 
+2. *Publisher* - A publisher is an function with no dependencies and some other function must depend on it. 
     - Notation:  `()->R`
     - Example: In C++ this is a `()->R` function, or any other process that emulates the behavior
     
-3. *Subscribe* - A subscriber is an function with at least one dependency and nothing depends on it.
+3. *Subscriber* - A subscriber is an function with at least one dependency and nothing depends on it.
     - Notation:  `(A)`
     - Example: In C++ this is a `(A&&... a)->void` function, or any other process that emulates the behavior
     
@@ -175,10 +175,10 @@ and then the publisher coroutines will end and exit their scope.
 ```c++
 #include <flow/flow.hpp>
 
-// This is a publish
+// This is a publisher
 std::string hello_world() { return "Hello World"; }
 
-// This is a subscribe. Values are passed in by rvalue, 
+// This is a subscriber. Values are passed in by rvalue, 
 // implying that the caller is now the owner of the data.
 void subscribe_hello(std::string&& message){  }
 
