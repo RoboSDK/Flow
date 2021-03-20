@@ -194,7 +194,6 @@ cppcoro::task<void> spin_transformer(
     }
   }
 
-  auto lock = co_await transformer_mutex.scoped_lock_async();
   subscriber_channel.confirm_termination();
 
   if (subscriber_channel.state() < subscriber_channel_t::termination_state::subscriber_finalized) {
