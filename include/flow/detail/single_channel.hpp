@@ -154,7 +154,7 @@ public:
 
   void confirm_termination()
   {
-    m_state = std::max(termination_state::publisher_received, m_state);
+    std::atomic_ref(m_state).store(std::max(termination_state::publisher_received, m_state));
   }
 
   /*******************************************************
@@ -188,12 +188,12 @@ public:
 
   void initialize_termination()
   {
-    m_state = std::max(termination_state::subscriber_initialized, m_state);
+    std::atomic_ref(m_state).store(std::max(termination_state::subscriber_initialized, m_state));
   }
 
   void finalize_termination()
   {
-    m_state = std::max(termination_state::subscriber_finalized, m_state);
+    std::atomic_ref(m_state).store(std::max(termination_state::subscriber_finalized, m_state));
   }
 
   /**
@@ -203,6 +203,28 @@ public:
   {
     return std::atomic_ref(m_num_publishers_waiting).load() > 0;
   }
+
+  std::size_t num_waiters()
+  {
+    return std::atomic_ref(m_num_publishers_waiting).load();
+  }
+
+  bool is_being_flushed() {
+    return std::atomic_ref(m_flushing).load() > 0;
+  }
+
+  std::size_t num_flushers() {
+    return std::atomic_ref(m_flushing).load();
+  }
+
+  void flush() {
+    std::atomic_ref(m_flushing)++;
+  }
+
+  void end_flush() {
+    std::atomic_ref(m_flushing)--;
+  }
+
 
 
   /*******************************************************
@@ -216,6 +238,7 @@ public:
 
 
 private:
+  std::size_t m_flushing{};
   termination_state m_state{ termination_state::uninitialised };
 
   std::size_t m_num_publishers_waiting{};
