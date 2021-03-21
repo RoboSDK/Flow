@@ -46,7 +46,6 @@ macro(add_constexpr_catch_test test_name)
           --out=constexpr.xml)
 endmacro()
 
-add_catch_test(test_mixed_array)
 add_catch_test(test_cancellation)
 
 add_constexpr_catch_test(test_metaprogramming)
@@ -57,6 +56,6 @@ if (ENABLE_EXAMPLES)
     add_test(NAME publisher_transformer_subscriber COMMAND publisher_transformer_subscriber)
     add_test(NAME simple_publisher_subscriber COMMAND simple_publisher_subscriber)
     add_test(NAME simple_user_publisher_subscriber COMMAND simple_user_publisher_subscriber)
-    #add_test(NAME two_chains COMMAND two_chains)
+    add_test(NAME two_chains COMMAND two_chains)
 endif()
 
