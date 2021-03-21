@@ -247,11 +247,10 @@ template<typename return_t, flow::is_function routine_t>
   {
     static cppcoro::async_mutex mutex;
     auto lock = co_await mutex.scoped_lock_async();
-    co_return channel.is_waiting() and channel.num_flushers() <= 1;
+    co_return channel.is_waiting();
   };
 
   while (co_await needs_flushing()) {
-    channel.flush();
     auto next_message = channel.message_generator(subscriber_token);
     auto current_message = co_await next_message.begin();
 
@@ -265,7 +264,6 @@ template<typename return_t, flow::is_function routine_t>
       channel.notify_message_consumed(subscriber_token);
       co_await ++current_message;
     }
-    channel.end_flush();
   }
 }
 

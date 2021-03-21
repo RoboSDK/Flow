@@ -12,6 +12,6 @@ int main()
 
   // order doesn't matter
   auto network = flow::network(flow::chain() | string_publisher{}| string_reverser{} | string_hasher{} | string_subscriber{});
-  network.cancel_after(1ms);
+  network.cancel_after(100ms);
   flow::spin(std::move(network));
 }

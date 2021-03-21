@@ -25,6 +25,6 @@ int main()
    * Note: cancellation begins in 1 ms, but cancellation
    * is non-deterministic. 
    */
-  net.cancel_after(10ms);
+  net.cancel_after(100ms);
   flow::spin(std::move(net));
 }
