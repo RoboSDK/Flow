@@ -201,27 +201,13 @@ cppcoro::task<void> spin_transformer(
   co_await subscriber_channel.request_permission_to_publish(publisher_token);
 
   if (not subscriber_channel_terminated()) {
-    auto next_message = publisher_channel.message_generator(subscriber_token);
-    auto current_message = co_await next_message.begin();
+    co_await subscriber_channel.request_permission_to_publish(publisher_token);
 
-    while (current_message != next_message.end() and not subscriber_channel_terminated()) {
-
-      auto& message_to_consume = *current_message;
-
-      auto message_to_publish = co_await [&]() -> cppcoro::task<return_t> {
-        co_return std::invoke(transformer, std::move(message_to_consume));
-      }();
-
-      publisher_token.messages.push(std::move(message_to_publish));
-      publisher_channel.notify_message_consumed(subscriber_token);
-
-      if (publisher_token.messages.size() == publisher_token.sequences.size()) {
-        subscriber_channel.publish_messages(publisher_token);
-        co_await subscriber_channel.request_permission_to_publish(publisher_token);
-      }
-
-      co_await ++current_message;
+    while (publisher_token.messages.size() < publisher_token.sequences.size()) {
+      publisher_token.messages.push(typename subscriber_channel_t::message_t{});
     }
+
+    subscriber_channel.publish_messages(publisher_token);
   }
 
   publisher_channel.initialize_termination();
@@ -235,16 +221,6 @@ cppcoro::task<void> spin_transformer(
   }
 
   publisher_channel.finalize_termination();
-
-  if (not subscriber_channel_terminated() and publisher_channel_terminated() and not publisher_channel.is_waiting()) {
-    co_await subscriber_channel.request_permission_to_publish(publisher_token);
-
-    while (publisher_token.messages.size() < publisher_token.sequences.size()) {
-      publisher_token.messages.push(typename subscriber_channel_t::message_t{});
-    }
-
-    subscriber_channel.publish_messages(publisher_token);
-  }
 }
 
 /**
