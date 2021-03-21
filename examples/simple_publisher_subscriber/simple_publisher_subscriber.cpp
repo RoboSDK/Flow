@@ -18,9 +18,9 @@ std::size_t hash_string(std::string&& message)
 }
 
 // For now all messages are passed in by r-value
-void receive_hashed_message(std::size_t&& message)
+void receive_hashed_message([[maybe_unused]]std::size_t&& message)
 {
-  spdlog::info("Received Message: {}", message);
+  //spdlog::info("Received Message: {}", message);
 }
 
 int main()

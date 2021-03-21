@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+
 /**
  * Global compile time configuration that determine channel buffer sizes and among other
  * options.
@@ -15,7 +17,7 @@
 namespace flow {
 struct configuration {
   static constexpr std::size_t max_resources = 256;
-  static constexpr std::size_t message_buffer_size = 32;
-  static constexpr std::size_t stride_length = 2;
+  static constexpr std::size_t message_buffer_size = 128;
+  static constexpr std::size_t stride_length = 32;
 };
 }// namespace flow

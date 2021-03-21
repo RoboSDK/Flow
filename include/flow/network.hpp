@@ -10,7 +10,6 @@
 #include "flow/configuration.hpp"
 #include "flow/detail/cancellable_function.hpp"
 #include "flow/detail/channel_set.hpp"
-#include "flow/detail/mixed_array.hpp"
 #include "flow/detail/multi_channel.hpp"
 #include "flow/detail/routine.hpp"
 #include "flow/detail/single_channel.hpp"

@@ -24,15 +24,17 @@ add_subdirectory(src)
 
 if (ENABLE_PCH)
     list(APPEND public_headers
+            chain
             concepts
             configuration
-            subscriber
             flow
-            network_handle
             network
+            network_handle
+            operator_pipe
             publisher
             spin
             spinner
+            subscriber
             transformer)
 
     foreach (header ${public_headers})
@@ -44,13 +46,16 @@ if (ENABLE_PCH)
             cancellation_handle
             channel_resource
             channel_set
-            subscriber_token
+            forward
             hash
             metaprogramming
-            mixed_array
             multi_channel
             publisher_token
+            routine
+            single_channel
             spin_routine
+            spin_wait
+            subscriber_token
             timeout_routine)
 
     foreach (header ${detail_headers})
