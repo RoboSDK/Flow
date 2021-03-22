@@ -22,6 +22,16 @@ public:
     return m_time_elapsed >= m_wait_time;
   }
 
+  void reset() {
+    m_time_elapsed = 0;
+  }
+
+  cppcoro::task<void> async_reset() {
+    reset();
+    co_return;
+  }
+
+
   cppcoro::task<bool> async_is_ready() {
     co_return is_ready();
   }
