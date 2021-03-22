@@ -21,6 +21,7 @@ macro(run_conan)
     fmt/6.2.1
     spdlog/1.5.0
     range-v3/0.11.0
+    mp-units/0.6.0
 
     OPTIONS
     ${CONAN_EXTRA_OPTIONS}
