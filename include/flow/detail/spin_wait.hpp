@@ -23,7 +23,7 @@ public:
   }
 
   void reset() {
-    m_time_elapsed = 0;
+    m_time_elapsed = decltype(m_time_elapsed){0};
   }
 
   cppcoro::task<void> async_reset() {
