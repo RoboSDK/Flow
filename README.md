@@ -13,27 +13,8 @@ aims to provide this framework.
 #### Quick Start
 
 ##### Docker
+Docker image: `manuelmeraz/flow:dev`
 
-The recommended to play with the library is to use the docker image. It will mount your home directory to the image.
-
-The image will have all dependencies installed for this library. 
-
-```bash
-./docker/build.sh # pull the image and make a user
-./docker/start.sh # run the container and attach to it
-```
-
-The `bash.sh` script may be used to re-attach to the container if you have exited. 
-
-You may now build the library within the docker container and install it if you'd like. 
-
-```bash
-./scripts/build.py --enable-testing --enable-examples
-```
-
-If the build script doesn't build the project because of a crash try using the `--clear-cache` flash. 
-
-Use the `--help` option for more information.
 
 ##### Building
 
@@ -57,6 +38,16 @@ make -j
 ctest -j
 sudo make install 
 ```
+
+Alternatively a build script exits
+
+```bash
+./scripts/build.py --enable-testing --enable-examples
+```
+
+If the build script doesn't build the project because of a crash try using the `--clear-cache` flash. 
+
+Use the `--help` option for more information.
 
 ## Table of Contents
 
