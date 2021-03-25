@@ -39,7 +39,7 @@ ctest -j
 sudo make install 
 ```
 
-Alternatively a build script exits
+Alternatively use the build script:
 
 ```bash
 ./scripts/build.py --enable-testing --enable-examples
