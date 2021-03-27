@@ -28,9 +28,9 @@ concept is_chain_state = std::is_same_v<chain_state_t, open_chain> or std::is_sa
 
 namespace detail {
 
-  template<units::Unit Unit, units::ScalableNumber Rep>
+  template<units::Unit Unit, units::Representation Rep>
   struct chain_settings {
-    units::physical::si::frequency<Unit, Rep> frequency{};
+    units::isq::si::frequency<Unit, Rep> frequency{};
   };
 
   template<typename chain_settings_t>
@@ -45,8 +45,8 @@ namespace detail {
   template<typename... routines_t>
   concept are_valid_chain_items = (is_valid_chain_item<routines_t> and ...);
 
-  template<units::Unit Unit, units::ScalableNumber Rep>
-  auto make_chain_settings(units::physical::si::frequency<Unit, Rep> frequency)
+  template<units::Unit Unit, units::Representation Rep>
+  auto make_chain_settings(units::isq::si::frequency<Unit, Rep> frequency)
   {
     return chain_settings<Unit, Rep>{ frequency };
   }
@@ -99,12 +99,12 @@ namespace detail {
 template<
   is_chain_state state = init_chain,
   is_configuration configuration_t = flow::configuration,
-  units::Unit Unit = units::physical::si::hertz,
-  units::ScalableNumber Rep = std::int64_t,
+  units::Unit Unit = units::isq::si::hertz,
+  units::Representation Rep = std::int64_t,
   detail::are_valid_chain_items... routines_t>
 constexpr auto
   chain(
-    units::physical::si::frequency<Unit, Rep> freq = configuration_t::frequency,
+    units::isq::si::frequency<Unit, Rep> freq = configuration_t::frequency,
     std::tuple<routines_t...>&& routines = std::tuple<>{})
 {
   auto settings = detail::make_chain_settings(freq);
