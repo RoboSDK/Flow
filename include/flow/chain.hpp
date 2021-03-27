@@ -27,14 +27,39 @@ template<typename chain_state_t>
 concept is_chain_state = std::is_same_v<chain_state_t, open_chain> or std::is_same_v<chain_state_t, init_chain> or std::is_same_v<chain_state_t, closed_chain>;
 
 namespace detail {
-  template<is_chain_state current_state, units::Unit Unit, units::ScalableNumber Rep, typename... routines_t>
-  struct chain_impl : chain_tag {
-    std::tuple<routines_t...> routines{};
+
+  template<units::Unit Unit, units::ScalableNumber Rep>
+  struct chain_settings {
     units::physical::si::frequency<Unit, Rep> frequency{};
+  };
+
+  template<typename chain_settings_t>
+  concept is_chain_settings = requires(chain_settings_t settings)
+  {
+    settings.frequency;
+  };
+
+  template<typename routine_t>
+  concept is_valid_chain_item = is_routine<routine_t> or is_function<routine_t>;
+
+  template<typename... routines_t>
+  concept are_valid_chain_items = (is_valid_chain_item<routines_t> and ...);
+
+  template<units::Unit Unit, units::ScalableNumber Rep>
+  auto make_chain_settings(units::physical::si::frequency<Unit, Rep> frequency)
+  {
+    return chain_settings<Unit, Rep>{ frequency };
+  }
+
+  template<is_chain_state current_state, is_chain_settings settings_t, are_valid_chain_items... routines_t>
+  struct chain_impl : chain_tag {
+
+    std::tuple<routines_t...> routines{};
+    settings_t settings{};
 
     constexpr chain_impl(
-      units::physical::si::frequency<Unit, Rep> freq,
-      std::tuple<routines_t...>&& rs) : routines(std::move(rs)), frequency{ freq } {}
+      settings_t&& _settings,
+      std::tuple<routines_t...>&& _routines) : routines(std::move(_routines)), settings{ forward(_settings) } {}
 
     // TODO: Clean this up
     constexpr metaprogramming::type_container<current_state> state()
@@ -49,21 +74,36 @@ namespace detail {
    */
     void operator()() {}
   };
+
+  template<is_chain_state chain_state, are_valid_chain_items... routines_t>
+  auto make_chain(is_chain_settings auto&& settings, std::tuple<routines_t...>&& routines)
+  {
+    using settings_t = decltype(settings);
+    return chain_impl<chain_state, settings_t, routines_t...>(forward(settings), std::move(routines));
+  }
+
+  template<typename... routines_t>
+  constexpr auto concat(std::tuple<routines_t...>&& routines, is_valid_chain_item auto&& new_routine)
+  {
+    return std::tuple_cat(std::move(routines), std::make_tuple(forward(new_routine)));
+  }
+
+  template<is_chain_state state>
+  auto make_appended_chain(is_chain auto&& chain, is_valid_chain_item auto&& routine)
+  {
+    auto appended_routines = concat(forward(chain.routines), forward(routine));
+    return make_chain<state>(forward(chain.settings), std::move(appended_routines));
+  }
 }// namespace detail
 
-template<is_chain_state state = init_chain, units::Unit U, units::ScalableNumber Rep , typename... routines_t > constexpr auto
-    chain(units::physical::si::frequency<U, Rep> freq, std::tuple<routines_t...> && routines = std::tuple<>{})
+template<is_chain_state state = init_chain, units::Unit U, units::ScalableNumber Rep, detail::are_valid_chain_items... routines_t>
+constexpr auto
+  chain(units::physical::si::frequency<U, Rep> freq, std::tuple<routines_t...>&& routines = std::tuple<>{})
 {
-  return detail::chain_impl<state, U, Rep, routines_t...>(freq, std::move(routines));
-}
+  auto settings = detail::make_chain_settings(freq);
+  using settings_t = decltype(settings);
 
-template<typename routine_t>
-concept is_valid_chain_item = is_routine<routine_t> or is_function<routine_t>;
-
-template<typename... routines_t>
-constexpr auto concat(std::tuple<routines_t...>&& routines, is_valid_chain_item auto&& new_routine)
-{
-  return std::tuple_cat(std::move(routines), std::make_tuple(forward(new_routine)));
+  return detail::make_chain<state>(std::move(settings), std::move(routines));
 }
 
 template<is_chain_state state>
