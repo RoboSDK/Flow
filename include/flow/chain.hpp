@@ -98,12 +98,13 @@ namespace detail {
 
 template<
   is_chain_state state = init_chain,
+  is_configuration configuration_t = flow::configuration,
   units::Unit Unit = units::physical::si::hertz,
   units::ScalableNumber Rep = std::int64_t,
   detail::are_valid_chain_items... routines_t>
 constexpr auto
   chain(
-    units::physical::si::frequency<Unit, Rep> freq = units::physical::si::frequency<units::physical::si::hertz, std::int64_t>{ 10 },
+    units::physical::si::frequency<Unit, Rep> freq = configuration_t::frequency,
     std::tuple<routines_t...>&& routines = std::tuple<>{})
 {
   auto settings = detail::make_chain_settings(freq);

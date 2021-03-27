@@ -23,7 +23,7 @@ struct configuration {
   static constexpr std::size_t stride_length = 32;
 
   static constexpr units::physical::Frequency auto frequency =
-    units::physical::si::frequency<units::physical::si::hertz>(10);
+    units::physical::si::frequency<units::physical::si::hertz, std::int64_t>(10);
 };
 
 template <typename configuration_t>
