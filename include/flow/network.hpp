@@ -76,7 +76,7 @@ namespace detail {
     };
   }
 
-  template<typename configuration_t>
+  template<is_configuration configuration_t>
   class network_impl;
 
   /// Retrieve channel name this function is publishing to
@@ -135,7 +135,7 @@ auto push_routine_or_chain(auto& network, auto&& routine)
  * @param routines
  * @return
  */
-template<typename configuration_t = flow::configuration>
+template<is_configuration configuration_t = flow::configuration>
 auto network(auto&&... routines)
 {
   using network_t = flow::detail::network_impl<configuration_t>;
@@ -147,7 +147,7 @@ auto network(auto&&... routines)
 }
 
 namespace detail {
-  template<typename configuration_t>
+  template<is_configuration configuration_t>
   class network_impl {
   public:
     using is_network = std::true_type;

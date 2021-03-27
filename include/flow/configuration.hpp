@@ -25,4 +25,12 @@ struct configuration {
   static constexpr units::physical::Frequency auto frequency =
     units::physical::si::frequency<units::physical::si::hertz>(10);
 };
+
+template <typename configuration_t>
+concept is_configuration = requires(configuration_t c) {
+  c.max_resources;
+  c.message_buffer_size;
+  c.stride_length;
+  c.frequency;
+};
 }// namespace flow

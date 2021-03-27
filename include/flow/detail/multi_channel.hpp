@@ -27,7 +27,7 @@ namespace flow::detail {
  * @tparam raw_message_t The raw message type is the message type with references potentially attached
  * @tparam configuration_t The global compile time configuration
  */
-template<typename raw_message_t, typename configuration_t>
+template<typename raw_message_t, is_configuration configuration_t>
 class multi_channel {
 public:
   using message_t = std::decay_t<raw_message_t>;/// Remove references
