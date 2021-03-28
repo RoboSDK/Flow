@@ -7,6 +7,7 @@
 
 #include "flow/concepts.hpp"
 #include "flow/literals.hpp"
+#include "flow/settings.hpp"
 
 namespace flow {
 
@@ -27,31 +28,13 @@ template<typename chain_state_t>
 concept is_chain_state = std::is_same_v<chain_state_t, open_chain> or std::is_same_v<chain_state_t, init_chain> or std::is_same_v<chain_state_t, closed_chain>;
 
 namespace detail {
-
-  template<units::Unit Unit, units::Representation Rep>
-  struct chain_settings {
-    units::isq::si::frequency<Unit, Rep> frequency{};
-  };
-
-  template<typename chain_settings_t>
-  concept is_chain_settings = requires(chain_settings_t settings)
-  {
-    settings.frequency;
-  };
-
   template<typename routine_t>
   concept is_valid_chain_item = is_routine<routine_t> or is_function<routine_t>;
 
   template<typename... routines_t>
   concept are_valid_chain_items = (is_valid_chain_item<routines_t> and ...);
 
-  template<units::Unit Unit, units::Representation Rep>
-  auto make_chain_settings(units::isq::si::frequency<Unit, Rep> frequency)
-  {
-    return chain_settings<Unit, Rep>{ frequency };
-  }
-
-  template<is_chain_state current_state, is_chain_settings settings_t, are_valid_chain_items... routines_t>
+  template<is_chain_state current_state, is_settings settings_t, are_valid_chain_items... routines_t>
   struct chain_impl : chain_tag {
 
     std::tuple<routines_t...> routines{};
@@ -76,7 +59,7 @@ namespace detail {
   };
 
   template<is_chain_state chain_state, are_valid_chain_items... routines_t>
-  auto make_chain(is_chain_settings auto&& settings, std::tuple<routines_t...>&& routines)
+  auto make_chain(is_settings auto&& settings, std::tuple<routines_t...>&& routines)
   {
     using settings_t = decltype(settings);
     return chain_impl<chain_state, settings_t, routines_t...>(forward(settings), std::move(routines));
@@ -107,7 +90,7 @@ constexpr auto
     units::isq::si::frequency<Unit, Rep> freq = configuration_t::frequency,
     std::tuple<routines_t...>&& routines = std::tuple<>{})
 {
-  auto settings = detail::make_chain_settings(freq);
+  auto settings = make_settings(freq);
   using settings_t = decltype(settings);
 
   return detail::make_chain<state>(std::move(settings), std::move(routines));
