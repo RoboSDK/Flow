@@ -3,11 +3,14 @@
 #include <chrono>
 
 #include <cppcoro/task.hpp>
+#include <units/chrono.h>
 
 namespace flow {
 class spin_wait {
 public:
-  spin_wait(std::chrono::nanoseconds wait_time) : m_last_timestamp(std::chrono::steady_clock::now()), m_wait_time(wait_time) {}
+  spin_wait(std::chrono::nanoseconds wait_time) : m_wait_time(wait_time) {}
+  spin_wait(units::isq::Frequency auto frequency)
+    : m_wait_time(units::quantity_cast<units::isq::si::nanosecond>(1 / frequency).number()) {}
 
   bool is_ready()
   {
@@ -22,22 +25,25 @@ public:
     return m_time_elapsed >= m_wait_time;
   }
 
-  void reset() {
-    m_time_elapsed = decltype(m_time_elapsed){0};
+  void reset()
+  {
+    m_time_elapsed = decltype(m_time_elapsed){ 0 };
   }
 
-  cppcoro::task<void> async_reset() {
+  cppcoro::task<void> async_reset()
+  {
     reset();
     co_return;
   }
 
 
-  cppcoro::task<bool> async_is_ready() {
+  cppcoro::task<bool> async_is_ready()
+  {
     co_return is_ready();
   }
 
 private:
-  decltype(std::chrono::steady_clock::now()) m_last_timestamp{};
+  std::chrono::steady_clock::time_point m_last_timestamp{ std::chrono::steady_clock::now() };
 
   std::chrono::nanoseconds m_wait_time{};
   std::chrono::nanoseconds m_time_elapsed{ 0 };
