@@ -13,8 +13,8 @@ aims to provide this framework.
 #### Quick Start
 
 ##### Docker
-Docker image: `manuelmeraz/flow:dev`
 
+Docker image: `manuelmeraz/flow:dev`
 
 ##### Building
 
