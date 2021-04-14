@@ -33,6 +33,7 @@ public:
   using message_t = std::decay_t<raw_message_t>;/// Remove references
   using resource_t = channel_resource<configuration_t, cppcoro::multi_producer_sequencer<std::size_t>>;
   using scheduler_t = cppcoro::static_thread_pool;/// The static thread pool is used to schedule threads
+  using configuration = configuration_t;
 
   constexpr metaprogramming::type_container<message_t> message_type()
   {
