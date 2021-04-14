@@ -37,7 +37,6 @@ concept has_subscription_channel = requires(routine_t routine){
   routine.subscribe_to();
 };
 
-
 /**
  * These concepts are used to determine if a routine is an implementation of a routine
  *

@@ -196,11 +196,11 @@ namespace detail {
    * Pushes a callable_routine into the network
    * @param spinner A callable_routine with no dependencies and nothing depends on it
    */
-    void push(flow::is_spinner_routine auto&& routine)
+    void push(is_spin_wait auto&& rate, flow::is_spinner_routine auto&& routine)
     {
       m_handle.push(routine.callback().handle());
-      m_routines_to_spin.push_back(detail::spin_spinner(m_thread_pool, routine.callback()));
-      m_heap_storage.push_back(std::move(routine));
+      m_routines_to_spin.push_back(detail::spin_spinner(forward(rate), m_thread_pool, routine.callback()));
+      m_heap_storage.push_back(forward(routine));
     }
 
     /**
@@ -211,10 +211,10 @@ namespace detail {
     template<
       detail::channel::policy publisher_channel_policy = detail::channel::policy::MULTI,
       typename message_t>
-    auto& push(flow::detail::publisher_impl<message_t>&& routine)
+    auto& push(is_spin_wait auto&& rate, flow::detail::publisher_impl<message_t>&& routine)
     {
       auto& channel = make_channel<message_t, publisher_channel_policy>(routine.publish_to());
-      m_routines_to_spin.push_back(detail::spin_publisher<message_t>(channel, routine.callback()));
+      m_routines_to_spin.push_back(detail::spin_publisher<message_t>(forward(rate), channel, routine.callback()));
       m_heap_storage.push_back(std::move(routine));
       return channel;
     }
