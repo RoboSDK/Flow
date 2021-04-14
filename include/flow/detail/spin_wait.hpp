@@ -3,14 +3,27 @@
 #include <chrono>
 
 #include <cppcoro/task.hpp>
-#include <units/chrono.h>
+#include "flow/detail/units.hpp"
 
 namespace flow {
-class spin_wait {
+class spin_wait_tag {};
+
+template <typename spin_wait_t>
+concept is_spin_wait = std::is_base_of_v<spin_wait_tag, spin_wait_t>;
+
+struct null_spin_wait : spin_wait_tag {
+  bool is_ready() { true; }
+  void reset() {}
+
+  cppcoro::task<void> async_reset() { reset(); co_return; }
+  cppcoro::task<bool> async_is_ready() { co_return is_ready(); }
+};
+
+class spin_wait : spin_wait_tag {
 public:
   spin_wait(std::chrono::nanoseconds wait_time) : m_wait_time(wait_time) {}
   spin_wait(units::isq::Frequency auto frequency)
-    : m_wait_time(units::quantity_cast<units::isq::si::nanosecond>(1 / frequency).number()) {}
+    : m_wait_time(period_in_nanoseconds(frequency)) {}
 
   bool is_ready()
   {
