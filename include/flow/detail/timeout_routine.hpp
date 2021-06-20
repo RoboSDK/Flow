@@ -37,7 +37,7 @@ public:
       m_callback();
     });
 
-    spin_wait waiter{ "timeout_routine", m_time_limit };
+    spin_wait waiter{ m_time_limit };
 
     while (not waiter.is_ready()) {
       std::this_thread::yield();

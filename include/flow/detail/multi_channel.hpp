@@ -175,7 +175,7 @@ public:
   cppcoro::async_generator<message_t> message_generator(subscriber_token<message_t>& token)
   {
     token.end_sequence = co_await m_resource->sequencer.wait_until_published(
-      token.sequence, token.last_sequence_published, *m_scheduler);
+      token.sequence, token.sequence - 1, *m_scheduler);
 
     while (token.sequence <= token.end_sequence) {
       co_yield m_buffer[std::atomic_ref(token.sequence)++ & m_index_mask];
@@ -215,19 +215,23 @@ public:
     return std::atomic_ref(m_num_publishers_waiting).load();
   }
 
-  bool is_being_flushed() {
+  bool is_being_flushed()
+  {
     return std::atomic_ref(m_flushing).load() > 0;
   }
 
-  std::size_t num_flushers() {
+  std::size_t num_flushers()
+  {
     return std::atomic_ref(m_flushing).load();
   }
 
-  void flush() {
+  void flush()
+  {
     std::atomic_ref(m_flushing)++;
   }
 
-  void end_flush() {
+  void end_flush()
+  {
     std::atomic_ref(m_flushing)--;
   }
 

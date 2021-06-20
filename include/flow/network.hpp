@@ -1,7 +1,5 @@
 #pragma once
 
-#include <future>
-
 #include <cppcoro/on_scope_exit.hpp>
 #include <cppcoro/schedule_on.hpp>
 #include <cppcoro/task.hpp>
@@ -95,10 +93,10 @@ auto push_routine(is_network auto& network, auto&& routine)
   std::chrono::nanoseconds period = period_in_nanoseconds(configuration::frequency);
 
   if constexpr (is_transformer_function<routine_t>) {
-    network.push(period, transform(routine, get_subscribe_to(routine), get_publish_to(routine)));
+    network.push(transform(routine, get_subscribe_to(routine), get_publish_to(routine)));
   }
   else if constexpr (is_subscriber_function<routine_t>) {
-    network.push(period, flow::subscribe(routine, get_subscribe_to(routine)));
+    network.push(flow::subscribe(routine, get_subscribe_to(routine)));
   }
   else if constexpr (is_publisher_function<routine_t>) {
     network.push(period, flow::publish(routine, get_publish_to(routine)));
@@ -273,11 +271,7 @@ namespace detail {
         "network.hpp:push_chain_begin only takes in transform or publish routines implementations.");
 
       if constexpr (is_transformer_routine<begin_t>) {
-        if (period.has_value()) {
-          return push<policy::MULTI, policy::SINGLE>(std::move(begin)).second;
-        } else {
-          return push<policy::MULTI, policy::SINGLE>(std::move(begin)).second;
-        }
+        return push<policy::MULTI, policy::SINGLE>(std::move(begin)).second;
       }
       else { // it's a publisher
         if (period.has_value()) {
@@ -346,6 +340,7 @@ namespace detail {
       constexpr std::size_t start_index = 0;
 
       if constexpr (tuple_size == 1) {
+        // TODO: Fix this, chain size of one with subscriber
         push(std::move(std::get<start_index>(chain.settings.period, chain.routines)));
       }
       else if constexpr (tuple_size == 2) {
@@ -400,7 +395,7 @@ namespace detail {
     auto cancel_after(std::chrono::nanoseconds time)
     {
       auto time_out_after = [](auto time, std::reference_wrapper<network_handle> handle) {
-        spin_wait waiter{ "cancel_after", time };
+        spin_wait waiter{ time };
         while (not waiter.is_ready()) {
           std::this_thread::yield();
         }

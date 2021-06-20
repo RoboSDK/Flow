@@ -56,6 +56,6 @@ int main()
 
   auto network = flow::network(Sensor{}, std::move(low_pass), std::move(high_pass));
 
-  network.cancel_after(100ms);
+  network.cancel_after(10ms);
   flow::spin(std::move(network));
 }

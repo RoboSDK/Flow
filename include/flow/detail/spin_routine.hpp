@@ -31,13 +31,13 @@ cppcoro::task<void> spin_spinner(
   auto& scheduler,
   cancellable_function<void()>& spinner)
 {
-//    spin_wait rate{period.value()};
-//    while (not spinner.is_cancellation_requested() and co_await rate.async_is_ready()) {
+  //    spin_wait rate{period.value()};
+  //    while (not spinner.is_cancellation_requested() and co_await rate.async_is_ready()) {
   while (not spinner.is_cancellation_requested()) {
-//      co_await rate.async_reset();
-      co_await scheduler->schedule();
-      co_await [&]() -> cppcoro::task<void> { spinner(); co_return; }();
-    }
+    //      co_await rate.async_reset();
+    co_await scheduler->schedule();
+    co_await [&]() -> cppcoro::task<void> { spinner(); co_return; }();
+  }
 }
 
 /**
@@ -61,7 +61,7 @@ cppcoro::task<void> spin_publisher(
 {
   publisher_token<return_t> publisher_token{};
   using channel_t = std::decay_t<decltype(channel)>;
-  spin_wait rate{"in publisher", period};
+  spin_wait rate{ period };
 
   auto termination_has_initialized = [&]() -> cppcoro::task<bool> {
     static cppcoro::async_mutex mutex;
@@ -118,7 +118,6 @@ cppcoro::task<void> spin_subscriber(
   using channel_t = std::decay_t<decltype(channel)>;
 
   while (not subscriber.is_cancellation_requested()) {
-
     auto next_message = channel.message_generator(subscriber_token);
     auto current_message = co_await next_message.begin();
 
@@ -254,10 +253,9 @@ cppcoro::task<void> spin_transformer(
  * @return A coroutine
  */
 template<typename return_t, flow::is_function routine_t>
-  cppcoro::task<void> flush(auto& channel, routine_t& routine, auto& subscriber_token) requires flow::is_subscriber_function<routine_t> or flow::is_transformer_function<routine_t>
+cppcoro::task<void> flush(auto& channel, routine_t& routine, auto& subscriber_token) requires flow::is_subscriber_function<routine_t> or flow::is_transformer_function<routine_t>
 {
-  auto needs_flushing = [&]() -> cppcoro::task<bool>
-  {
+  auto needs_flushing = [&]() -> cppcoro::task<bool> {
     static cppcoro::async_mutex mutex;
     auto lock = co_await mutex.scoped_lock_async();
     co_return channel.is_waiting();

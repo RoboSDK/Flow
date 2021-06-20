@@ -21,14 +21,13 @@ struct null_spin_wait : spin_wait_tag {
 
 class spin_wait : spin_wait_tag {
 public:
-  spin_wait(const char * desc, std::chrono::nanoseconds wait_time) : m_wait_time(wait_time) {
-    _desc = desc;
-  }
+  spin_wait(std::chrono::nanoseconds wait_time) : m_wait_time(wait_time) {}
 
   bool is_ready()
   {
     using namespace std::chrono;
-    auto new_timestamp = high_resolution_clock::now();
+
+    auto new_timestamp = std::chrono::high_resolution_clock::now();
     auto time_delta = new_timestamp - m_last_timestamp;
     m_last_timestamp = new_timestamp;
     m_time_elapsed += duration_cast<nanoseconds>(time_delta);
@@ -53,7 +52,6 @@ public:
   }
 
 private:
-  std::string _desc{};
   std::mutex m{};
   std::chrono::high_resolution_clock::time_point m_last_timestamp{ std::chrono::high_resolution_clock::now() };
 
