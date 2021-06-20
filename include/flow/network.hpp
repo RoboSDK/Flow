@@ -86,11 +86,10 @@ namespace detail {
   std::string get_subscribe_to(function_t& function);
 }// namespace detail
 
-auto push_routine(is_network auto& network, auto&& routine)
+auto push_routine(is_network auto& network, auto&& routine, std::chrono::nanoseconds period = period_in_nanoseconds(configuration::frequency))
 {
   using namespace flow::detail;
   using routine_t = decltype(routine);
-  std::chrono::nanoseconds period = period_in_nanoseconds(configuration::frequency);
 
   if constexpr (is_transformer_function<routine_t>) {
     network.push(transform(routine, get_subscribe_to(routine), get_publish_to(routine)));
@@ -263,7 +262,7 @@ namespace detail {
     }
 
     template<typename begin_t>
-      constexpr auto& push_chain_begin(std::optional<std::chrono::nanoseconds> period, begin_t&& begin) requires is_transformer_routine<begin_t> or is_publisher_routine<begin_t>
+    constexpr auto& push_chain_begin(std::optional<std::chrono::nanoseconds> period, begin_t&& begin) requires is_transformer_routine<begin_t> or is_publisher_routine<begin_t>
     {
       using namespace detail::channel;
 
@@ -273,17 +272,18 @@ namespace detail {
       if constexpr (is_transformer_routine<begin_t>) {
         return push<policy::MULTI, policy::SINGLE>(std::move(begin)).second;
       }
-      else { // it's a publisher
+      else {// it's a publisher
         if (period.has_value()) {
           return push<policy::SINGLE>(period.value(), std::move(begin));
-        } else {
+        }
+        else {
           return push<policy::SINGLE>(period_in_nanoseconds(configuration_t::frequency), std::move(begin));
         }
       }
     }
 
     template<typename end_t>
-      constexpr void push_chain_end(end_t&& end, auto& channel) requires is_transformer_routine<end_t> or is_subscriber_routine<end_t>
+    constexpr void push_chain_end(end_t&& end, auto& channel) requires is_transformer_routine<end_t> or is_subscriber_routine<end_t>
     {
       using namespace detail::channel;
 
@@ -340,8 +340,18 @@ namespace detail {
       constexpr std::size_t start_index = 0;
 
       if constexpr (tuple_size == 1) {
-        // TODO: Fix this, chain size of one with subscriber
-        push(std::move(std::get<start_index>(chain.settings.period, chain.routines)));
+        auto routine = std::get<0>(chain.routines);
+        using routine_t = decltype(routine);
+
+        // we know it's at least a routine and not raw function by now
+        if constexpr (is_publisher_routine<routine_t>) {
+          // TODO: Remove this optional period?
+          push(chain.settings.period.value(), forward(routine));
+        }
+        else {
+          push(forward(routine));
+        }
+
       }
       else if constexpr (tuple_size == 2) {
         auto& channel = push_chain_begin(chain.settings.period, std::move(std::get<start_index>(chain.routines)));
@@ -403,7 +413,7 @@ namespace detail {
         handle.get().request_cancellation();
       };
 
-      auto thread =  std::thread( time_out_after, time, std::ref(m_handle));
+      auto thread = std::thread(time_out_after, time, std::ref(m_handle));
       thread.detach();
     }
 
