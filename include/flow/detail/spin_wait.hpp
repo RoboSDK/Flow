@@ -28,16 +28,10 @@ public:
   bool is_ready()
   {
     using namespace std::chrono;
-
-    auto new_timestamp = std::chrono::high_resolution_clock::now();
+    auto new_timestamp = high_resolution_clock::now();
     auto time_delta = new_timestamp - m_last_timestamp;
     m_last_timestamp = new_timestamp;
-
     m_time_elapsed += duration_cast<nanoseconds>(time_delta);
-
-//    std::cout << _desc << " :spin_wait: time elapsed: " << duration_cast<milliseconds>(m_time_elapsed).count() << std::endl;
-//    std::cout << _desc << " :spin_wait: wait time: " << duration_cast<milliseconds>(m_wait_time).count() << std::endl;
-//    std::cout << std::boolalpha <<(m_time_elapsed >= m_wait_time) << std::endl;
     return m_time_elapsed >= m_wait_time;
   }
 

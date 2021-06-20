@@ -102,7 +102,7 @@ constexpr auto
     std::tuple<routines_t...>&& routines = std::tuple<>{})
 {
   auto settings = make_settings(period_in_nanoseconds(freq));
-  return detail::make_chain<state>(std::move(settings), std::move(routines));
+  return detail::make_chain<state>(settings, std::move(routines));
 }
 
 template<is_chain_state state>

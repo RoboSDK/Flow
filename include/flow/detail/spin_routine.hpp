@@ -81,8 +81,8 @@ cppcoro::task<void> spin_publisher(
 
     channel.publish_messages(publisher_token);
 
-    while (not rate.is_ready()) { std::this_thread::yield(); }
-    rate.reset();
+    while (not co_await rate.async_is_ready());
+    co_await rate.async_reset();
   }
 
   channel.confirm_termination();

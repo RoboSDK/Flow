@@ -5,7 +5,10 @@
 #include <units/isq/si/si.h>
 
 namespace flow {
-std::chrono::nanoseconds period_in_nanoseconds(units::isq::Frequency auto frequency) {
-  return std::chrono::nanoseconds{units::quantity_cast<units::isq::si::nanosecond>(1 / frequency).number()};
+constexpr std::chrono::nanoseconds period_in_nanoseconds(units::isq::Frequency auto frequency)
+{
+  using namespace units;
+  double period_in_nanoseconds = quantity_cast<isq::si::nanosecond>(1.0 / frequency).number();
+  return std::chrono::nanoseconds{ static_cast<long int>(period_in_nanoseconds) };
 }
-}
+}// namespace flow
