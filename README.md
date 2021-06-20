@@ -175,13 +175,13 @@ void subscribe_hello(std::string&& message){  }
 
 int main()
 {
-  using namespace std::literals;
+  using namespace flow::literals;
 
   /**
    * The publisher hello_world creates a private channel to 
    * subscribe_hello and sends messsages at 10hz
    */
-  auto net = flow::network(flow::chain(10hz) | hello_world | subscribe_hello);
+  auto net = flow::network(flow::chain(10_q_hz) | hello_world | subscribe_hello);
 
   /**
    * Note: cancellation begins in 1 ms, but cancellation
@@ -240,12 +240,13 @@ void consume_data(Data&& data) {}
 
 int main()
 {
-  using namespace std::literals;
+  using namespace flow::literals;
 
-  auto low_pass = flow::chain(10hz) | flow::transform(low_pass_filter, "sensor") | consume_data;
-  auto high_pass = flow::chain(10hz) | flow::transform(high_pass_filter, "sensor") | consume_data;
+  auto sensor_chain = flow::chain(10_q_Hz) | Sensor{};
+  auto low_pass = flow::chain() | flow::transform(low_pass_filter, "sensor") | consume_data;
+  auto high_pass = flow::chain() | flow::transform(high_pass_filter, "sensor") | consume_data;
 
-  auto network = flow::network(Sensor{}, std::move(low_pass), std::move(high_pass));
+  auto network = flow::network(std::move(sensor, std::move(low_pass), std::move(high_pass));
 
   network.cancel_after(5s);
   flow::spin(std::move(network));
@@ -254,18 +255,18 @@ int main()
 
 <a name="milestones"></a>
 ## Milestones
-| Version | Description                                                                  | ETA                |
-|---------|------------------------------------------------------------------------------|--------------------|
-| 0.1.0   | Ability to create in-memory network, send messages, and shut down reliably.  | 1/25/2021          |
-| 0.1.1   | Ability to set frequency of routines. Use fflat buffers as messages          |                    |
-| 0.1.2   | TCP, UDP, ICP, etc support to send receive messages efficiently.             | Mid-February 20201 |
-| 0.1.3   | Can generate custom messages. Single publisher single subscribe channels.      | 2/12/2021          |
-| 0.1.4   | Collect performance metrics and show in documentation                        | Mid-March 2021     |
-| 0.1.5   | Create tools to tweak performance                                            | April 2021         |
-| 0.1.6   | Optimization of implementation and add memory pool/allocator options         | May 2021           |
-| 0.2     | All Major features complete                                                  | June 2021          |
-| 0.2.1   | Compose functions, when_all, when_any                                        | Mid-June 2021      |
-| 1.0.0   | Embedded support (single-threaded, no heap allocatinons), security           | Mid 2022           |
+| Version | Description                                                                  | ETA                    |
+|---------|------------------------------------------------------------------------------|------------------------|
+| 0.1.0   | Ability to create in-memory network, send messages, and shut down reliably. Single publisher single subscribe channels. | Completed 1/25/2021  |
+| 0.1.1   | Ability to set frequency of routines using mp-units at compile time.         | Completed 6/20/2021    |
+| 0.1.2   | DDS communication support using Cyclone DDS (probably)                       | September 2021         |
+| 0.1.3   | Modulating frequncies of system depending on flow of information             | December 2021      |
+| 0.1.4   | Collect performance metrics and show in documentation                        | January 2022       |
+| 0.1.5   | Create tools to tweak performance                                            | February 2022         |
+| 0.1.6   | Optimization of implementation and add memory pool/allocator options         | 2022           |
+| 0.2     | All Major features complete                                                  | 2022           |  
+| 0.2.1   | Compose functions, when_all, when_any                                        | 2022|
+| 1.0.0   | Embedded support (single-threaded, no heap allocatinons), security           | 2022           |
 
 <a name="dependencies"></a>
 ## Dependencies
