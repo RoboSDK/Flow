@@ -17,7 +17,7 @@ macro(run_conan)
     NAME
     conan-mpusz
     URL
-    https://api.bintray.com/conan/mpusz/conan-mpusz)
+    https://mpusz.jfrog.io/artifactory/api/conan/conan-oss)
 
   conan_cmake_run(
     REQUIRES
@@ -32,7 +32,7 @@ macro(run_conan)
     OPTIONS
     ${CONAN_EXTRA_OPTIONS}
     BASIC_SETUP
-    CMAKE_TARGETS # individual targets to link to
+  CMAKE_TARGETS # individual targets to link to
     BUILD missing
     SETTINGS compiler.cppstd=20)
 endmacro()
