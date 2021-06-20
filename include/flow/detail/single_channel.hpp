@@ -29,12 +29,13 @@ namespace flow::detail {
  * @tparam raw_message_t The raw message type is the message type with references potentially attached
  * @tparam configuration_t The global compile time configuration
  */
-template<typename raw_message_t, typename configuration_t>
+template<typename raw_message_t, is_configuration configuration_t>
 class single_channel {
 public:
   using message_t = std::decay_t<raw_message_t>;/// Remove references
   using resource_t = channel_resource<configuration_t, cppcoro::single_producer_sequencer<std::size_t>>;
   using scheduler_t = cppcoro::static_thread_pool;/// The static thread pool is used to schedule threads
+  using configuration = configuration_t;
 
   constexpr metaprogramming::type_container<message_t> message_type()
   {
@@ -169,13 +170,12 @@ public:
   cppcoro::async_generator<message_t> message_generator(subscriber_token<message_t>& token)
   {
     token.end_sequence = co_await m_resource->sequencer.wait_until_published(
-      token.sequence, *m_scheduler);
+      token.sequence , *m_scheduler);
 
     while (token.sequence <= token.end_sequence) {
       co_yield m_buffer[std::atomic_ref(token.sequence)++ & m_index_mask];
     }
   }
-
 
   /**
    * Notify the publisher_function to publish the next messages

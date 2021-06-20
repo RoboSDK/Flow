@@ -13,7 +13,7 @@ constexpr auto operator|(is_chain auto&& current_chain, is_transformer_routine a
   static_assert(is_init<chain_state>() or is_open<chain_state>(),
                 "flow::transform goes at the beginning of a chain or any open chain.");
 
-  return chain<open_chain>(concat(forward(current_chain.routines), forward(routine)));
+  return detail::make_appended_chain<open_chain>(forward(current_chain), forward(routine));
 }
 
 constexpr auto operator|(is_chain auto&& current_chain, is_publisher_routine auto&& routine)
@@ -22,7 +22,7 @@ constexpr auto operator|(is_chain auto&& current_chain, is_publisher_routine aut
   static_assert(is_init<chain_state>(),
     "Can only pass a flow::publish or flow::transform at the beginning of a chain.");
 
-  return chain<open_chain>(concat(forward(current_chain.routines), forward(routine)));
+  return detail::make_appended_chain<open_chain>(forward(current_chain), forward(routine));
 }
 
 constexpr auto operator|(is_chain auto&& current_chain, is_subscriber_routine auto&& routine)
@@ -31,7 +31,7 @@ constexpr auto operator|(is_chain auto&& current_chain, is_subscriber_routine au
   static_assert(is_open<chain_state>,
     "Can only pass a flow::subscribe or flow::transform at to an open chain.");
 
-  return chain<closed_chain>(concat(forward(current_chain.routines), forward(routine)));
+  return detail::make_appended_chain<closed_chain>(forward(current_chain), forward(routine));
 }
 
 template<typename function_t>
@@ -45,23 +45,22 @@ constexpr auto operator|(is_chain auto&& current_chain, is_chain_function auto&&
   static_assert(not is_closed<chain_state>(),
     "Can only pass a flow::subscribe or flow::transform at to an open chain.");
 
+  auto routine = detail::to_routine(forward(function));
   if constexpr (is_init<chain_state>()) {
     static_assert(is_publisher_function<function_t> or is_transformer_function<function_t>,
       "Chain can only be initialized with a publish of transform function.");
 
-    auto routine = detail::to_routine(forward(function));
-    return chain<open_chain>(concat(forward(current_chain.routines), std::move(routine)));
+    return detail::make_appended_chain<open_chain>(forward(current_chain), forward(routine));
   }
   else if constexpr (is_open<chain_state>()) {
     static_assert(is_transformer_function<function_t> or is_subscriber_function<function_t>,
       "Chain can only be appended to by transform functions or a subscribe function.");
 
     if constexpr (is_transformer_function<function_t>) {
-      return chain<open_chain>(concat(forward(current_chain.routines), forward(function)));
+      return detail::make_appended_chain<open_chain>(forward(current_chain), forward(routine));
     }
-    else {
-      auto routine = detail::to_routine(forward(function));
-      return chain<closed_chain>(concat(forward(current_chain.routines), std::move(routine)));
+    else if constexpr(is_subscriber_function<function_t>){
+      return detail::make_appended_chain<closed_chain>(forward(current_chain), forward(routine));
     }
   }
 }
@@ -71,9 +70,10 @@ concept is_chain_spinner = is_spinner_function<spinner_t> or is_spinner_routine<
 
 constexpr auto operator|(is_chain auto&& current_chain, is_chain_spinner auto&& spinner)
 {
-  static_assert(is_init<decltype(current_chain)::state>(), "Spinners may only be pushed into an empty chain.");
+  using chain_t = decltype(current_chain);
+  static_assert(is_init<chain_t::state>(), "Spinners may only be pushed into an empty chain.");
 
   auto routine = detail::to_routine(forward(spinner));
-  return chain<closed_chain>(concat(forward(current_chain.routines), std::move(routine)));
+  return detail::make_appended_chain<closed_chain>(forward(current_chain), std::move(routine));
 }
 }// namespace flow

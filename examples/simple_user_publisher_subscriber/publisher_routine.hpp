@@ -1,6 +1,6 @@
 #pragma once
 
-#include <flow/publisher.hpp>
+#include <flow/flow.hpp>
 
 namespace example {
 struct string_publisher {
