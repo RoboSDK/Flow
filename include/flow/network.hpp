@@ -91,16 +91,17 @@ namespace detail {
 auto push_routine(is_network auto& network, auto&& routine)
 {
   using namespace flow::detail;
-
   using routine_t = decltype(routine);
+  std::chrono::nanoseconds period = period_in_nanoseconds(configuration::frequency);
+
   if constexpr (is_transformer_function<routine_t>) {
-    network.push(transform(routine, get_subscribe_to(routine), get_publish_to(routine)));
+    network.push(period, transform(routine, get_subscribe_to(routine), get_publish_to(routine)));
   }
   else if constexpr (is_subscriber_function<routine_t>) {
-    network.push(flow::subscribe(routine, get_subscribe_to(routine)));
+    network.push(period, flow::subscribe(routine, get_subscribe_to(routine)));
   }
   else if constexpr (is_publisher_function<routine_t>) {
-    network.push(flow::publish(routine, get_publish_to(routine)));
+    network.push(period, flow::publish(routine, get_publish_to(routine)));
   }
   /**
        * If you change this please be careful. The constexpr check for a spinner function seems to
@@ -110,14 +111,17 @@ auto push_routine(is_network auto& network, auto&& routine)
        * with the function traits section at the bottom of the header.
        */
   else if constexpr (not is_routine<routine_t> and is_spinner_function<routine_t>) {
-    network.push(flow::spinner(routine));
+    network.push(period, flow::spinner(routine));
+  }
+  else if constexpr (is_publisher_routine<routine_t>) {
+    network.push(period, forward(routine));
   }
   else {
     network.push(forward(routine));
   }
 }
 
-auto push_routine_or_chain(auto& network, auto&& routine)
+constexpr auto push_routine_or_chain(auto& network, auto&& routine)
 {
   using routine_t = decltype(routine);
 
@@ -136,7 +140,7 @@ auto push_routine_or_chain(auto& network, auto&& routine)
  * @return
  */
 template<is_configuration configuration_t = flow::configuration>
-auto network(auto&&... routines)
+constexpr auto network(auto&&... routines)
 {
   using network_t = flow::detail::network_impl<configuration_t>;
   network_t network{};
@@ -151,6 +155,7 @@ namespace detail {
   class network_impl {
   public:
     using is_network = std::true_type;
+    using configuration = configuration_t;
 
     /**
    * Makes a multi_channel if it doesn't exist and returns a reference to it
@@ -196,10 +201,11 @@ namespace detail {
    * Pushes a callable_routine into the network
    * @param spinner A callable_routine with no dependencies and nothing depends on it
    */
-    void push(is_spin_wait auto&& rate, flow::is_spinner_routine auto&& routine)
+    void push(std::chrono::nanoseconds period, flow::is_spinner_routine auto&& routine)
     {
       m_handle.push(routine.callback().handle());
-      m_routines_to_spin.push_back(detail::spin_spinner(forward(rate), m_thread_pool, routine.callback()));
+      m_routines_to_spin.push_back(detail::spin_spinner(period, m_thread_pool, routine.callback()));
+
       m_heap_storage.push_back(forward(routine));
     }
 
@@ -211,10 +217,11 @@ namespace detail {
     template<
       detail::channel::policy publisher_channel_policy = detail::channel::policy::MULTI,
       typename message_t>
-    auto& push(is_spin_wait auto&& rate, flow::detail::publisher_impl<message_t>&& routine)
+    auto& push(std::chrono::nanoseconds period, flow::detail::publisher_impl<message_t>&& routine)
     {
       auto& channel = make_channel<message_t, publisher_channel_policy>(routine.publish_to());
-      m_routines_to_spin.push_back(detail::spin_publisher<message_t>(forward(rate), channel, routine.callback()));
+
+      m_routines_to_spin.push_back(detail::spin_publisher<message_t>(period, channel, routine.callback()));
       m_heap_storage.push_back(std::move(routine));
       return channel;
     }
@@ -236,8 +243,8 @@ namespace detail {
       auto& subscriber_channel = make_channel<return_t, subscriber_channel_policy>(routine.publish_to());
 
       m_routines_to_spin.push_back(detail::spin_transformer<return_t, args_t...>(publisher_channel, subscriber_channel, routine.callback()));
-      m_heap_storage.push_back(std::move(routine));
 
+      m_heap_storage.push_back(std::move(routine));
       return std::make_pair(std::ref(publisher_channel), std::ref(subscriber_channel));
     }
 
@@ -253,11 +260,12 @@ namespace detail {
 
       m_handle.push(routine.callback().handle());
       m_routines_to_spin.push_back(detail::spin_subscriber<message_t>(channel, routine.callback()));
+
       m_heap_storage.push_back(std::move(routine));
     }
 
     template<typename begin_t>
-      auto& push_chain_begin(begin_t&& begin) requires is_transformer_routine<begin_t> or is_publisher_routine<begin_t>
+      constexpr auto& push_chain_begin(std::optional<std::chrono::nanoseconds> period, begin_t&& begin) requires is_transformer_routine<begin_t> or is_publisher_routine<begin_t>
     {
       using namespace detail::channel;
 
@@ -265,20 +273,30 @@ namespace detail {
         "network.hpp:push_chain_begin only takes in transform or publish routines implementations.");
 
       if constexpr (is_transformer_routine<begin_t>) {
-        return push<policy::MULTI, policy::SINGLE>(std::move(begin)).second;
+        if (period.has_value()) {
+          return push<policy::MULTI, policy::SINGLE>(std::move(begin)).second;
+        } else {
+          return push<policy::MULTI, policy::SINGLE>(std::move(begin)).second;
+        }
       }
-      else {
-        return push<policy::SINGLE>(std::move(begin));
+      else { // it's a publisher
+        if (period.has_value()) {
+          return push<policy::SINGLE>(period.value(), std::move(begin));
+        } else {
+          return push<policy::SINGLE>(period_in_nanoseconds(configuration_t::frequency), std::move(begin));
+        }
       }
     }
 
     template<typename end_t>
-      void push_chain_end(end_t&& end, auto& channel) requires is_transformer_routine<end_t> or is_subscriber_routine<end_t>
+      constexpr void push_chain_end(end_t&& end, auto& channel) requires is_transformer_routine<end_t> or is_subscriber_routine<end_t>
     {
       using namespace detail::channel;
 
       static_assert(not is_publisher_routine<end_t> and not is_spinner_routine<end_t>,
         "network.hpp:push_chain_end only takes in transform or subscribe routines implementations.");
+
+      m_heap_storage.push_back(null_spin_wait{});
 
       if constexpr (is_transformer_routine<end_t>) {
         using arg_t = typename decltype(channel.message_type())::type;
@@ -323,18 +341,19 @@ namespace detail {
 
     constexpr void push_chain(is_chain auto&& chain)
     {
+
       constexpr std::size_t tuple_size = std::tuple_size<decltype(chain.routines)>();
       constexpr std::size_t start_index = 0;
 
       if constexpr (tuple_size == 1) {
-        push(std::move(std::get<start_index>(chain.routines)));
+        push(std::move(std::get<start_index>(chain.settings.period, chain.routines)));
       }
       else if constexpr (tuple_size == 2) {
-        auto& channel = push_chain_begin(std::move(std::get<start_index>(chain.routines)));
+        auto& channel = push_chain_begin(chain.settings.period, std::move(std::get<start_index>(chain.routines)));
         push_chain_end(std::move(std::get<tuple_size - 1>(chain.routines)), channel);
       }
       else if constexpr (tuple_size > 2) {
-        auto& channel = push_chain_begin(std::move(std::get<start_index>(chain.routines)));
+        auto& channel = push_chain_begin(chain.settings.period, std::move(std::get<start_index>(chain.routines)));
         auto& last_channel = push_tightly_linked_functions<start_index + 1, tuple_size>(channel, chain.routines);
         push_chain_end(std::move(std::get<tuple_size - 1>(chain.routines)), last_channel);
       }
@@ -381,7 +400,7 @@ namespace detail {
     auto cancel_after(std::chrono::nanoseconds time)
     {
       auto time_out_after = [](auto time, std::reference_wrapper<network_handle> handle) {
-        spin_wait waiter{ time };
+        spin_wait waiter{ "cancel_after", time };
         while (not waiter.is_ready()) {
           std::this_thread::yield();
         }

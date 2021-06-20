@@ -1,9 +1,11 @@
 #pragma once
 
 #include <utility>
+#include <iostream>
 
 #include "flow/detail/forward.hpp"
 #include "flow/detail/metaprogramming.hpp"
+#include "flow/detail/units.hpp"
 
 #include "flow/concepts.hpp"
 #include "flow/literals.hpp"
@@ -38,11 +40,19 @@ namespace detail {
   struct chain_impl : chain_tag {
 
     std::tuple<routines_t...> routines{};
-    settings_t settings{};
+    settings_t settings;
 
     constexpr chain_impl(
       settings_t&& _settings,
-      std::tuple<routines_t...>&& _routines) : routines(std::move(_routines)), settings{ forward(_settings) } {}
+      std::tuple<routines_t...>&& _routines) : routines(forward(_routines)), settings{ forward(_settings) } {
+
+      using namespace std::chrono;
+      if (settings.period.has_value()) {
+        std::cout << "chain_impl constructor: wait time in milli: " << duration_cast<milliseconds>(settings.period.value()).count() << std::endl;
+      } else {
+        std::cout << "nooo" << std::endl;
+      }
+    }
 
     // TODO: Clean this up
     constexpr metaprogramming::type_container<current_state> state()
@@ -58,11 +68,17 @@ namespace detail {
     void operator()() {}
   };
 
+  /**
+   * Pass settings by value, not doing this seems to cause memory issues when creating a new
+   * chain after 2 chains have been created.
+   */
   template<is_chain_state chain_state, are_valid_chain_items... routines_t>
-  auto make_chain(is_settings auto&& settings, std::tuple<routines_t...>&& routines)
+  constexpr auto make_chain(is_settings auto settings, std::tuple<routines_t...>&& routines)
   {
+    auto set = forward(settings);
+    print_settings_period("tuple routines", set);
     using settings_t = decltype(settings);
-    return chain_impl<chain_state, settings_t, routines_t...>(forward(settings), std::move(routines));
+    return chain_impl<chain_state, settings_t, routines_t...>(std::move(set), std::move(routines));
   }
 
   template<typename... routines_t>
@@ -72,10 +88,12 @@ namespace detail {
   }
 
   template<is_chain_state state>
-  auto make_appended_chain(is_chain auto&& chain, is_valid_chain_item auto&& routine)
+  constexpr auto make_appended_chain(is_chain auto&& chain, is_valid_chain_item auto&& routine)
   {
+    print_settings_period("make appended chain", chain.settings);
     auto appended_routines = concat(forward(chain.routines), forward(routine));
-    return make_chain<state>(forward(chain.settings), std::move(appended_routines));
+    print_settings_period("make appended chain2", chain.settings);
+    return make_chain<state>(chain.settings, std::move(appended_routines));
   }
 }// namespace detail
 
@@ -90,7 +108,7 @@ constexpr auto
     units::isq::si::frequency<Unit, Rep> freq = configuration_t::frequency,
     std::tuple<routines_t...>&& routines = std::tuple<>{})
 {
-  auto settings = make_settings(freq);
+  auto settings = make_settings(period_in_nanoseconds(freq));
   using settings_t = decltype(settings);
 
   return detail::make_chain<state>(std::move(settings), std::move(routines));

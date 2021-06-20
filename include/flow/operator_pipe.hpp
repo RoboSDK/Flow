@@ -2,6 +2,7 @@
 
 #include "flow/detail/forward.hpp"
 #include "flow/detail/routine.hpp"
+#include <iostream>
 
 #include "flow/chain.hpp"
 
@@ -13,7 +14,7 @@ constexpr auto operator|(is_chain auto&& current_chain, is_transformer_routine a
   static_assert(is_init<chain_state>() or is_open<chain_state>(),
                 "flow::transform goes at the beginning of a chain or any open chain.");
 
-  return detail::make_appended_chain<open_chain>(std::move(current_chain), forward(routine));
+  return detail::make_appended_chain<open_chain>(forward(current_chain), forward(routine));
 }
 
 constexpr auto operator|(is_chain auto&& current_chain, is_publisher_routine auto&& routine)
@@ -22,7 +23,7 @@ constexpr auto operator|(is_chain auto&& current_chain, is_publisher_routine aut
   static_assert(is_init<chain_state>(),
     "Can only pass a flow::publish or flow::transform at the beginning of a chain.");
 
-  return detail::make_appended_chain<open_chain>(std::move(current_chain), forward(routine));
+  return detail::make_appended_chain<open_chain>(forward(current_chain), forward(routine));
 }
 
 constexpr auto operator|(is_chain auto&& current_chain, is_subscriber_routine auto&& routine)
@@ -31,11 +32,20 @@ constexpr auto operator|(is_chain auto&& current_chain, is_subscriber_routine au
   static_assert(is_open<chain_state>,
     "Can only pass a flow::subscribe or flow::transform at to an open chain.");
 
-  return detail::make_appended_chain<closed_chain>(std::move(current_chain), forward(routine));
+  return detail::make_appended_chain<closed_chain>(forward(current_chain), forward(routine));
 }
 
 template<typename function_t>
 concept is_chain_function = is_subscriber_function<function_t> or is_publisher_function<function_t> or is_transformer_function<function_t>;
+
+auto print_settings_period(auto desc, auto& set) {
+  using namespace std::chrono;
+  if (set.period.has_value()) {
+    std::cout << desc << " :make_chain: period in ms: " << duration_cast<milliseconds>(set.period.value()).count() << std::endl;
+  } else {
+    std::cout << desc << " : make_chain: no period in optional" << std::endl;
+  }
+}
 
 constexpr auto operator|(is_chain auto&& current_chain, is_chain_function auto&& function)
 {
@@ -45,23 +55,22 @@ constexpr auto operator|(is_chain auto&& current_chain, is_chain_function auto&&
   static_assert(not is_closed<chain_state>(),
     "Can only pass a flow::subscribe or flow::transform at to an open chain.");
 
+  auto routine = detail::to_routine(forward(function));
   if constexpr (is_init<chain_state>()) {
     static_assert(is_publisher_function<function_t> or is_transformer_function<function_t>,
       "Chain can only be initialized with a publish of transform function.");
 
-    auto routine = detail::to_routine(forward(function));
-    return detail::make_appended_chain<open_chain>(std::move(current_chain), forward(routine));
+    return detail::make_appended_chain<open_chain>(forward(current_chain), forward(routine));
   }
   else if constexpr (is_open<chain_state>()) {
     static_assert(is_transformer_function<function_t> or is_subscriber_function<function_t>,
       "Chain can only be appended to by transform functions or a subscribe function.");
 
     if constexpr (is_transformer_function<function_t>) {
-      return detail::make_appended_chain<open_chain>(std::move(current_chain), forward(function));
+      return detail::make_appended_chain<open_chain>(forward(current_chain), forward(routine));
     }
-    else {
-      auto routine = detail::to_routine(forward(function));
-      return detail::make_appended_chain<closed_chain>(std::move(current_chain), std::move(routine));
+    else if constexpr(is_subscriber_function<function_t>){
+      return detail::make_appended_chain<closed_chain>(forward(current_chain), forward(routine));
     }
   }
 }
@@ -75,6 +84,6 @@ constexpr auto operator|(is_chain auto&& current_chain, is_chain_spinner auto&& 
   static_assert(is_init<chain_t::state>(), "Spinners may only be pushed into an empty chain.");
 
   auto routine = detail::to_routine(forward(spinner));
-  return detail::make_appended_chain<closed_chain>(std::move(current_chain), std::move(routine));
+  return detail::make_appended_chain<closed_chain>(forward(current_chain), std::move(routine));
 }
 }// namespace flow

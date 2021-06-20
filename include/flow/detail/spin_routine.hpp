@@ -27,15 +27,17 @@ namespace flow::detail {
  * @return A coroutine that continues until the spinner_function is cancelled
  */
 cppcoro::task<void> spin_spinner(
-  is_spin_wait auto&& rate,
+  [[maybe_unused]] std::optional<std::chrono::nanoseconds> period,
   auto& scheduler,
   cancellable_function<void()>& spinner)
 {
-  while (not spinner.is_cancellation_requested() and co_await rate.async_is_ready()) {
-    co_await rate.async_reset();
-    co_await scheduler->schedule();
-    co_await [&]() -> cppcoro::task<void> { spinner(); co_return; }();
-  }
+//    spin_wait rate{period.value()};
+//    while (not spinner.is_cancellation_requested() and co_await rate.async_is_ready()) {
+  while (not spinner.is_cancellation_requested()) {
+//      co_await rate.async_reset();
+      co_await scheduler->schedule();
+      co_await [&]() -> cppcoro::task<void> { spinner(); co_return; }();
+    }
 }
 
 /**
@@ -53,12 +55,13 @@ cppcoro::task<void> spin_spinner(
  */
 template<typename return_t>
 cppcoro::task<void> spin_publisher(
-  is_spin_wait auto&& rate,
+  std::chrono::nanoseconds period,
   auto& channel,
   cancellable_function<return_t()>& publisher)
 {
   publisher_token<return_t> publisher_token{};
   using channel_t = std::decay_t<decltype(channel)>;
+  spin_wait rate{"in publisher", period};
 
   auto termination_has_initialized = [&]() -> cppcoro::task<bool> {
     static cppcoro::async_mutex mutex;
@@ -70,15 +73,16 @@ cppcoro::task<void> spin_publisher(
     if (not co_await channel.request_permission_to_publish(publisher_token)) break;
 
     std::size_t i = 0;
-    while (co_await rate.async_is_ready() and i < publisher_token.sequences.size()) {
-      co_await rate.async_reset();
-
+    while (i < publisher_token.sequences.size()) {
       return_t message = co_await [&]() -> cppcoro::task<return_t> { co_return std::invoke(publisher); }();
       publisher_token.messages.push(std::move(message));
       ++i;
     }
 
     channel.publish_messages(publisher_token);
+
+    while (not rate.is_ready()) { std::this_thread::yield(); }
+    rate.reset();
   }
 
   channel.confirm_termination();
@@ -107,7 +111,6 @@ cppcoro::task<void> spin_publisher(
  */
 template<typename argument_t>
 cppcoro::task<void> spin_subscriber(
-  is_spin_wait auto&& rate,
   auto& channel,
   cancellable_function<void(argument_t&&)>& subscriber)
 {
@@ -119,8 +122,7 @@ cppcoro::task<void> spin_subscriber(
     auto next_message = channel.message_generator(subscriber_token);
     auto current_message = co_await next_message.begin();
 
-    while (current_message != next_message.end() and not subscriber.is_cancellation_requested() and co_await rate.async_is_ready()) {
-      co_await rate.async_reset();
+    while (current_message != next_message.end() and not subscriber.is_cancellation_requested()) {
 
       auto& message = *current_message;
       co_await [&]() -> cppcoro::task<void> { co_return subscriber(std::move(message)); }();
@@ -168,7 +170,6 @@ cppcoro::task<void> spin_subscriber(
  */
 template<typename return_t, typename argument_t>
 cppcoro::task<void> spin_transformer(
-  is_spin_wait auto&& rate,
   auto& publisher_channel,
   auto& subscriber_channel,
   cancellable_function<return_t(argument_t&&)>& transformer)
@@ -188,9 +189,7 @@ cppcoro::task<void> spin_transformer(
     auto next_message = publisher_channel.message_generator(subscriber_token);
     auto current_message = co_await next_message.begin();
 
-    while (current_message != next_message.end() and not termination_has_initialized(subscriber_channel) and co_await rate.async_is_ready()) {
-      co_await rate.async_reset();
-
+    while (current_message != next_message.end() and not termination_has_initialized(subscriber_channel)) {
       auto& message_to_consume = *current_message;
 
       auto message_to_publish = co_await [&]() -> cppcoro::task<return_t> {

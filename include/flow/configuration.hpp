@@ -19,8 +19,8 @@
 namespace flow {
 struct configuration {
   static constexpr std::size_t max_resources = 256;
-  static constexpr std::size_t message_buffer_size = 128;
-  static constexpr std::size_t stride_length = 32;
+  static constexpr std::size_t message_buffer_size = 1;
+  static constexpr std::size_t stride_length = 1;
 
   static constexpr units::isq::Frequency auto frequency =
     units::isq::si::frequency<units::isq::si::hertz, std::int64_t>(10);

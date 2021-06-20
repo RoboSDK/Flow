@@ -119,8 +119,11 @@ namespace detail {
     auto subscribe_to() { return m_publisher_channel_name; }
     auto publish_to() { return m_subscriber_channel_name; }
 
+    return_t operator()([[maybe_unused]] arg_t&& arg) {}
+
     auto& callback() { return *m_callback; }
     std::optional<std::chrono::nanoseconds> period() { return m_period; }
+
 
   private:
     using callback_ptr = typename detail::cancellable_function<return_t(arg_t&&)>::sPtr;

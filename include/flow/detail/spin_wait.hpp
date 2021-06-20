@@ -2,8 +2,8 @@
 
 #include <chrono>
 
-#include <cppcoro/task.hpp>
 #include "flow/detail/units.hpp"
+#include <cppcoro/task.hpp>
 
 namespace flow {
 class spin_wait_tag {};
@@ -21,20 +21,23 @@ struct null_spin_wait : spin_wait_tag {
 
 class spin_wait : spin_wait_tag {
 public:
-  spin_wait(std::chrono::nanoseconds wait_time) : m_wait_time(wait_time) {}
-  spin_wait(units::isq::Frequency auto frequency)
-    : m_wait_time(period_in_nanoseconds(frequency)) {}
+  spin_wait(const char * desc, std::chrono::nanoseconds wait_time) : m_wait_time(wait_time) {
+    _desc = desc;
+  }
 
   bool is_ready()
   {
     using namespace std::chrono;
 
-    auto new_timestamp = std::chrono::steady_clock::now();
+    auto new_timestamp = std::chrono::high_resolution_clock::now();
     auto time_delta = new_timestamp - m_last_timestamp;
     m_last_timestamp = new_timestamp;
 
     m_time_elapsed += duration_cast<nanoseconds>(time_delta);
 
+//    std::cout << _desc << " :spin_wait: time elapsed: " << duration_cast<milliseconds>(m_time_elapsed).count() << std::endl;
+//    std::cout << _desc << " :spin_wait: wait time: " << duration_cast<milliseconds>(m_wait_time).count() << std::endl;
+//    std::cout << std::boolalpha <<(m_time_elapsed >= m_wait_time) << std::endl;
     return m_time_elapsed >= m_wait_time;
   }
 
@@ -56,7 +59,9 @@ public:
   }
 
 private:
-  std::chrono::steady_clock::time_point m_last_timestamp{ std::chrono::steady_clock::now() };
+  std::string _desc{};
+  std::mutex m{};
+  std::chrono::high_resolution_clock::time_point m_last_timestamp{ std::chrono::high_resolution_clock::now() };
 
   std::chrono::nanoseconds m_wait_time{};
   std::chrono::nanoseconds m_time_elapsed{ 0 };

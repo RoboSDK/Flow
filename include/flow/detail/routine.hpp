@@ -37,13 +37,17 @@ constexpr auto to_routine(is_function auto&& function)
   using function_t = decltype(function);
 
   if constexpr (is_transformer_function<function_t>) {
-    return transform(forward(function), get_subscribe_to(function), get_publish_to(function));
+    auto subscription_channel = get_subscribe_to(function);
+    auto publish_channel = get_publish_to(function);
+    return transform(forward(function), subscription_channel, publish_channel);
   }
   else if constexpr (is_subscriber_function<function_t>) {
-    return subscribe(function, get_subscribe_to(function));
+    auto subscription_channel = get_subscribe_to(function);
+    return subscribe(forward(function), subscription_channel);
   }
   else if constexpr (is_publisher_function<function_t>) {
-    return publish(function, get_publish_to(function));
+    auto publish_channel = get_publish_to(function);
+    return publish(forward(function), publish_channel);
   }
   /**
          * If you change this please be careful. The constexpr check for a spinner function seems to
@@ -53,7 +57,7 @@ constexpr auto to_routine(is_function auto&& function)
          * with the function traits section at the bottom of the header.
          */
   else if constexpr (not is_routine<function_t> and is_spinner_function<function_t>) {
-    return flow::spinner(function);
+    return flow::spinner(forward(function));
   }
 }
 
