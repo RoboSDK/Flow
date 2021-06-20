@@ -2,7 +2,6 @@
 
 #include "flow/detail/forward.hpp"
 #include "flow/detail/routine.hpp"
-#include <iostream>
 
 #include "flow/chain.hpp"
 
@@ -37,15 +36,6 @@ constexpr auto operator|(is_chain auto&& current_chain, is_subscriber_routine au
 
 template<typename function_t>
 concept is_chain_function = is_subscriber_function<function_t> or is_publisher_function<function_t> or is_transformer_function<function_t>;
-
-auto print_settings_period(auto desc, auto& set) {
-  using namespace std::chrono;
-  if (set.period.has_value()) {
-    std::cout << desc << " :make_chain: period in ms: " << duration_cast<milliseconds>(set.period.value()).count() << std::endl;
-  } else {
-    std::cout << desc << " : make_chain: no period in optional" << std::endl;
-  }
-}
 
 constexpr auto operator|(is_chain auto&& current_chain, is_chain_function auto&& function)
 {

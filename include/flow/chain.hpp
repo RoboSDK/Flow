@@ -1,7 +1,6 @@
 #pragma once
 
 #include <utility>
-#include <iostream>
 
 #include "flow/detail/forward.hpp"
 #include "flow/detail/metaprogramming.hpp"
@@ -29,7 +28,8 @@ concept is_chain = std::is_base_of_v<chain_tag, std::decay_t<chain_t>>;
 template<typename chain_state_t>
 concept is_chain_state = std::is_same_v<chain_state_t, open_chain> or std::is_same_v<chain_state_t, init_chain> or std::is_same_v<chain_state_t, closed_chain>;
 
-namespace detail {
+namespace detail
+{
   template<typename routine_t>
   concept is_valid_chain_item = is_routine<routine_t> or is_function<routine_t>;
 
@@ -44,14 +44,8 @@ namespace detail {
 
     constexpr chain_impl(
       settings_t&& _settings,
-      std::tuple<routines_t...>&& _routines) : routines(forward(_routines)), settings{ forward(_settings) } {
-
-      using namespace std::chrono;
-      if (settings.period.has_value()) {
-        std::cout << "chain_impl constructor: wait time in milli: " << duration_cast<milliseconds>(settings.period.value()).count() << std::endl;
-      } else {
-        std::cout << "nooo" << std::endl;
-      }
+      std::tuple<routines_t...>&& _routines) : routines(forward(_routines)), settings{ forward(_settings) }
+    {
     }
 
     // TODO: Clean this up
@@ -75,14 +69,12 @@ namespace detail {
   template<is_chain_state chain_state, are_valid_chain_items... routines_t>
   constexpr auto make_chain(is_settings auto settings, std::tuple<routines_t...>&& routines)
   {
-    auto set = forward(settings);
-    print_settings_period("tuple routines", set);
     using settings_t = decltype(settings);
-    return chain_impl<chain_state, settings_t, routines_t...>(std::move(set), std::move(routines));
+    return chain_impl<chain_state, settings_t, routines_t...>(forward(settings), std::move(routines));
   }
 
   template<typename... routines_t>
-  constexpr auto concat(std::tuple<routines_t...>&& routines, is_valid_chain_item auto&& new_routine)
+  constexpr auto concat(std::tuple<routines_t...> && routines, is_valid_chain_item auto&& new_routine)
   {
     return std::tuple_cat(std::move(routines), std::make_tuple(forward(new_routine)));
   }
@@ -90,9 +82,10 @@ namespace detail {
   template<is_chain_state state>
   constexpr auto make_appended_chain(is_chain auto&& chain, is_valid_chain_item auto&& routine)
   {
-    print_settings_period("make appended chain", chain.settings);
     auto appended_routines = concat(forward(chain.routines), forward(routine));
-    print_settings_period("make appended chain2", chain.settings);
+
+    // pass chain settings by value, moving or using a refeference seems to cause
+    // a memory issue, not sure why
     return make_chain<state>(chain.settings, std::move(appended_routines));
   }
 }// namespace detail
@@ -109,8 +102,6 @@ constexpr auto
     std::tuple<routines_t...>&& routines = std::tuple<>{})
 {
   auto settings = make_settings(period_in_nanoseconds(freq));
-  using settings_t = decltype(settings);
-
   return detail::make_chain<state>(std::move(settings), std::move(routines));
 }
 

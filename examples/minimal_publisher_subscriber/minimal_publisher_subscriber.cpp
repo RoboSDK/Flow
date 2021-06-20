@@ -23,12 +23,12 @@ int main()
    * The publisher hello_world is going to be publishing to the global std::string multi_channel.
    * The subscriber subscribe_hello is going to subscribe to the global std::string multi_channel.
    */
-  [[maybe_unused]] auto net = flow::network(flow::chain(1_q_Hz) | hello_world | subscribe_hello);
+  auto net = flow::network(flow::chain(1_q_Hz) | hello_world | subscribe_hello);
 
   /**
    * Note: cancellation begins in 1 ms, but cancellation
    * is non-deterministic. 
    */
-  net.cancel_after(2s);
+  net.cancel_after(1s);
   flow::spin(std::move(net));
 }
