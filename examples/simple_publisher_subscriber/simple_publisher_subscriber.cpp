@@ -25,13 +25,12 @@ void receive_hashed_message([[maybe_unused]]std::size_t&& message)
 
 int main()
 {
-  using namespace flow;
-  using namespace std::literals;
+  using namespace flow::literals;
 
   //  TODO: Take frequency as argument to chain()
-  auto network = flow::network(flow::chain() | produce_hello_world | reverse_string | hash_string | receive_hashed_message);
+  auto network = flow::network(flow::chain(10_q_Hz) | produce_hello_world | reverse_string | hash_string | receive_hashed_message);
 
-  network.cancel_after(1ms);
+  network.cancel_after(10ms);
 
   // Alternative (and preferred method)
   // auto network_handle = network.handle();

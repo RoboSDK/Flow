@@ -12,6 +12,7 @@ target_link_libraries(flow
         PUBLIC
         project_options
         liburing::liburing
+        CONAN_PKG::mp-units
 
         cppcoro::cppcoro
         Threads::Threads

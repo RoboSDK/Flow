@@ -7,7 +7,7 @@ namespace flow::detail {
  * This is a channel_resource that each multi_channel will own
  * @tparam configuration_t The compile time global configuration for this project
  */
-template<typename configuration_t, typename sequencer_t>
+template<is_configuration configuration_t, typename sequencer_t>
 struct channel_resource {
   using sequence_barrier = cppcoro::sequence_barrier<std::size_t>;
 
@@ -29,7 +29,7 @@ struct channel_resource {
  * retrieved from this generator
  * @tparam configuration_t The global compile time configuration for the project
  */
-template<typename configuration_t, typename sequencer_t>
+template<is_configuration configuration_t, typename sequencer_t>
 class channel_resource_generator {
   using resource_t = channel_resource<configuration_t, sequencer_t>;
 

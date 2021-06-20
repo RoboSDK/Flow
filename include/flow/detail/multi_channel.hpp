@@ -27,12 +27,13 @@ namespace flow::detail {
  * @tparam raw_message_t The raw message type is the message type with references potentially attached
  * @tparam configuration_t The global compile time configuration
  */
-template<typename raw_message_t, typename configuration_t>
+template<typename raw_message_t, is_configuration configuration_t>
 class multi_channel {
 public:
   using message_t = std::decay_t<raw_message_t>;/// Remove references
   using resource_t = channel_resource<configuration_t, cppcoro::multi_producer_sequencer<std::size_t>>;
   using scheduler_t = cppcoro::static_thread_pool;/// The static thread pool is used to schedule threads
+  using configuration = configuration_t;
 
   constexpr metaprogramming::type_container<message_t> message_type()
   {
@@ -174,7 +175,7 @@ public:
   cppcoro::async_generator<message_t> message_generator(subscriber_token<message_t>& token)
   {
     token.end_sequence = co_await m_resource->sequencer.wait_until_published(
-      token.sequence, token.last_sequence_published, *m_scheduler);
+      token.sequence, token.sequence - 1, *m_scheduler);
 
     while (token.sequence <= token.end_sequence) {
       co_yield m_buffer[std::atomic_ref(token.sequence)++ & m_index_mask];
@@ -214,19 +215,23 @@ public:
     return std::atomic_ref(m_num_publishers_waiting).load();
   }
 
-  bool is_being_flushed() {
+  bool is_being_flushed()
+  {
     return std::atomic_ref(m_flushing).load() > 0;
   }
 
-  std::size_t num_flushers() {
+  std::size_t num_flushers()
+  {
     return std::atomic_ref(m_flushing).load();
   }
 
-  void flush() {
+  void flush()
+  {
     std::atomic_ref(m_flushing)++;
   }
 
-  void end_flush() {
+  void end_flush()
+  {
     std::atomic_ref(m_flushing)--;
   }
 
