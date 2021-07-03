@@ -30,7 +30,7 @@ int main()
   //  TODO: Take frequency as argument to chain()
   auto network = flow::network(flow::chain(10_q_Hz) | produce_hello_world | reverse_string | hash_string | receive_hashed_message);
 
-  network.cancel_after(10ms);
+  network.cancel_after(100ms);
 
   // Alternative (and preferred method)
   // auto network_handle = network.handle();

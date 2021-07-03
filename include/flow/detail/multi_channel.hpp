@@ -148,11 +148,11 @@ public:
   cppcoro::task<bool> request_permission_to_publish(publisher_token<message_t>& token, bool force = false)
   {
     if (m_state > termination_state::uninitialised and not force) {
-      std::cout << "request perm to pub exit early" << std::endl;
+//      std::cout << "request perm to pub exit early" << std::endl;
       co_return false;
     }
 
-    std::cout << "req perm to pub going to wait" << std::endl;
+//    std::cout << "req perm to pub going to wait" << std::endl;
 
     static constexpr std::size_t STRIDE_LENGTH = configuration_t::stride_length;
 

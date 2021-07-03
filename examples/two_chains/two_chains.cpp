@@ -51,12 +51,12 @@ int main()
 {
   using namespace flow::literals;
 
-  auto sensor = flow::chain(10_q_Hz) | Sensor{};
+  auto sensor = flow::chain(20_q_Hz) | Sensor{};
   auto low_pass = flow::chain() | flow::transform(low_pass_filter, "sensor") | consume_data;
   auto high_pass = flow::chain() | flow::transform(high_pass_filter, "sensor") | consume_data;
 
   auto network = flow::network(std::move(sensor), std::move(low_pass), std::move(high_pass));
 
-  network.cancel_after(1s);
+  network.cancel_after(200ms);
   flow::spin(std::move(network));
 }
