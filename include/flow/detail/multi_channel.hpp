@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-
 #include "channel_resource.hpp"
 #include "publisher_token.hpp"
 #include "subscriber_token.hpp"
@@ -148,17 +146,11 @@ public:
   cppcoro::task<bool> request_permission_to_publish(publisher_token<message_t>& token, bool force = false)
   {
     if (m_state > termination_state::uninitialised and not force) {
-//      std::cout << "request perm to pub exit early" << std::endl;
       co_return false;
     }
 
-//    std::cout << "req perm to pub going to wait" << std::endl;
-
     static constexpr std::size_t STRIDE_LENGTH = configuration_t::stride_length;
-
-//    ++std::atomic_ref(m_num_publishers_waiting);
     cppcoro::sequence_range<std::size_t> sequences = co_await m_resource->sequencer.claim_up_to(STRIDE_LENGTH, *m_scheduler);
-//    --std::atomic_ref(m_num_publishers_waiting);
 
     token.sequences = std::move(sequences);
     co_return true;
