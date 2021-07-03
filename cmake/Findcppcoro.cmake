@@ -6,5 +6,5 @@ find_package_handle_standard_args(cppcoro DEFAULT_MSG CPPCORO_LIBRARIES CPPCORO_
 
 mark_as_advanced(CPPCORO_LIBRARIES CPPCORO_INCLUDE_DIRS)
 add_library(cppcoro::cppcoro INTERFACE IMPORTED GLOBAL)
-target_link_libraries(cppcoro::cppcoro INTERFACE ${CPPCORO_LIBRARIES}) 
-target_include_directories(cppcoro::cppcoro INTERFACE ${CPPCORO_INCLUDE_DIRS})
+target_link_libraries(cppcoro::cppcoro INTERFACE ${CPPCORO_LIBRARIES})
+target_include_directories(cppcoro::cppcoro SYSTEM INTERFACE ${CPPCORO_INCLUDE_DIRS})
