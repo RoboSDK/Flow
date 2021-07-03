@@ -1,5 +1,7 @@
 #pragma once
 
+#include <random>
+
 #include <cppcoro/async_mutex.hpp>
 #include <cppcoro/sync_wait.hpp>
 #include <cppcoro/task.hpp>
@@ -10,6 +12,8 @@
 
 #include "cancellable_function.hpp"
 #include "multi_channel.hpp"
+
+#include <iostream>
 
 /**
  * The purpose of this module is make the coroutines that will can 'spin'
@@ -35,7 +39,6 @@ cppcoro::task<void> spin_spinner(
   //    while (not spinner.is_cancellation_requested() and co_await rate.async_is_ready()) {
   while (not spinner.is_cancellation_requested()) {
     //      co_await rate.async_reset();
-    co_await scheduler->schedule();
     co_await [&]() -> cppcoro::task<void> { spinner(); co_return; }();
   }
 }
@@ -70,7 +73,12 @@ cppcoro::task<void> spin_publisher(
   };
 
   while (not co_await termination_has_initialized()) {
-    if (not co_await channel.request_permission_to_publish(publisher_token)) break;
+    channel.increment_publishers_waiting();
+    if (not co_await channel.request_permission_to_publish(publisher_token)) {
+      channel.decrement_publishers_waiting();
+      break;
+    }
+    channel.decrement_publishers_waiting();
 
     std::size_t i = 0;
     while (i < publisher_token.sequences.size()) {
@@ -81,11 +89,35 @@ cppcoro::task<void> spin_publisher(
 
     channel.publish_messages(publisher_token);
 
-    while (not co_await rate.async_is_ready());
+    while (not co_await termination_has_initialized() and not co_await rate.async_is_ready()) {
+    }
     co_await rate.async_reset();
+    std::cout << "pub done waiting" << std::endl;
   }
 
   channel.confirm_termination();
+
+  while (co_await rate.async_is_ready()) {
+    std::this_thread::yield();
+  }
+
+  co_await rate.async_reset();
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+  while (channel.subscribers_are_waiting()) {
+    std::cout << "pub flush sub req" << std::endl;
+    channel.increment_publishers_waiting();
+    co_await channel.request_permission_to_publish(publisher_token, true);
+    channel.decrement_publishers_waiting();
+
+    std::cout << "pub flush sub" << std::endl;
+    while (publisher_token.messages.size() < publisher_token.sequences.size()) {
+      publisher_token.messages.push(typename channel_t::message_t{});
+    }
+
+    channel.publish_messages(publisher_token);
+  }
+  std::cout << "pub exit" << std::endl;
 }
 
 /**
@@ -118,17 +150,23 @@ cppcoro::task<void> spin_subscriber(
   using channel_t = std::decay_t<decltype(channel)>;
 
   while (not subscriber.is_cancellation_requested()) {
+    std::cout << "sub spin" << std::endl;
     auto next_message = channel.message_generator(subscriber_token);
+    channel.increment_subscribers_waiting();
     auto current_message = co_await next_message.begin();
+    channel.decrement_subscribers_waiting();
 
-    while (current_message != next_message.end() and not subscriber.is_cancellation_requested()) {
+    while (current_message != next_message.end()) {
 
       auto& message = *current_message;
       co_await [&]() -> cppcoro::task<void> { co_return subscriber(std::move(message)); }();
 
       // TODO: Move notfy_message_consumed outside of this while loop and remov eth conditional in the implementation
       channel.notify_message_consumed(subscriber_token);
+
+      channel.increment_subscribers_waiting();
       co_await ++current_message;
+      channel.decrement_subscribers_waiting();
     }
   }
 
@@ -141,10 +179,23 @@ cppcoro::task<void> spin_subscriber(
   };
 
   while (co_await channel_needs_flushing()) {
+    std::cout << "sub flush" << std::endl;
     co_await flush<void>(channel, subscriber, subscriber_token);
   }
 
   channel.finalize_termination();
+  //
+  //  spin_wait rate{ std::chrono::milliseconds (300)};
+  //  while (not co_await rate.async_is_ready()) {
+  //    std::this_thread::yield();
+  //  }
+  //
+  //  while (channel.is_waiting()) {
+  //    std::cout << "sub flush one last time" << std::endl;
+  //    co_await flush<void>(channel, subscriber, subscriber_token);
+  //  }
+
+  std::cout << "sub exit" << std::endl;
 }
 
 /**
@@ -178,19 +229,39 @@ cppcoro::task<void> spin_transformer(
   using subscriber_channel_t = std::decay_t<decltype(subscriber_channel)>;
   using publisher_channel_t = std::decay_t<decltype(publisher_channel)>;
 
-  if (not co_await subscriber_channel.request_permission_to_publish(publisher_token)) co_return;
+  std::random_device rd;
+  std::mt19937 mt(rd());
+  std::uniform_int_distribution<int> dist(0, 5000);
+
+  int id = dist(mt);
+
+  subscriber_channel.increment_publishers_waiting();
+  if (not co_await subscriber_channel.request_permission_to_publish(publisher_token)) {
+    subscriber_channel.decrement_publishers_waiting();
+    co_return;
+  }
+  subscriber_channel.decrement_publishers_waiting();
 
   auto termination_has_initialized = [&](auto& channel) {
-    return channel.state() >= subscriber_channel_t::termination_state::subscriber_initialized;
+    return static_cast<std::size_t>(channel.state()) >= static_cast<std::size_t>(subscriber_channel_t::termination_state::subscriber_initialized);
   };
 
-  while (not termination_has_initialized(subscriber_channel)) {
+  while (not termination_has_initialized(subscriber_channel) and not termination_has_initialized(publisher_channel)) {
+    std::cout << "id: " << id << " "
+              << "trans begin main loop" << std::endl;
     auto next_message = publisher_channel.message_generator(subscriber_token);
-    auto current_message = co_await next_message.begin();
 
+    publisher_channel.increment_subscribers_waiting();
+    auto current_message = co_await next_message.begin();
+    publisher_channel.decrement_subscribers_waiting();
+
+    std::cout << "id: " << id << " "
+              << "trans: first inner loop" << std::endl;
     while (current_message != next_message.end() and not termination_has_initialized(subscriber_channel)) {
       auto& message_to_consume = *current_message;
 
+      std::cout << "id: " << id << " "
+                << "trans: waiting for message" << std::endl;
       auto message_to_publish = co_await [&]() -> cppcoro::task<return_t> {
         co_return std::invoke(transformer, std::move(message_to_consume));
       }();
@@ -200,17 +271,42 @@ cppcoro::task<void> spin_transformer(
 
       if (publisher_token.messages.size() == publisher_token.sequences.size() and not termination_has_initialized(subscriber_channel)) {
         subscriber_channel.publish_messages(publisher_token);
-        co_await subscriber_channel.request_permission_to_publish(publisher_token);
+        std::cout << "id: " << id << " "
+                  << "trans: published messages, request permission to publish" << std::endl;
+        subscriber_channel.increment_publishers_waiting();
+        if (not subscriber_channel.any_available()) break;
+        if (not co_await subscriber_channel.request_permission_to_publish(publisher_token)) {
+          subscriber_channel.decrement_publishers_waiting();
+          break;
+        }
+        subscriber_channel.decrement_publishers_waiting();
       }
 
+      std::cout << "id: " << id << " "
+                << "trans: got permission to publish" << std::endl;
       if (termination_has_initialized(subscriber_channel)) {
+        subscriber_channel.publish_messages(publisher_token);
+        std::cout << "id: " << id << " "
+                  << "trans: termination has begun before geting next message" << std::endl;
         break;
       }
 
+      if (termination_has_initialized(publisher_channel)) {
+        std::cout << "id: " << id << " "
+                  << "trans: termination has begun for publisher, breaking" << std::endl;
+        break;
+      }
+
+      std::cout << "id: " << id << " "
+                << "trans: increment message" << std::endl;
+      publisher_channel.increment_subscribers_waiting();
       co_await ++current_message;
+      publisher_channel.decrement_subscribers_waiting();
     }
   }
 
+  std::cout << "id: " << id << " "
+            << "trans: termination has begun, exiting" << std::endl;
   subscriber_channel.confirm_termination();
 
   auto subscriber_channel_terminated = [&]() -> cppcoro::task<bool> {
@@ -220,13 +316,21 @@ cppcoro::task<void> spin_transformer(
   };
 
   if (not co_await subscriber_channel_terminated()) {
-    co_await subscriber_channel.request_permission_to_publish(publisher_token);
+    std::cout << "id: " << id << " "
+              << "trans flush sub req" << std::endl;
+    subscriber_channel.increment_publishers_waiting();
+    if (co_await subscriber_channel.request_permission_to_publish(publisher_token)) {
+      subscriber_channel.decrement_publishers_waiting();
+      std::cout << "id: " << id << " "
+                << "trans flush sub" << std::endl;
+      while (publisher_token.messages.size() < publisher_token.sequences.size()) {
+        publisher_token.messages.push(typename subscriber_channel_t::message_t{});
+      }
 
-    while (publisher_token.messages.size() < publisher_token.sequences.size()) {
-      publisher_token.messages.push(typename subscriber_channel_t::message_t{});
+      subscriber_channel.publish_messages(publisher_token);
+      subscriber_channel.increment_publishers_waiting();
     }
-
-    subscriber_channel.publish_messages(publisher_token);
+    subscriber_channel.decrement_publishers_waiting();
   }
 
   publisher_channel.initialize_termination();
@@ -238,10 +342,22 @@ cppcoro::task<void> spin_transformer(
   };
 
   while (co_await publisher_channel_needs_flushing()) {
+    std::cout << "id: " << id << " "
+              << "trans flush" << std::endl;
     co_await flush<return_t>(publisher_channel, transformer, subscriber_token);
   }
 
   publisher_channel.finalize_termination();
+
+
+  while (publisher_channel.is_waiting()) {
+    std::cout << "id: " << id << " "
+              << "trans flush" << std::endl;
+    co_await flush<return_t>(publisher_channel, transformer, subscriber_token);
+  }
+
+  std::cout << "id: " << id << " "
+            << "trans exit" << std::endl;
 }
 
 /**
@@ -273,7 +389,10 @@ cppcoro::task<void> flush(auto& channel, routine_t& routine, auto& subscriber_to
       }();
 
       channel.notify_message_consumed(subscriber_token);
+
+      channel.increment_subscribers_waiting();
       co_await ++current_message;
+      channel.decrement_subscribers_waiting();
     }
   }
 }

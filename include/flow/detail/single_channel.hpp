@@ -107,13 +107,41 @@ public:
    ****************** publish INTERFACE *****************
    ******************************************************/
 
+  void increment_publishers_waiting() {
+    ++std::atomic_ref(m_num_publishers_waiting);
+  }
+
+  void decrement_publishers_waiting() {
+    --std::atomic_ref(m_num_publishers_waiting);
+  }
+
+  void increment_subscribers_waiting() {
+    ++std::atomic_ref(m_num_subscribers_waiting);
+  }
+
+  void decrement_subscribers_waiting() {
+    --std::atomic_ref(m_num_subscribers_waiting);
+  }
+
+  bool subscribers_are_waiting() {
+    return std::atomic_ref(m_num_subscribers_waiting).load() > 0;
+  }
+
+  auto& scheduler() {
+    return *m_scheduler;
+  }
+
+  bool any_available() {
+    return true;
+  }
+
   /**
    * Request permission to publish the next message
    * @return
    */
-  cppcoro::task<bool> request_permission_to_publish(publisher_token<message_t>& token)
+  cppcoro::task<bool> request_permission_to_publish(publisher_token<message_t>& token, bool force = false)
   {
-    if (m_state > termination_state::uninitialised) co_return false;
+    if (m_state > termination_state::uninitialised and not force) co_return false;
     static constexpr std::size_t STRIDE_LENGTH = configuration_t::stride_length;
 
     ++std::atomic_ref(m_num_publishers_waiting);
@@ -242,6 +270,7 @@ private:
   termination_state m_state{ termination_state::uninitialised };
 
   std::size_t m_num_publishers_waiting{};
+  std::size_t m_num_subscribers_waiting{};
 
   /// The message buffer size determines how many messages can communicated at once
   std::array<message_t, configuration_t::message_buffer_size> m_buffer{};
