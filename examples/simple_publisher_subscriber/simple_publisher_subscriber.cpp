@@ -14,7 +14,8 @@ std::string reverse_string(std::string&& message)
 
 std::size_t hash_string(std::string&& message)
 {
-  return std::hash<std::string>{}(std::move(message));
+  auto hash = std::hash<std::string>{}(std::move(message));
+  return hash;
 }
 
 // For now all messages are passed in by r-value
