@@ -28,8 +28,7 @@ namespace flow::detail {
  * @param spinner A cancellable function with no return type and requires no arguments
  * @return A coroutine that continues until the spinner_function is cancelled
  */
-cppcoro::task<void> spin_spinner(
-  [[maybe_unused]] std::optional<std::chrono::nanoseconds> period,
+cppcoro::task<void> spin_spinner(std::optional<std::chrono::nanoseconds> period,
   auto& scheduler,
   cancellable_function<void()>& spinner)
 {
