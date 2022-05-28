@@ -44,7 +44,7 @@ namespace detail
 
     constexpr chain_impl(
       settings_t&& _settings,
-      std::tuple<routines_t...>&& _routines) : routines(forward(_routines)), settings{ forward(_settings) }
+      std::tuple<routines_t...>&& _routines) : routines(__forward(_routines)), settings{ __forward(_settings) }
     {
     }
 
@@ -70,19 +70,19 @@ namespace detail
   constexpr auto make_chain(is_settings auto settings, std::tuple<routines_t...>&& routines)
   {
     using settings_t = decltype(settings);
-    return chain_impl<chain_state, settings_t, routines_t...>(forward(settings), std::move(routines));
+    return chain_impl<chain_state, settings_t, routines_t...>(__forward(settings), std::move(routines));
   }
 
   template<typename... routines_t>
   constexpr auto concat(std::tuple<routines_t...> && routines, is_valid_chain_item auto&& new_routine)
   {
-    return std::tuple_cat(std::move(routines), std::make_tuple(forward(new_routine)));
+    return std::tuple_cat(std::move(routines), std::make_tuple(__forward(new_routine)));
   }
 
   template<is_chain_state state>
   constexpr auto make_appended_chain(is_chain auto&& chain, is_valid_chain_item auto&& routine)
   {
-    auto appended_routines = concat(forward(chain.routines), forward(routine));
+    auto appended_routines = concat(__forward(chain.routines), __forward(routine));
 
     // pass chain settings by value, moving or using a refeference seems to cause
     // a memory issue, not sure why

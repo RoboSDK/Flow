@@ -39,15 +39,15 @@ constexpr auto to_routine(is_function auto&& function)
   if constexpr (is_transformer_function<function_t>) {
     auto subscription_channel = get_subscribe_to(function);
     auto publish_channel = get_publish_to(function);
-    return transform(forward(function), subscription_channel, publish_channel);
+    return transform(__forward(function), subscription_channel, publish_channel);
   }
   else if constexpr (is_subscriber_function<function_t>) {
     auto subscription_channel = get_subscribe_to(function);
-    return subscribe(forward(function), subscription_channel);
+    return subscribe(__forward(function), subscription_channel);
   }
   else if constexpr (is_publisher_function<function_t>) {
     auto publish_channel = get_publish_to(function);
-    return publish(forward(function), publish_channel);
+    return publish(__forward(function), publish_channel);
   }
   /**
          * If you change this please be careful. The constexpr check for a spinner function seems to
@@ -57,13 +57,13 @@ constexpr auto to_routine(is_function auto&& function)
          * with the function traits section at the bottom of the header.
          */
   else if constexpr (not is_routine<function_t> and is_spinner_function<function_t>) {
-    return flow::spinner(forward(function));
+    return flow::spinner(__forward(function));
   }
 }
 
 constexpr auto to_routine(is_routine auto&& routine)
 {
-  return forward(routine);
+  return __forward(routine);
 }
 
 }// namespace flow::detail

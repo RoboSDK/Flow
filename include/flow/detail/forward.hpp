@@ -1,3 +1,3 @@
 #pragma once
 
-#define forward(value) std::forward<decltype(value)>(value)
+#define __forward(value) std::forward<decltype(value)>(value)

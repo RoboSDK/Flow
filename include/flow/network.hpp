@@ -111,10 +111,10 @@ auto push_routine(is_network auto& network, auto&& routine, std::chrono::nanosec
     network.push(period, flow::spinner(routine));
   }
   else if constexpr (is_publisher_routine<routine_t>) {
-    network.push(period, forward(routine));
+    network.push(period, __forward(routine));
   }
   else {
-    network.push(forward(routine));
+    network.push(__forward(routine));
   }
 }
 
@@ -123,10 +123,10 @@ constexpr auto push_routine_or_chain(auto& network, auto&& routine)
   using routine_t = decltype(routine);
 
   if constexpr (is_chain<routine_t>) {
-    network.push_chain(forward(routine));
+    network.push_chain(__forward(routine));
   }
   else if constexpr (not is_chain<routine_t>) {
-    push_routine(network, forward(routine));
+    push_routine(network, __forward(routine));
   }
 }
 
@@ -142,7 +142,7 @@ constexpr auto network(auto&&... routines)
   using network_t = flow::detail::network_impl<configuration_t>;
   network_t network{};
 
-  (push_routine_or_chain(network, forward(routines)), ...);
+  (push_routine_or_chain(network, __forward(routines)), ...);
 
   return network;
 }
@@ -203,7 +203,7 @@ namespace detail {
       m_handle.push(routine.callback().handle());
       m_routines_to_spin.push_back(detail::spin_spinner(period, m_thread_pool, routine.callback()));
 
-      m_heap_storage.push_back(forward(routine));
+      m_heap_storage.push_back(__forward(routine));
     }
 
     /**
@@ -346,10 +346,10 @@ namespace detail {
         // we know it's at least a routine and not raw function by now
         if constexpr (is_publisher_routine<routine_t>) {
           // TODO: Remove this optional period?
-          push(chain.settings.period.value(), forward(routine));
+          push(chain.settings.period.value(), __forward(routine));
         }
         else {
-          push(forward(routine));
+          push(__forward(routine));
         }
 
       }
